@@ -1,0 +1,49 @@
+2025-06-12 14:06:04,465 - ERROR - No response received after 3 retries, continue with next request
+2025-06-12 14:06:04,465 - ERROR - [U+6307][U+4EE4][U+8B80][U+53D6][U+5931][U+6557]: Modbus Error: [Input/Output] No response received after 3 retries, continue with next request
+2025-06-12 14:06:08,509 - ERROR - No response received after 3 retries, continue with next request
+2025-06-12 14:06:08,509 - ERROR - Modbus[U+64CD][U+4F5C][U+5931][U+6557]: Modbus Error: [Input/Output] No response received after 3 retries, continue with next request
+2025-06-12 14:06:12,540 - ERROR - No response received after 3 retries, continue with next request
+2025-06-12 14:06:12,540 - ERROR - [U+6307][U+4EE4][U+8B80][U+53D6][U+5931][U+6557]: Modbus Error: [Input/Output] No response received after 3 retries, continue with next request
+2025-06-12 14:06:16,567 - ERROR - No response received after 3 retries, continue with next request
+2025-06-12 14:06:16,567 - ERROR - Modbus[U+64CD][U+4F5C][U+5931][U+6557]: Modbus Error: [Input/Output] No response received after 3 retries, continue with next request
+2025-06-12 14:06:20,601 - ERROR - No response received after 3 retries, continue with next request
+2025-06-12 14:06:20,601 - ERROR - [U+6307][U+4EE4][U+8B80][U+53D6][U+5931][U+6557]: Modbus Error: [Input/Output] No response received after 3 retries, continue with next request
+2025-06-12 14:06:24,623 - ERROR - No response received after 3 retries, continue with next request
+2025-06-12 14:06:24,623 - ERROR - Modbus[U+64CD][U+4F5C][U+5931][U+6557]: Modbus Error: [Input/Output] No response received after 3 retries, continue with next request
+2025-06-12 14:06:28,642 - ERROR - No response received after 3 retries, continue with next request
+2025-06-12 14:06:28,642 - ERROR - [U+6307][U+4EE4][U+8B80][U+53D6][U+5931][U+6557]: Modbus Error: [Input/Output] No response received after 3 retries, continue with next request
+2025-06-12 14:06:32,675 - ERROR - Modbus[U+64CD][U+4F5C][U+5931][U+6557]: Modbus Error: [Input/Output] ERROR: No response received of the last requests (default: retries+3), CLOSING CONNECTION.
+2025-06-12 14:06:36,702 - ERROR - [U+6307][U+4EE4][U+8B80][U+53D6][U+5931][U+6557]: Modbus Error: [Input/Output] ERROR: No response received of the last requests (default: retries+3), CLOSING CONNECTION.
+2025-06-12 14:06:40,733 - ERROR - Modbus[U+64CD][U+4F5C][U+5931][U+6557]: Modbus Error: [Input/Output] ERROR: No response received of the last requests (default: retries+3), CLOSING CONNECTION.
+2025-06-12 14:06:44,773 - ERROR - [U+6307][U+4EE4][U+8B80][U+53D6][U+5931][U+6557]: Modbus Error: [Input/Output] ERROR: No response received of the last requests (default: retries+3), CLOSING CONNECTION.
+2025-06-12 14:06:48,805 - ERROR - Modbus[U+64CD][U+4F5C][U+5931][U+6557]: Modbus Error: [Input/Output] ERROR: No response received of the last requests (default: retries+3), CLOSING CONNECTION.
+2025-06-12 14:06:52,843 - ERROR - [U+6307][U+4EE4][U+8B80][U+53D6][U+5931][U+6557]: Modbus Error: [Input/Output] ERROR: No response received of the last requests (default: retries+3), CLOSING CONNECTION.
+2025-06-12 14:06:56,876 - ERROR - Modbus[U+64CD][U+4F5C][U+5931][U+6557]: Modbus Error: [Input/Output] ERROR: No response received of the last requests (default: retries+3), CLOSING CONNECTION.
+2025-06-12 14:07:00,908 - ERROR - [U+6307][U+4EE4][U+8B80][U+53D6][U+5931][U+6557]: Modbus Error: [Input/Output] ERROR: No response received of the last requests (default: retries+3), CLOSING CONNECTION.
+2025-06-12 14:07:04,951 - ERROR - Modbus[U+64CD][U+4F5C][U+5931][U+6557]: Modbus Error: [Input/Output] ERROR: No response received of the last requests (default: retries+3), CLOSING CONNECTION.
+2025-06-12 14:07:08,978 - ERROR - [U+6307][U+4EE4][U+8B80][U+53D6][U+5931][U+6557]: Modbus Error: [Input/Output] ERROR: No response received of the last requests (default: retries+3), CLOSING CONNECTION.
+2025-06-12 14:07:13,005 - ERROR - Modbus[U+64CD][U+4F5C][U+5931][U+6557]: Modbus Error: [Input/Output] ERROR: No response received of the last requests (default: retries+3), CLOSING CONNECTION.
+2025-06-13 13:18:11,145 - ERROR - 指令讀取失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:11,151 - ERROR - Modbus操作失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:11,151 - ERROR - 指令讀取失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:11,151 - ERROR - Modbus操作失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:11,172 - ERROR - 指令讀取失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:11,173 - ERROR - Modbus操作失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:11,193 - ERROR - 指令讀取失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:11,193 - ERROR - Modbus操作失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:11,214 - ERROR - 指令讀取失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:11,214 - ERROR - Modbus操作失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:11,235 - ERROR - 指令讀取失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:11,235 - ERROR - Modbus操作失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:11,256 - ERROR - 指令讀取失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:11,256 - ERROR - Modbus操作失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:11,277 - ERROR - 指令讀取失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:11,277 - ERROR - Modbus操作失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:11,298 - ERROR - 指令讀取失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:11,298 - ERROR - Modbus操作失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:11,318 - ERROR - 指令讀取失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:11,318 - ERROR - Modbus操作失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:11,340 - ERROR - 指令讀取失敗: [WinError 10054] 遠端主機已強制關閉一個現存的連線。
+2025-06-13 13:18:12,372 - ERROR - Connection to (127.0.0.1, 502) failed: timed out
+2025-06-13 13:18:13,387 - ERROR - Connection to (127.0.0.1, 502) failed: timed out
+2025-06-13 13:18:14,397 - ERROR - Connection to (127.0.0.1, 502) failed: timed out
