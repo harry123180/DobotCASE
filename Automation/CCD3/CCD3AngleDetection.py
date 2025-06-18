@@ -135,8 +135,8 @@ class AngleDetector:
         self.min_area_rate = 0.05
         self.sequence_mode = True  # CASE模式預設使用序列模式(選擇最後一個輪廓)
         self.gaussian_kernel = 3
-        self.threshold_mode = 0  # 0=OTSU, 1=Manual
-        self.manual_threshold = 127
+        self.threshold_mode = 1  # 0=OTSU, 1=Manual
+        self.manual_threshold = 50
         
         # 性能優化：預編譯快取
         self._kernel_cache = {}
