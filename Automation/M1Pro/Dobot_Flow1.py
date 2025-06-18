@@ -1,22 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Dobot_Flow1.py - VP震動盤視覺抓取流程 (連續運動優化版 + 角度校正整合)
-基於原版程式碼，優化連續運動段，減少sync()卡頓
-新增: Flow1完成後自動執行角度校正，確認90度無角度差後才設置完成狀態
+Dobot_Flow1.py - VP震動盤視覺抓取流程 (依據CASE流程敘述.md修正版)
+實現完整的VP視覺抓取 + 翻轉檢測流程
+流程序列: standby → vp_topside → CCD1檢測 → 抓取 → flip系列 → CCD2觸發
 """
 
 import time
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
-
-# 導入角度校正高階API
-try:
-    from AngleHighLevel import AngleHighLevel, AngleOperationResult
-    ANGLE_MODULE_AVAILABLE = True
-except ImportError:
-    print("警告: AngleHighLevel模組未找到，角度校正功能將被跳過")
-    ANGLE_MODULE_AVAILABLE = False
 
 
 @dataclass
@@ -26,16 +18,15 @@ class FlowResult:
     error_message: str = ""
     execution_time: float = 0.0
     steps_completed: int = 0
-    total_steps: int = 17  # 新增角度校正步驟，總步驟數變為17
-    angle_correction_performed: bool = False
-    angle_correction_result: Optional[str] = None
+    total_steps: int = 16  # 依據CASE流程敘述.md的步驟數
+    ccd2_triggered: bool = False
+    ccd2_result: Optional[str] = None
 
 
 class DobotFlow1:
     """
-    VP震動盤視覺抓取流程執行器 (連續運動優化版 + 角度校正整合)
-    減少sync()使用，提升連續運動流暢度
-    新增: Flow1完成後自動執行角度校正
+    VP震動盤視覺抓取流程執行器 (依據CASE流程敘述.md)
+    實現完整的視覺抓取 + 翻轉檢測流程
     """
     
     def __init__(self, robot, gripper, ccd1, ccd3, state_machine):
@@ -49,175 +40,148 @@ class DobotFlow1:
         
         # 流程配置
         self.flow_id = 1
-        self.total_steps = 17  # 新增角度校正步驟
+        self.total_steps = 16  # 依據CASE流程敘述.md
         self.current_step = 0
         self.is_running = False
         self.last_error = ""
         
-        # 流程參數 - 優化後
+        # 流程參數 - 依據CASE流程敘述.md
         self.SPEED_RATIO = 100
-        self.POINT_DELAY = 0.1  # 從0.5秒優化為0.1秒
-        self.CCD1_DETECT_HEIGHT = 238.86
-        self.PICKUP_HEIGHT = 137.52
+        self.POINT_DELAY = 0.1
+        self.CCD1_DETECT_HEIGHT = 238.86  # vp_topside的Z高度
+        self.PICKUP_HEIGHT = 137.52       # 實際夾取Z高度
+        self.GRIP_OPEN_POSITION = 370     # 夾爪撐開位置
         
-        # 角度校正參數
-        self.ANGLE_TOLERANCE = 1.0  # 角度差容忍度 (度)
-        self.MAX_ANGLE_CORRECTION_ATTEMPTS = 2  # 最大角度校正嘗試次數
-        
-        # 角度校正API實例
-        self.angle_api = None
-        if ANGLE_MODULE_AVAILABLE:
-            self.angle_api = AngleHighLevel()
-        
-        # 必要點位列表
+        # 必要點位列表 - 依據CASE流程敘述.md
         self.REQUIRED_POINTS = [
-            "standby",
-            "Rotate_V2",
-            "Rotate_top", 
-            "Rotate_down",
-            "VP_TOPSIDE"
+            "standby",      # 待機點
+            "vp_topside",   # VP震動盤上方點
+            "flip_pre",     # 翻轉預備點
+            "flip_top",     # 翻轉頂部點
+            "flip_down"     # 翻轉底部點
         ]
     
     def execute(self) -> FlowResult:
-        """執行VP震動盤視覺抓取流程 (連續運動優化版 + 角度校正)"""
+        """執行VP震動盤視覺抓取流程 - 依據CASE流程敘述.md"""
         print("\n" + "="*60)
-        print("開始執行流程1 - VP震動盤視覺抓取流程 (含角度校正)")
+        print("開始執行流程1 - VP視覺抓取 + 翻轉檢測流程")
+        print("依據CASE流程敘述.md規範實現")
         print("="*60)
         
         start_time = time.time()
         self.is_running = True
         self.current_step = 0
         self.last_error = ""
-        angle_correction_performed = False
-        angle_correction_result = None
+        ccd2_triggered = False
+        ccd2_result = None
         
         detected_coord = None
         
         try:
             # 步驟1: 系統檢查
             if not self._execute_step(1, "系統檢查", self._step_system_check):
-                return self._create_result(False, start_time, angle_correction_performed, angle_correction_result)
+                return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
             
-            # 步驟2: 夾爪快速關閉 (關鍵sync點)
-            if not self._execute_step(2, "夾爪快速關閉", self._step_gripper_quick_close_sync):
-                return self._create_result(False, start_time, angle_correction_performed, angle_correction_result)
+            # 步驟2: 夾爪關閉 (依據CASE流程敘述.md)
+            if not self._execute_step(2, "夾爪關閉", self._step_gripper_close):
+                return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
             
-            # 步驟3: 移動到待機點 (CCD1檢測前sync)
-            if not self._execute_step(3, "移動到待機點", self._step_move_to_standby_sync):
-                return self._create_result(False, start_time, angle_correction_performed, angle_correction_result)
+            # 步驟3: 移動到vp_topside
+            if not self._execute_step(3, "移動到vp_topside", self._step_move_to_vp_topside):
+                return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
             
-            # 步驟4: CCD1檢測 (關鍵sync點)
-            coord_result = self._execute_step_with_return(4, "CCD1視覺檢測", self._step_ccd1_detection)
+            # 步驟4: CCD1檢測API (依據CASE流程敘述.md)
+            coord_result = self._execute_step_with_return(4, "CCD1檢測API", self._step_ccd1_detection)
             if coord_result is False:
-                return self._create_result(False, start_time, angle_correction_performed, angle_correction_result)
+                return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
             detected_coord = coord_result
             
-            # 步驟5-8: 視覺抓取流程 (必要時sync)
+            # 步驟5-7: 視覺抓取流程
             if detected_coord:
                 print(f"  檢測到物體 (FIFO佇列ID: {detected_coord.id})")
-                print(f"  世界座標: ({detected_coord.world_x:.2f}, {detected_coord.world_y:.2f})mm, R={getattr(detected_coord, 'r', 0.0)}°")
+                print(f"  世界座標: ({detected_coord.world_x:.2f}, {detected_coord.world_y:.2f})mm")
                 
-                # 步驟5: 移動到VP_TOPSIDE (無sync，開始連續運動)
-                if not self._execute_step(5, "移動到VP_TOPSIDE", self._step_move_to_vp_topside_no_sync):
-                    return self._create_result(False, start_time, angle_correction_performed, angle_correction_result)
+                # 步驟5: 移動到視覺檢測到的物件座標(Z軸高度與vp_topside等高)
+                if not self._execute_step(5, "移動到物體上方(與vp_topside等高)", 
+                                        lambda: self._step_move_to_object_same_height(detected_coord)):
+                    return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
                 
-                # 步驟6: 移動到物體上方 (無sync，連續運動)
-                if not self._execute_step(6, "移動到物體上方", 
-                                        lambda: self._step_move_to_object_above_no_sync(detected_coord)):
-                    return self._create_result(False, start_time, angle_correction_performed, angle_correction_result)
+                # 步驟6: 移動到檢測到的物件座標(Z軸到夾取位置)
+                if not self._execute_step(6, "下降到夾取位置", 
+                                        lambda: self._step_move_to_pickup_height(detected_coord)):
+                    return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
                 
-                # 步驟7: 下降並智能夾取 (關鍵sync點 - 夾爪調用前)
-                if not self._execute_step(7, "下降並智能夾取", 
-                                        lambda: self._step_descend_and_grip_sync(detected_coord)):
-                    return self._create_result(False, start_time, angle_correction_performed, angle_correction_result)
+                # 步驟7: 夾爪撐開至370
+                if not self._execute_step(7, "夾爪撐開至370", self._step_gripper_open_370):
+                    return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
                 
-                # 步驟8: 上升並移動到VP_TOPSIDE (夾取後開始連續運動)
-                if not self._execute_step(8, "上升並移動到VP_TOPSIDE", 
-                                        lambda: self._step_ascend_and_move_to_vp_no_sync(detected_coord)):
-                    return self._create_result(False, start_time, angle_correction_performed, angle_correction_result)
+                # 步驟8: 移動到vp_topside
+                if not self._execute_step(8, "移動到vp_topside", self._step_move_to_vp_topside):
+                    return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
             else:
                 print("  未檢測到物體，跳過抓取流程")
                 for step in range(5, 9):
                     self._execute_step(step, f"跳過步驟{step}", lambda: True)
             
-            # 🔥 步驟9-12: 連續運動段優化 (夾取完成後的連續動作)
-            print("  ▶ 開始連續運動段 (步驟9-12)...")
+            # 步驟9: 移動到standby
+            if not self._execute_step(9, "移動到standby", self._step_move_to_standby):
+                return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
             
-            # 步驟9: 移動到待機點 (無sync，連續運動開始)
-            if not self._execute_step(9, "移動到待機點", self._step_move_to_standby_no_sync):
-                return self._create_result(False, start_time, angle_correction_performed, angle_correction_result)
-            
-            # 步驟10-12: 連續運動序列 (無中間sync)
-            continuous_movements = [
-                (10, "移動到Rotate_V2", "Rotate_V2"),
-                (11, "移動到Rotate_top", "Rotate_top"), 
-                (12, "移動到Rotate_down", "Rotate_down")
+            # 步驟10-14: 翻轉檢測序列 (依據CASE流程敘述.md)
+            flip_sequence = [
+                (10, "移動到flip_pre", "flip_pre"),
+                (11, "移動到flip_top", "flip_top"),
+                (12, "移動到flip_down", "flip_down"),
+                (13, "移動到flip_top", "flip_top"),
+                (14, "移動到flip_pre", "flip_pre")
             ]
             
-            for step_num, step_name, point_name in continuous_movements:
+            for step_num, step_name, point_name in flip_sequence:
                 if not self._execute_step(step_num, step_name, 
-                                        lambda p=point_name: self._step_move_to_point_no_sync(p)):
-                    return self._create_result(False, start_time, angle_correction_performed, angle_correction_result)
+                                        lambda p=point_name: self._step_move_to_point(p)):
+                    return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
             
-            # 步驟13: 智能關閉 (關鍵sync點 - 夾爪調用前)
-            if not self._execute_step(13, "智能關閉", self._step_smart_close_sync):
-                return self._create_result(False, start_time, angle_correction_performed, angle_correction_result)
+            # 步驟15: 移動到standby
+            if not self._execute_step(15, "移動到standby", self._step_move_to_standby):
+                return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
             
-            # 步驟14-15: 最後連續運動段 (夾爪操作後的連續運動)
-            print("  ▶ 開始最後連續運動段 (步驟14-15)...")
-            
-            final_movements = [
-                (14, "移動到Rotate_top", "Rotate_top"),
-                (15, "移動到Rotate_V2", "Rotate_V2")
-            ]
-            
-            for step_num, step_name, point_name in final_movements:
-                if not self._execute_step(step_num, step_name,
-                                        lambda p=point_name: self._step_move_to_point_no_sync(p)):
-                    return self._create_result(False, start_time, angle_correction_performed, angle_correction_result)
-            
-            # 步驟16: 回到待機點 (角度校正前的sync點)
-            if not self._execute_step(16, "回到待機點(角度校正前)", self._step_move_to_standby_sync):
-                return self._create_result(False, start_time, angle_correction_performed, angle_correction_result)
-            
-            # ✨ 步驟17: 角度校正 (新增) - 確保90度無角度差
-            angle_correction_performed = True
-            angle_result = self._execute_step_with_return(17, "角度校正到90度", self._step_angle_correction)
-            if angle_result is False:
-                angle_correction_result = "角度校正失敗"
-                return self._create_result(False, start_time, angle_correction_performed, angle_correction_result)
+            # 步驟16: 觸發CCD2(物件正反面辨識與輸送帶翻轉機構的IO控制)
+            ccd2_result = self._execute_step_with_return(16, "觸發CCD2翻轉檢測", self._step_trigger_ccd2)
+            if ccd2_result is not False:
+                ccd2_triggered = True
+                print(f"  CCD2觸發結果: {ccd2_result}")
             else:
-                angle_correction_result = angle_result
+                ccd2_triggered = False
+                ccd2_result = "觸發失敗"
+                print("  CCD2觸發失敗，但流程繼續")
             
-            # 🎯 關鍵: 只有角度校正成功且滿足條件才設置Flow1完成狀態
-            if not self._set_flow1_completion_status():
-                self.last_error = "設置Flow1完成狀態失敗"
-                return self._create_result(False, start_time, angle_correction_performed, angle_correction_result)
+            # 設置Flow1完成狀態 (只有CCD2觸發成功才設置)
+            if ccd2_triggered:
+                if not self._set_flow1_completion_status():
+                    self.last_error = "設置Flow1完成狀態失敗"
+                    return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
             
             # 流程完成
             execution_time = time.time() - start_time
             print(f"\n✓ 流程1執行完成！總耗時: {execution_time:.2f}秒")
-            print(f"✓ 角度校正結果: {angle_correction_result}")
+            print(f"✓ CCD2觸發狀態: {ccd2_triggered}")
             
             return FlowResult(
                 success=True,
                 execution_time=execution_time,
                 steps_completed=self.total_steps,
                 total_steps=self.total_steps,
-                angle_correction_performed=angle_correction_performed,
-                angle_correction_result=angle_correction_result
+                ccd2_triggered=ccd2_triggered,
+                ccd2_result=ccd2_result
             )
             
         except Exception as e:
             self.last_error = f"流程執行異常: {str(e)}"
             print(f"✗ {self.last_error}")
-            return self._create_result(False, start_time, angle_correction_performed, angle_correction_result)
+            return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
         
         finally:
             self.is_running = False
-            # 斷開角度校正API連接
-            if self.angle_api:
-                self.angle_api.disconnect()
     
     def _execute_step(self, step_num: int, step_name: str, step_func) -> bool:
         """執行單個步驟並更新進度"""
@@ -267,8 +231,7 @@ class DobotFlow1:
                 pass
     
     def _create_result(self, success: bool, start_time: float, 
-                      angle_correction_performed: bool, 
-                      angle_correction_result: Optional[str]) -> FlowResult:
+                      ccd2_triggered: bool, ccd2_result: Optional[str]) -> FlowResult:
         """創建流程結果"""
         return FlowResult(
             success=success,
@@ -276,116 +239,12 @@ class DobotFlow1:
             execution_time=time.time() - start_time,
             steps_completed=self.current_step,
             total_steps=self.total_steps,
-            angle_correction_performed=angle_correction_performed,
-            angle_correction_result=angle_correction_result
+            ccd2_triggered=ccd2_triggered,
+            ccd2_result=ccd2_result
         )
     
     # =================================================================
-    # 新增: 角度校正相關方法
-    # =================================================================
-    
-    def _step_angle_correction(self) -> str:
-        """步驟17: 角度校正到90度 (新增方法)"""
-        if not ANGLE_MODULE_AVAILABLE or not self.angle_api:
-            print("  角度校正模組不可用，跳過角度校正")
-            return "跳過(模組不可用)"
-        
-        try:
-            print("  正在初始化角度校正系統...")
-            
-            # 連接角度校正系統
-            if not self.angle_api.connect():
-                print("  角度校正系統連接失敗")
-                return False
-            
-            print("  角度校正系統連接成功")
-            
-            # 檢查系統狀態
-            if not self.angle_api.is_system_ready():
-                print("  角度校正系統未準備就緒，嘗試重置錯誤...")
-                reset_result = self.angle_api.reset_errors()
-                if reset_result != AngleOperationResult.SUCCESS:
-                    print("  角度校正系統重置失敗")
-                    return False
-                
-                # 重新檢查狀態
-                time.sleep(1.0)
-                if not self.angle_api.is_system_ready():
-                    print("  角度校正系統重置後仍未準備就緒")
-                    return False
-            
-            # 執行角度校正
-            print("  開始執行角度校正...")
-            correction_result = self.angle_api.adjust_to_90_degrees()
-            
-            if correction_result.result == AngleOperationResult.SUCCESS:
-                print(f"  ✓ 角度校正成功")
-                print(f"    檢測角度: {correction_result.original_angle:.2f}度")
-                print(f"    角度差: {correction_result.angle_diff:.2f}度")
-                print(f"    馬達位置: {correction_result.motor_position}")
-                print(f"    執行時間: {correction_result.execution_time:.2f}秒")
-                
-                # 檢查角度差是否在容忍範圍內
-                if correction_result.angle_diff <= self.ANGLE_TOLERANCE:
-                    print(f"  ✓ 角度差 {correction_result.angle_diff:.2f}度 在容忍範圍內 (≤{self.ANGLE_TOLERANCE}度)")
-                    return f"成功(角度差:{correction_result.angle_diff:.2f}度)"
-                else:
-                    print(f"  ⚠ 角度差 {correction_result.angle_diff:.2f}度 超出容忍範圍 (>{self.ANGLE_TOLERANCE}度)")
-                    
-                    # 可選: 嘗試第二次校正
-                    if self.MAX_ANGLE_CORRECTION_ATTEMPTS > 1:
-                        print("  嘗試第二次角度校正...")
-                        second_result = self.angle_api.adjust_to_90_degrees()
-                        
-                        if (second_result.result == AngleOperationResult.SUCCESS and 
-                            second_result.angle_diff <= self.ANGLE_TOLERANCE):
-                            print(f"  ✓ 第二次校正成功，角度差: {second_result.angle_diff:.2f}度")
-                            return f"成功(二次校正,角度差:{second_result.angle_diff:.2f}度)"
-                        else:
-                            print(f"  ✗ 第二次校正仍不滿足要求")
-                            # 這裡可以選擇接受結果或返回失敗
-                            # 為了流程穩定性，我們接受結果但記錄警告
-                            return f"警告(角度差超出容忍範圍:{correction_result.angle_diff:.2f}度)"
-                    else:
-                        return f"警告(角度差超出容忍範圍:{correction_result.angle_diff:.2f}度)"
-                        
-            else:
-                print(f"  ✗ 角度校正失敗: {correction_result.message}")
-                if correction_result.error_details:
-                    print(f"    錯誤詳情: {correction_result.error_details}")
-                return False
-                
-        except Exception as e:
-            print(f"  ✗ 角度校正過程異常: {e}")
-            return False
-    
-    def _set_flow1_completion_status(self) -> bool:
-        """設置Flow1完成狀態到寄存器 (新增方法)"""
-        try:
-            if (self.state_machine and 
-                hasattr(self.state_machine, 'modbus_client') and 
-                self.state_machine.modbus_client is not None):
-                
-                # 設置Flow1完成狀態 - 使用新增的寄存器420
-                # 1 = Flow1完成且角度校正成功
-                self.state_machine.modbus_client.write_register(420, 1)
-                print("  ✓ Flow1完成狀態已設置 (寄存器420=1)")
-                
-                # 同時更新流程進度為100%
-                self.state_machine.modbus_client.write_register(403, 100)
-                print("  ✓ 流程進度已設置為100%")
-                
-                return True
-            else:
-                print("  ✗ 狀態機Modbus連接不可用，無法設置完成狀態")
-                return False
-                
-        except Exception as e:
-            print(f"  ✗ 設置Flow1完成狀態失敗: {e}")
-            return False
-    
-    # =================================================================
-    # 流程步驟實現 - 區分sync和no_sync版本 (原有方法保持不變)
+    # 流程步驟實現 - 依據CASE流程敘述.md
     # =================================================================
     
     def _step_system_check(self) -> bool:
@@ -415,12 +274,8 @@ class DobotFlow1:
         
         return True
     
-    # =================================================================
-    # 關鍵sync點 - 夾爪和CCD1調用前
-    # =================================================================
-    
-    def _step_gripper_quick_close_sync(self) -> bool:
-        """步驟2: 夾爪快速關閉 (關鍵sync點)"""
+    def _step_gripper_close(self) -> bool:
+        """步驟2: 夾爪關閉 (依據CASE流程敘述.md)"""
         if not self.gripper:
             print("  跳過夾爪關閉 (夾爪未啟用)")
             return True
@@ -428,45 +283,42 @@ class DobotFlow1:
         success = self.gripper.quick_close()
         
         if success:
-            print("  PGC夾爪快速關閉完成")
+            print("  PGC夾爪關閉完成")
         else:
-            self.last_error = "PGC夾爪快速關閉失敗"
+            self.last_error = "PGC夾爪關閉失敗"
         
         return success
     
-    def _step_move_to_standby_sync(self) -> bool:
-        """步驟3&16: 移動到待機點 (CCD1檢測前&角度校正前sync)"""
+    def _step_move_to_vp_topside(self) -> bool:
+        """步驟3&8: 移動到vp_topside"""
         self.robot.set_global_speed(self.SPEED_RATIO)
         
-        if not self.robot.MovJ("standby"):
-            self.last_error = "移動到待機點失敗"
+        if not self.robot.MovJ("vp_topside"):
+            self.last_error = "移動到vp_topside失敗"
             return False
         
-        # CCD1檢測前或角度校正前必須sync確保到位
         self.robot.sync()
-        print("  移動到待機點完成")
+        print("  移動到vp_topside完成")
         return True
     
     def _step_ccd1_detection(self):
-        """步驟4: CCD1檢測 (關鍵sync點)"""
+        """步驟4: CCD1檢測API (依據CASE流程敘述.md)"""
         if not self.ccd1:
             print("  跳過CCD1檢測 (CCD1未啟用)")
             return None
         
-        print("  在待機點進行CCD1視覺檢測...")
+        print("  執行CCD1視覺檢測...")
         
-        # 優先從FIFO佇列獲取已有的檢測結果
-        # 如果佇列為空，會自動觸發新的檢測
+        # 使用CCD1HighLevel API的FIFO佇列功能
         coord = self.ccd1.get_next_circle_world_coord()
         
         if coord:
-            # 🔥 修正R值 - 繼承VP_TOPSIDE的R值
-            vp_topside_point = self.robot.points_manager.get_point("VP_TOPSIDE")
+            # 繼承vp_topside的R值
+            vp_topside_point = self.robot.points_manager.get_point("vp_topside")
             if vp_topside_point and hasattr(vp_topside_point, 'r'):
                 coord.r = vp_topside_point.r
-                print(f"    繼承VP_TOPSIDE的R值: {coord.r}°")
+                print(f"    繼承vp_topside的R值: {coord.r}°")
             else:
-                # 如果無法獲取VP_TOPSIDE的R值，使用預設值
                 coord.r = 0.0
                 print(f"    使用預設R值: {coord.r}°")
             
@@ -477,131 +329,73 @@ class DobotFlow1:
             print("    未檢測到物體或佇列已空")
             return None
     
-    def _step_descend_and_grip_sync(self, coord) -> bool:
-        """步驟7: 下降並智能夾取 (關鍵sync點 - 夾爪調用前)"""
+    def _step_move_to_object_same_height(self, coord) -> bool:
+        """步驟5: 移動到視覺檢測到的物件座標(Z軸高度與vp_topside等高)"""
         if not coord:
             self.last_error = "沒有有效的物體座標"
             return False
         
-        # 使用coord中的R值（已從VP_TOPSIDE繼承）
+        # 使用vp_topside的Z高度
+        vp_topside_point = self.robot.points_manager.get_point("vp_topside")
+        if not vp_topside_point:
+            self.last_error = "找不到vp_topside點位"
+            return False
+        
+        z_height = vp_topside_point.z
         r_value = getattr(coord, 'r', 0.0)
         
-        # 下降到抓取高度
-        if not self.robot.MovL_coord(coord.world_x, coord.world_y, self.PICKUP_HEIGHT, r_value):
-            self.last_error = "下降到抓取高度失敗"
-            return False
-        
-        # 夾爪調用前必須sync確保精確定位
-        self.robot.sync()
-        print(f"    下降到抓取高度完成: {self.PICKUP_HEIGHT}mm (R={r_value}°)")
-        
-        # 智能夾取
-        if self.gripper:
-            if not self.gripper.smart_grip(target_position=420):
-                self.last_error = "智能夾取失敗"
-                return False
-            print("    智能夾取完成")
-        
-        return True
-    
-    def _step_smart_close_sync(self) -> bool:
-        """步驟13: 智能關閉 (關鍵sync點 - 夾爪調用前)"""
-        # 夾爪調用前先sync等待前面運動完成
-        self.robot.sync()
-        
-        if not self.gripper:
-            print("  跳過智能關閉 (夾爪未啟用)")
-            return True
-        
-        if not self.gripper.smart_release(release_position=50):
-            self.last_error = "智能關閉失敗"
-            return False
-        
-        print("  智能關閉完成")
-        return True
-    
-    # =================================================================
-    # 無sync版本 - 連續運動優化
-    # =================================================================
-    
-    def _step_move_to_vp_topside_no_sync(self) -> bool:
-        """步驟5: 移動到VP_TOPSIDE (無sync版本)"""
-        if not self.robot.MovJ("VP_TOPSIDE"):
-            self.last_error = "移動到VP_TOPSIDE失敗"
-            return False
-        
-        # 移除sync()，讓運動連續進行
-        print("  移動到VP_TOPSIDE指令已發送")
-        return True
-    
-    def _step_move_to_object_above_no_sync(self, coord) -> bool:
-        """步驟6: 移動到物體上方 (無sync版本)"""
-        if not coord:
-            self.last_error = "沒有有效的物體座標"
-            return False
-        
-        # 使用coord中的R值（已從VP_TOPSIDE繼承）
-        r_value = getattr(coord, 'r', 0.0)
-        
-        if not self.robot.MovL_coord(coord.world_x, coord.world_y, self.CCD1_DETECT_HEIGHT, r_value):
+        if not self.robot.MovL_coord(coord.world_x, coord.world_y, z_height, r_value):
             self.last_error = "移動到物體上方失敗"
             return False
         
-        # 移除sync()，連續運動
-        print(f"    移動到物體上方指令已發送 (R={r_value}°)")
+        self.robot.sync()
+        print(f"    移動到物體上方完成: Z={z_height}mm (與vp_topside等高)")
         return True
     
-    def _step_ascend_and_move_to_vp_no_sync(self, coord) -> bool:
-        """步驟8: 上升並移動 (無sync版本)"""
+    def _step_move_to_pickup_height(self, coord) -> bool:
+        """步驟6: 移動到檢測到的物件座標(Z軸到夾取位置)"""
         if not coord:
             self.last_error = "沒有有效的物體座標"
             return False
         
-        # 使用coord中的R值（已從VP_TOPSIDE繼承）
         r_value = getattr(coord, 'r', 0.0)
         
-        # 上升到安全高度
-        if not self.robot.MovL_coord(coord.world_x, coord.world_y, self.CCD1_DETECT_HEIGHT, r_value):
-            self.last_error = "上升到安全高度失敗"
+        if not self.robot.MovL_coord(coord.world_x, coord.world_y, self.PICKUP_HEIGHT, r_value):
+            self.last_error = "下降到夾取高度失敗"
             return False
         
-        # 移動到VP_TOPSIDE
-        if not self.robot.MovJ("VP_TOPSIDE"):
-            self.last_error = "移動到VP_TOPSIDE失敗"
-            return False
-        
-        # 移除sync()，讓運動連續
-        print(f"    上升並移動指令已發送 (R={r_value}°)")
+        self.robot.sync()
+        print(f"    下降到夾取高度完成: Z={self.PICKUP_HEIGHT}mm")
         return True
     
-    def _step_move_to_standby_no_sync(self) -> bool:
-        """步驟9: 移動到待機點 (無sync版本)"""
+    def _step_gripper_open_370(self) -> bool:
+        """步驟7: 夾爪撐開至370 (依據CASE流程敘述.md)"""
+        if not self.gripper:
+            print("  跳過夾爪撐開 (夾爪未啟用)")
+            return True
+        
+        # 使用智能夾取，目標位置370
+        if not self.gripper.smart_grip(target_position=self.GRIP_OPEN_POSITION):
+            self.last_error = "夾爪撐開至370失敗"
+            return False
+        
+        print(f"  夾爪撐開至{self.GRIP_OPEN_POSITION}完成")
+        return True
+    
+    def _step_move_to_standby(self) -> bool:
+        """步驟9&15: 移動到standby"""
         self.robot.set_global_speed(self.SPEED_RATIO)
         
         if not self.robot.MovJ("standby"):
-            self.last_error = "移動到待機點失敗"
+            self.last_error = "移動到standby失敗"
             return False
         
-        # 移除sync()，連續運動
-        print("  移動到待機點指令已發送")
+        self.robot.sync()
+        print("  移動到standby完成")
         return True
-    
-    def _step_move_to_point_no_sync(self, point_name: str) -> bool:
-        """通用點位移動 (無sync版本) - 用於連續運動段"""
-        if not self.robot.MovJ(point_name):
-            self.last_error = f"移動到{point_name}失敗"
-            return False
-        
-        # 移除sync()和sleep()，純指令發送
-        print(f"  移動到{point_name}指令已發送")
-        return True
-    
-    # =================================================================
-    # 保留的sync版本 (向後兼容)
-    # =================================================================
     
     def _step_move_to_point(self, point_name: str) -> bool:
-        """通用點位移動方法 (保留sync版本)"""
+        """通用點位移動方法 - 用於flip系列點位"""
         if not self.robot.MovJ(point_name):
             self.last_error = f"移動到{point_name}失敗"
             return False
@@ -610,6 +404,52 @@ class DobotFlow1:
         time.sleep(self.POINT_DELAY)
         print(f"  移動到{point_name}完成")
         return True
+    
+    def _step_trigger_ccd2(self) -> str:
+        """步驟16: 觸發CCD2(物件正反面辨識與輸送帶翻轉機構的IO控制)"""
+        try:
+            print("  正在觸發CCD2翻轉檢測系統...")
+            
+            # 使用機械臂dashboard_api的IO操作觸發CCD2
+            # 依據CASE流程敘述.md的IO操作設計
+            success = self.robot.trigger_ccd2_flip_detection()
+            
+            if success:
+                print("  ✓ CCD2翻轉檢測已成功觸發")
+                print("  ✓ 採用異步IO操作設計，手臂可立即執行其他流程")
+                return "CCD2觸發成功(異步IO)"
+            else:
+                print("  ✗ CCD2翻轉檢測觸發失敗")
+                return False
+                
+        except Exception as e:
+            print(f"  ✗ CCD2觸發過程異常: {e}")
+            return False
+    
+    def _set_flow1_completion_status(self) -> bool:
+        """設置Flow1完成狀態到寄存器 - 只有CCD2觸發成功才設置"""
+        try:
+            if (self.state_machine and 
+                hasattr(self.state_machine, 'modbus_client') and 
+                self.state_machine.modbus_client is not None):
+                
+                # 設置Flow1完成狀態 - 使用寄存器420
+                # 1 = Flow1完成且CCD2觸發成功
+                self.state_machine.modbus_client.write_register(420, 1)
+                print("  ✓ Flow1完成狀態已設置 (寄存器420=1)")
+                
+                # 同時更新流程進度為100%
+                self.state_machine.modbus_client.write_register(403, 100)
+                print("  ✓ 流程進度已設置為100%")
+                
+                return True
+            else:
+                print("  ✗ 狀態機Modbus連接不可用，無法設置完成狀態")
+                return False
+                
+        except Exception as e:
+            print(f"  ✗ 設置Flow1完成狀態失敗: {e}")
+            return False
     
     # =================================================================
     # 狀態查詢和控制方法
@@ -631,12 +471,21 @@ class DobotFlow1:
             "required_points": self.REQUIRED_POINTS,
             "gripper_enabled": self.gripper is not None,
             "ccd1_enabled": self.ccd1 is not None,
-            "angle_correction_enabled": ANGLE_MODULE_AVAILABLE,  # 新增
-            "optimization_enabled": True,  # 標識已優化
-            "continuous_movement_segments": [
-                "步驟9-12: 待機點→Rotate_V2→Rotate_top→Rotate_down",
-                "步驟14-15: Rotate_top→Rotate_V2",
-                "步驟17: 角度校正(新增)"
+            "flow_description": "VP視覺抓取 + 翻轉檢測 (依據CASE流程敘述.md)",
+            "flow_sequence": [
+                "standby → 夾爪關閉 → vp_topside → CCD1檢測API",
+                "→ 移動到物件座標(Z軸高度與vp_topside等高)",
+                "→ 移動到物件座標(Z軸到夾取位置) → 夾爪撐開至370",
+                "→ 移動到vp_topside → 移動到standby",
+                "→ flip_pre → flip_top → flip_down → flip_top → flip_pre",
+                "→ standby → 觸發CCD2(物件正反面辨識與輸送帶翻轉機構的IO控制)"
+            ],
+            "key_features": [
+                "CCD1HighLevel API的FIFO佇列管理",
+                "GripperHighLevel API自動判斷夾取成功", 
+                "CCD2異步IO操作觸發翻轉檢測",
+                "智能夾取至370位置",
+                "完整的flip系列翻轉檢測動作"
             ]
         }
     
@@ -650,10 +499,6 @@ class DobotFlow1:
             
             if self.gripper:
                 self.gripper.stop()
-            
-            # 斷開角度校正API連接
-            if self.angle_api:
-                self.angle_api.disconnect()
             
             self.last_error = "流程已停止"
             return True
