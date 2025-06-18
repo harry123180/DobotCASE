@@ -22,6 +22,6 @@
     "sequence_mode": 0,
     "gaussian_kernel": 3,
     "threshold_mode": 0,
-    "manual_threshold": 180
+    "manual_threshold": 250
   }
 }
