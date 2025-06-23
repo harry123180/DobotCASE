@@ -565,13 +565,14 @@ class MotionFlowThread(BaseFlowThread):
 
 # ==================== DIO控制執行緒 ====================
 
+# ==================== DIO控制執行緒 ====================
+
 class DIOControlThread(BaseFlowThread):
     """DIO控制執行緒"""
     
     def __init__(self, robot: RealRobotController, command_queue: CommandQueue):
         super().__init__("DIOControl", command_queue)
         self.robot = robot
-        self.flow_flip_executor = None
         
     def initialize_flows(self):
         """初始化DIO Flow執行器"""
@@ -618,34 +619,73 @@ class DIOControlThread(BaseFlowThread):
             cmd_data = command.command_data
             cmd_type = cmd_data.get('type', '')
             
+            print(f"[DIO] 處理指令類型: {cmd_type}")
+            
             if cmd_type == 'flow_flip_station':
                 self._execute_flip_station()
+            elif cmd_type == 'flow_vibration_feed':
+                self._execute_vibration_feed()
             else:
-                print(f"未知DIO指令類型: {cmd_type}")
+                print(f"[DIO] 未知DIO指令類型: {cmd_type}")
                 
             self.operation_count += 1
             
         except Exception as e:
             self.last_error = f"處理DIO指令失敗: {e}"
-            print(self.last_error)
+            print(f"[DIO] {self.last_error}")
+            traceback.print_exc()
     
     def _execute_flip_station(self):
-        """執行翻轉站控制"""
+        """執行翻轉站控制 (Flow3)"""
         try:
-            print("開始執行翻轉站控制")
+            print("[DIO] 開始執行翻轉站控制 (Flow3)")
             
-            if self.flow_flip_executor:
-                result = self.flow_flip_executor.execute()
+            # 修正：使用flow_executors[3]而不是flow_flip_executor
+            flow3 = self.flow_executors.get(3)
+            if flow3:
+                print("[DIO] Flow3執行器已找到，開始執行...")
+                result = flow3.execute()
                 
                 if result.success:
-                    print("✓ 翻轉站控制執行成功")
+                    print("[DIO] ✓ 翻轉站控制執行成功")
+                    print(f"[DIO] 耗時: {result.execution_time:.2f}秒")
+                    print(f"[DIO] 完成步驟: {result.steps_completed}/{result.total_steps}")
                 else:
-                    print(f"✗ 翻轉站控制執行失敗: {result.error_message}")
+                    print(f"[DIO] ✗ 翻轉站控制執行失敗: {result.error_message}")
+                    print(f"[DIO] 完成步驟: {result.steps_completed}/{result.total_steps}")
             else:
-                print("✗ 翻轉站執行器未初始化")
+                print("[DIO] ✗ Flow3翻轉站執行器未初始化")
+                print(f"[DIO] 可用的flow_executors: {list(self.flow_executors.keys())}")
                 
         except Exception as e:
-            print(f"翻轉站控制執行異常: {e}")
+            print(f"[DIO] 翻轉站控制執行異常: {e}")
+            traceback.print_exc()
+
+    def _execute_vibration_feed(self):
+        """執行震動投料控制 (Flow4)"""
+        try:
+            print("[DIO] 開始執行震動投料控制 (Flow4)")
+            
+            # 使用flow_executors[4]
+            flow4 = self.flow_executors.get(4)
+            if flow4:
+                print("[DIO] Flow4執行器已找到，開始執行...")
+                result = flow4.execute()
+                
+                if result.success:
+                    print("[DIO] ✓ 震動投料控制執行成功")
+                    print(f"[DIO] 耗時: {result.execution_time:.2f}秒")
+                    print(f"[DIO] 完成步驟: {result.steps_completed}/{result.total_steps}")
+                else:
+                    print(f"[DIO] ✗ 震動投料控制執行失敗: {result.error_message}")
+                    print(f"[DIO] 完成步驟: {result.steps_completed}/{result.total_steps}")
+            else:
+                print("[DIO] ✗ Flow4震動投料執行器未初始化")
+                print(f"[DIO] 可用的flow_executors: {list(self.flow_executors.keys())}")
+                
+        except Exception as e:
+            print(f"[DIO] 震動投料控制執行異常: {e}")
+            traceback.print_exc()
 
 # ==================== 外部模組執行緒 ====================
 
