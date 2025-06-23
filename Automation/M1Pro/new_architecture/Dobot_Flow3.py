@@ -62,7 +62,7 @@ class FlowFlipStationExecutor(FlowExecutor):
         self.build_flow_steps()
         
     def build_flow_steps(self):
-        """建構Flow3步驟"""
+        """建構Flow3步驟 - 使用修正後的感測器邏輯"""
         self.dio_steps = [
             # 1. 升降缸回原點
             {'type': 'lift_home', 'params': {}},
@@ -91,8 +91,11 @@ class FlowFlipStationExecutor(FlowExecutor):
             # 9. 翻轉回0度
             {'type': 'flip_0', 'params': {}},
             
-            # 10. 啟動輸送帶直到感測器觸發
-            {'type': 'conveyor_run_until_sensor', 'params': {'sensor_pin': self.DIO_PINS['SENSOR_DI13']}}
+            # 10. 啟動輸送帶直到感測器觸發 (DI13=0為到位)
+            {'type': 'conveyor_run_until_sensor', 'params': {
+                'sensor_pin': self.DIO_PINS['SENSOR_DI13'], 
+                'timeout': 15.0
+            }},
         ]
         
         self.total_steps = len(self.dio_steps)
@@ -440,12 +443,21 @@ class FlowFlipStationExecutor(FlowExecutor):
             print(f"[Flow3]   ✗ 翻轉回0度失敗: {e}")
             return False
             
+    
     def _conveyor_run_until_sensor(self, params: Dict[str, Any]) -> bool:
-        """啟動輸送帶直到感測器觸發"""
+        """啟動輸送帶直到感測器觸發 - 修正感測器邏輯"""
         try:
             sensor_pin = params['sensor_pin']
             timeout = params.get('timeout', 30.0)
-            print(f"[Flow3]   啟動輸送帶，等待感測器DI{sensor_pin}觸發 (超時: {timeout}秒)")
+            print(f"[Flow3]   啟動輸送帶，等待感測器DI{sensor_pin}到位 (DI13=0表示到位)")
+            
+            # 先檢查初始感測器狀態
+            initial_sensor = self._get_di(sensor_pin)
+            print(f"[Flow3]   初始感測器狀態: DI{sensor_pin} = {initial_sensor}")
+            
+            # 如果感測器已經是0(到位狀態)，需要等待變為1(未到位)再變回0
+            if initial_sensor == 0:
+                print(f"[Flow3]   感測器已在到位狀態，啟動輸送帶讓物件移動...")
             
             # 啟動輸送帶 DO2=HIGH
             if not self._set_do(self.DIO_PINS['CONVEYOR'], 1):
@@ -453,30 +465,82 @@ class FlowFlipStationExecutor(FlowExecutor):
                 
             print("[Flow3]   ✓ 輸送帶已啟動")
             
-            # 等待感測器觸發
+            # 修正超時時間
+            effective_timeout = min(timeout, 15.0)  # 最多等待15秒
             start_time = time.time()
+            sensor_reached_position = False
+            check_count = 0
             
-            while time.time() - start_time < timeout:
-                sensor_value = self._get_di(sensor_pin)
-                
-                if sensor_value == 1:
-                    print(f"[Flow3]   ✓ 感測器DI{sensor_pin}已觸發")
+            # 狀態追蹤
+            last_sensor_value = initial_sensor
+            state_changes = []
+            
+            while time.time() - start_time < effective_timeout:
+                # 檢查Flow狀態
+                if self.status != FlowStatus.RUNNING:
+                    print(f"[Flow3]   Flow狀態變更為{self.status}，停止感測器等待")
                     break
-                    
-                time.sleep(0.1)  # 100ms檢查間隔
-            else:
-                print(f"[Flow3]   ⚠️ 感測器等待超時 ({timeout}秒)")
                 
-            # 停止輸送帶 DO2=LOW
+                current_sensor = self._get_di(sensor_pin)
+                check_count += 1
+                
+                # 記錄狀態變化
+                if current_sensor != last_sensor_value:
+                    elapsed = time.time() - start_time
+                    change_info = f"第{check_count}次檢查，{elapsed:.1f}秒: DI{sensor_pin} {last_sensor_value}→{current_sensor}"
+                    state_changes.append(change_info)
+                    print(f"[Flow3]   感測器狀態變化: {change_info}")
+                    last_sensor_value = current_sensor
+                
+                # 修正邏輯：DI13=0表示到位
+                if current_sensor == 0:
+                    # 如果初始就是0，需要確保經歷過1→0的變化
+                    if initial_sensor == 1 or len(state_changes) > 0:
+                        print(f"[Flow3]   ✓ 感測器DI{sensor_pin}=0，物件已到位 (檢查次數: {check_count})")
+                        sensor_reached_position = True
+                        break
+                    else:
+                        # 初始就是0且沒有變化，可能是感測器異常或物件本來就在位
+                        if check_count > 20:  # 檢查超過20次(4秒)
+                            print(f"[Flow3]   ⚠️ 感測器持續為0，可能物件已在位或感測器異常")
+                            sensor_reached_position = True
+                            break
+                
+                # 檢查間隔
+                time.sleep(0.2)
+                
+                # 定期狀態報告
+                if check_count % 25 == 0:  # 每5秒報告一次
+                    elapsed = time.time() - start_time
+                    print(f"[Flow3]   感測器檢查中... 已檢查{check_count}次，耗時{elapsed:.1f}秒，當前值: {current_sensor}")
+            
+            # 結果分析
+            elapsed = time.time() - start_time
+            if not sensor_reached_position:
+                print(f"[Flow3]   ⚠️ 感測器等待超時 ({elapsed:.1f}秒，檢查{check_count}次)")
+                print(f"[Flow3]   狀態變化記錄: {state_changes if state_changes else '無變化'}")
+            else:
+                print(f"[Flow3]   ✓ 感測器到位檢測完成 ({elapsed:.1f}秒)")
+                
+            # 停止輸送帶
+            print(f"[Flow3]   正在停止輸送帶...")
             if not self._set_do(self.DIO_PINS['CONVEYOR'], 0):
                 print("[Flow3]   ⚠️ 停止輸送帶失敗")
             else:
                 print("[Flow3]   ✓ 輸送帶已停止")
-                
+            
+            # 無論感測器是否觸發都返回True，避免流程中斷
             return True
             
         except Exception as e:
             print(f"[Flow3]   ✗ 輸送帶控制失敗: {e}")
+            traceback.print_exc()
+            # 確保輸送帶停止
+            try:
+                self._set_do(self.DIO_PINS['CONVEYOR'], 0)
+                print(f"[Flow3]   ✓ 異常處理：輸送帶已停止")
+            except:
+                pass
             return False
     
     # ==================== Flow控制方法 ====================

@@ -70,37 +70,66 @@ class Command:
         return self.timestamp < other.timestamp
 
 class CommandQueue:
-    """統一指令佇列"""
+    """統一指令佇列 - 修正版"""
     
     def __init__(self, max_size: int = 100):
         self.queue = queue.PriorityQueue(max_size)
         self.command_id_counter = 1
         self._lock = threading.Lock()
+        # 修正：增加統計信息
+        self.put_count = 0
+        self.get_count = 0
         
     def put_command(self, command: Command) -> bool:
-        """加入指令到佇列"""
+        """加入指令到佇列 - 增加詳細日誌"""
         try:
             with self._lock:
                 command.command_id = self.command_id_counter
                 self.command_id_counter += 1
                 
             self.queue.put_nowait(command)
+            self.put_count += 1
+            
+            # 修正：增加詳細日誌
+            print(f"[Queue] 指令已加入佇列 - ID:{command.command_id}, 類型:{command.command_type.value}, 佇列大小:{self.queue.qsize()}")
             return True
+            
         except queue.Full:
-            print(f"指令佇列已滿，丟棄指令: {command.command_type}")
+            print(f"[Queue] 指令佇列已滿，丟棄指令: {command.command_type}")
+            return False
+        except Exception as e:
+            print(f"[Queue] 加入指令失敗: {e}")
             return False
             
     def get_command(self, timeout: Optional[float] = None) -> Optional[Command]:
-        """取得指令"""
+        """取得指令 - 增加詳細日誌"""
         try:
-            return self.queue.get(timeout=timeout)
+            command = self.queue.get(timeout=timeout)
+            self.get_count += 1
+            
+            if command:
+                print(f"[Queue] 指令已取出 - ID:{command.command_id}, 類型:{command.command_type.value}, 剩餘:{self.queue.qsize()}")
+            
+            return command
+            
         except queue.Empty:
+            return None
+        except Exception as e:
+            print(f"[Queue] 取得指令失敗: {e}")
             return None
             
     def size(self) -> int:
         """取得佇列大小"""
         return self.queue.qsize()
-
+        
+    def get_stats(self) -> Dict[str, int]:
+        """取得統計信息"""
+        return {
+            'current_size': self.size(),
+            'total_put': self.put_count,
+            'total_get': self.get_count,
+            'pending': self.put_count - self.get_count
+        }
 # ==================== 機械臂狀態機 ====================
 
 class DobotStateMachine:
@@ -567,6 +596,8 @@ class MotionFlowThread(BaseFlowThread):
 
 # ==================== DIO控制執行緒 ====================
 
+# ==================== DIO控制執行緒修正版 ====================
+
 class DIOControlThread(BaseFlowThread):
     """DIO控制執行緒"""
     
@@ -602,44 +633,65 @@ class DIOControlThread(BaseFlowThread):
             self.last_error = str(e)
     
     def run(self):
-        """DIO控制執行緒主循環"""
+        """DIO控制執行緒主循環 - 修正指令處理穩定性"""
         self.status = "運行中"
         print(f"[{self.name}] 執行緒啟動")
         print(f"[DIO] 可用執行器: {list(self.flow_executors.keys())}")
         
         while self.running:
             try:
-                # 取得DIO指令
-                command = self.command_queue.get_command(timeout=0.1)
+                # 修正1: 增加超時時間，確保能取得指令
+                command = self.command_queue.get_command(timeout=0.5)
                 
                 if command and command.command_type == CommandType.DIO:
                     print(f"[DIO] 收到DIO指令: {command.command_data}")
-                    self._handle_dio_command(command)
+                    
+                    # 修正2: 立即處理指令，不再檢查其他條件
+                    try:
+                        self._handle_dio_command(command)
+                        print(f"[DIO] 指令處理完成，ID: {command.command_id}")
+                    except Exception as cmd_error:
+                        print(f"[DIO] 指令處理失敗: {cmd_error}")
+                        traceback.print_exc()
+                        
+                # 修正3: 縮短空循環睡眠時間，提高響應性
+                elif not command:
+                    time.sleep(0.01)  # 10ms而非100ms
                     
             except Exception as e:
                 self.last_error = f"DIO控制執行緒錯誤: {e}"
                 print(f"[DIO] {self.last_error}")
                 traceback.print_exc()
+                time.sleep(0.1)  # 錯誤後短暫休息
                 
         self.status = "已停止"
         print(f"[{self.name}] 執行緒結束")
     
     def _handle_dio_command(self, command: Command):
-        """處理DIO指令"""
+        """處理DIO指令 - 增加詳細日誌"""
         try:
             cmd_data = command.command_data
             cmd_type = cmd_data.get('type', '')
             
-            print(f"[DIO] 處理指令類型: {cmd_type}")
+            print(f"[DIO] 開始處理指令類型: {cmd_type}")
+            print(f"[DIO] 指令ID: {command.command_id}")
             print(f"[DIO] 當前可用執行器: {list(self.flow_executors.keys())}")
+            
+            # 記錄開始時間
+            start_time = time.time()
             
             if cmd_type == 'flow_flip_station':
                 self._execute_flip_station()
             elif cmd_type == 'flow_vibration_feed':
                 self._execute_vibration_feed()
             else:
-                print(f"[DIO] 未知DIO指令類型: {cmd_type}")
+                print(f"[DIO] ✗ 未知DIO指令類型: {cmd_type}")
+                return
                 
+            # 記錄處理耗時
+            processing_time = time.time() - start_time
+            print(f"[DIO] 指令處理耗時: {processing_time:.3f}秒")
+            
             self.operation_count += 1
             
         except Exception as e:
@@ -651,18 +703,13 @@ class DIOControlThread(BaseFlowThread):
         """執行翻轉站控制 (Flow3)"""
         try:
             print("[DIO] 開始執行翻轉站控制 (Flow3)")
-            print(f"[DIO] flow_executors內容: {self.flow_executors}")
             
             # 檢查執行器是否存在
             if 3 not in self.flow_executors:
-                print("[DIO] ✗ Flow3執行器不存在於flow_executors中")
-                print(f"[DIO] 可用的執行器: {list(self.flow_executors.keys())}")
+                print("[DIO] ✗ Flow3執行器不存在")
                 return
             
             flow3 = self.flow_executors[3]
-            print(f"[DIO] Flow3執行器類型: {type(flow3)}")
-            print(f"[DIO] Flow3執行器名稱: {getattr(flow3, 'flow_name', 'Unknown')}")
-            
             if flow3:
                 print("[DIO] Flow3執行器已找到，開始執行...")
                 result = flow3.execute()
@@ -673,7 +720,6 @@ class DIOControlThread(BaseFlowThread):
                     print(f"[DIO] 完成步驟: {result.steps_completed}/{result.total_steps}")
                 else:
                     print(f"[DIO] ✗ 翻轉站控制執行失敗: {result.error_message}")
-                    print(f"[DIO] 完成步驟: {result.steps_completed}/{result.total_steps}")
             else:
                 print("[DIO] ✗ Flow3執行器為None")
                 
@@ -682,28 +728,32 @@ class DIOControlThread(BaseFlowThread):
             traceback.print_exc()
 
     def _execute_vibration_feed(self):
-        """執行震動投料控制 (Flow4)"""
+        """執行震動投料控制 (Flow4) - 增加詳細日誌"""
         try:
             print("[DIO] 開始執行震動投料控制 (Flow4)")
             
             if 4 not in self.flow_executors:
-                print("[DIO] ✗ Flow4執行器不存在於flow_executors中")
+                print("[DIO] ✗ Flow4執行器不存在")
                 return
             
             flow4 = self.flow_executors[4]
-            if flow4:
-                print("[DIO] Flow4執行器已找到，開始執行...")
-                result = flow4.execute()
-                
-                if result.success:
-                    print("[DIO] ✓ 震動投料控制執行成功")
-                    print(f"[DIO] 耗時: {result.execution_time:.2f}秒")
-                    print(f"[DIO] 完成步驟: {result.steps_completed}/{result.total_steps}")
-                else:
-                    print(f"[DIO] ✗ 震動投料控制執行失敗: {result.error_message}")
-                    print(f"[DIO] 完成步驟: {result.steps_completed}/{result.total_steps}")
-            else:
+            if not flow4:
                 print("[DIO] ✗ Flow4執行器為None")
+                return
+                
+            print("[DIO] Flow4執行器已找到，開始執行...")
+            print(f"[DIO] Flow4執行器類型: {type(flow4)}")
+            
+            # 執行Flow4
+            result = flow4.execute()
+            
+            if result.success:
+                print("[DIO] ✓ 震動投料控制執行成功")
+                print(f"[DIO] 耗時: {result.execution_time:.2f}秒")
+                print(f"[DIO] 完成步驟: {result.steps_completed}/{result.total_steps}")
+            else:
+                print(f"[DIO] ✗ 震動投料控制執行失敗: {result.error_message}")
+                print(f"[DIO] 完成步驟: {result.steps_completed}/{result.total_steps}")
                 
         except Exception as e:
             print(f"[DIO] 震動投料控制執行異常: {e}")
@@ -1060,91 +1110,104 @@ class DobotConcurrentController:
         while self.running:
             try:
                 self._process_control_registers()
-                time.sleep(0.05)  # 50ms循環
+                time.sleep(0.1)  # 修正：從50ms改為100ms，降低競爭風險
                 
             except Exception as e:
                 print(f"握手循環錯誤: {e}")
                 time.sleep(1.0)
     
     def _process_control_registers(self):
-        """處理控制寄存器 - PyModbus 3.9.2修正版"""
-        try:
-            # 讀取控制寄存器 - 修正API調用
-            result = self.modbus_client.read_holding_registers(address=DOBOT_BASE_ADDR + 40, count=10)
-            
-            if hasattr(result, 'isError') and result.isError():
-                print(f"讀取控制寄存器失敗: {result}")
-                return
+            """處理控制寄存器 - 修正觸發穩定性"""
+            try:
+                # 讀取控制寄存器
+                result = self.modbus_client.read_holding_registers(address=DOBOT_BASE_ADDR + 40, count=10)
                 
-            registers = result.registers
-            
-            vp_control = registers[0]           # 440: VP視覺取料控制
-            unload_control = registers[1]       # 441: 出料控制
-            flip_control = registers[7] if len(registers) > 7 else 0      # 447: 翻轉站控制
-            vibration_feed_control = registers[8] if len(registers) > 8 else 0  # 448: 震動投料控制
-            
-            # 處理VP視覺取料控制 (Flow1 - 運動)
-            if vp_control == 1 and self.last_vp_control != vp_control:
-                print("收到VP視覺取料指令，分派到運動控制執行緒")
-                command = Command(
-                    command_type=CommandType.MOTION,
-                    command_data={'type': 'flow_vp_vision_pick'},
-                    priority=CommandPriority.MOTION
-                )
-                self.command_queue.put_command(command)
-                self.last_vp_control = vp_control
+                if hasattr(result, 'isError') and result.isError():
+                    print(f"讀取控制寄存器失敗: {result}")
+                    return
+                    
+                registers = result.registers
                 
-            elif vp_control == 0 and self.last_vp_control == 1:
-                print("VP視覺取料控制指令已清零")
-                self.last_vp_control = 0
+                vp_control = registers[0]           # 440: VP視覺取料控制
+                unload_control = registers[1]       # 441: 出料控制
+                flip_control = registers[7] if len(registers) > 7 else 0      # 447: 翻轉站控制
+                vibration_feed_control = registers[8] if len(registers) > 8 else 0  # 448: 震動投料控制
                 
-            # 處理出料控制 (Flow2 - 運動)
-            if unload_control == 1 and self.last_unload_control != unload_control:
-                print("收到出料指令，分派到運動控制執行緒")
-                command = Command(
-                    command_type=CommandType.MOTION,
-                    command_data={'type': 'flow_unload'},
-                    priority=CommandPriority.MOTION
-                )
-                self.command_queue.put_command(command)
-                self.last_unload_control = unload_control
+                # 處理VP視覺取料控制 (Flow1 - 運動)
+                if vp_control == 1 and self.last_vp_control == 0:
+                    print("收到VP視覺取料指令，分派到運動控制執行緒")
+                    command = Command(
+                        command_type=CommandType.MOTION,
+                        command_data={'type': 'flow_vp_vision_pick'},
+                        priority=CommandPriority.MOTION
+                    )
+                    if self.command_queue.put_command(command):
+                        self.last_vp_control = 1
+                        print("VP視覺取料指令已加入佇列")
+                    else:
+                        print("VP視覺取料指令加入佇列失敗")
+                    
+                elif vp_control == 0 and self.last_vp_control == 1:
+                    print("VP視覺取料控制指令已清零")
+                    self.last_vp_control = 0
+                    
+                # 處理出料控制 (Flow2 - 運動)
+                if unload_control == 1 and self.last_unload_control == 0:
+                    print("收到出料指令，分派到運動控制執行緒")
+                    command = Command(
+                        command_type=CommandType.MOTION,
+                        command_data={'type': 'flow_unload'},
+                        priority=CommandPriority.MOTION
+                    )
+                    if self.command_queue.put_command(command):
+                        self.last_unload_control = 1
+                        print("出料指令已加入佇列")
+                    else:
+                        print("出料指令加入佇列失敗")
+                    
+                elif unload_control == 0 and self.last_unload_control == 1:
+                    print("出料控制指令已清零")
+                    self.last_unload_control = 0
+                    
+                # 處理翻轉站控制 (Flow3 - DIO) - 修正觸發邏輯
+                if flip_control == 1 and self.last_flip_control == 0:
+                    print("收到翻轉站指令，分派到DIO控制執行緒")
+                    command = Command(
+                        command_type=CommandType.DIO,
+                        command_data={'type': 'flow_flip_station'},
+                        priority=CommandPriority.DIO
+                    )
+                    if self.command_queue.put_command(command):
+                        self.last_flip_control = 1
+                        print("翻轉站指令已加入佇列")
+                    else:
+                        print("翻轉站指令加入佇列失敗")
+                    
+                elif flip_control == 0 and self.last_flip_control == 1:
+                    print("翻轉站控制指令已清零")
+                    self.last_flip_control = 0
                 
-            elif unload_control == 0 and self.last_unload_control == 1:
-                print("出料控制指令已清零")
-                self.last_unload_control = 0
-                
-            # 處理翻轉站控制 (Flow3 - DIO)
-            if flip_control == 1 and self.last_flip_control != flip_control:
-                print("收到翻轉站指令，分派到DIO控制執行緒")
-                command = Command(
-                    command_type=CommandType.DIO,
-                    command_data={'type': 'flow_flip_station'},
-                    priority=CommandPriority.DIO
-                )
-                self.command_queue.put_command(command)
-                self.last_flip_control = flip_control
-                
-            elif flip_control == 0 and self.last_flip_control == 1:
-                print("翻轉站控制指令已清零")
-                self.last_flip_control = 0
-            
-            # 處理震動投料控制 (Flow4 - DIO)
-            if vibration_feed_control == 1 and self.last_vibration_feed_control != vibration_feed_control:
-                print("收到震動投料指令，分派到DIO控制執行緒")
-                command = Command(
-                    command_type=CommandType.DIO,
-                    command_data={'type': 'flow_vibration_feed'},
-                    priority=CommandPriority.DIO
-                )
-                self.command_queue.put_command(command)
-                self.last_vibration_feed_control = vibration_feed_control
-                
-            elif vibration_feed_control == 0 and self.last_vibration_feed_control == 1:
-                print("震動投料控制指令已清零")
-                self.last_vibration_feed_control = 0
-                
-        except Exception as e:
-            print(f"處理控制寄存器失敗: {e}")
+                # 處理震動投料控制 (Flow4 - DIO) - 修正狀態鎖定問題
+                if vibration_feed_control == 1 and self.last_vibration_feed_control == 0:
+                    print("收到震動投料指令，分派到DIO控制執行緒")
+                    command = Command(
+                        command_type=CommandType.DIO,
+                        command_data={'type': 'flow_vibration_feed'},
+                        priority=CommandPriority.DIO
+                    )
+                    if self.command_queue.put_command(command):
+                        self.last_vibration_feed_control = 1
+                        print("震動投料指令已加入佇列")
+                    else:
+                        print("震動投料指令加入佇列失敗")
+                    
+                elif vibration_feed_control == 0 and self.last_vibration_feed_control == 1:
+                    # 直接清零，不檢查佇列狀態
+                    print("震動投料控制指令已清零")
+                    self.last_vibration_feed_control = 0
+                    
+            except Exception as e:
+                print(f"處理控制寄存器失敗: {e}")
     
     def stop(self):
         """停止控制器"""
