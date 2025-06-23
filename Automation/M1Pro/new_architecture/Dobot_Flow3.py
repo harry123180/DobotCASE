@@ -41,6 +41,16 @@ class FlowFlipStationExecutor(FlowExecutor):
             'SENSOR_DI13': 13       # DI13: 輸送帶感測器
         }
         
+        # 時間延遲設定
+        self.TIMING_CONFIG = {
+            'LIFT_MOTION_TIME': 1.0,    # 升降缸上升/下降時間 (秒)
+            'LIFT_HOME_TIME': 5.0,      # 升降缸回原點時間 (秒)
+            'FLIP_TIME': 2.0,           # 翻轉缸翻轉時間 (秒)
+            'GRIPPER_TIME': 1.0,        # PGE夾爪動作時間 (秒)
+            'DIRECTION_SETUP_DELAY': 0.1,  # 方向設定延遲 (秒)
+            'PULSE_WIDTH': 100          # 脈衝寬度 (毫秒)
+        }
+        
         # PGE夾爪位置定義
         self.GRIPPER_POSITIONS = {
             'GRIP': 500,            # 夾住位置
@@ -229,9 +239,10 @@ class FlowFlipStationExecutor(FlowExecutor):
             success = self._pulse_do(self.DIO_PINS['LIFT_HOME'], 200)
             
             if success:
+                print("  ✓ 升降缸回原點指令已發送")
+                # 等待回原點完成 (1秒)
+                time.sleep(self.TIMING_CONFIG['LIFT_HOME_TIME'])
                 print("  ✓ 升降缸回原點完成")
-                # 等待回原點完成
-                time.sleep(1.0)
             
             return success
             
@@ -250,15 +261,16 @@ class FlowFlipStationExecutor(FlowExecutor):
             if not self._set_do(self.DIO_PINS['LIFT_DIR2'], 1):  # DO13=HIGH
                 return False
                 
-            time.sleep(0.1)  # 方向設定延遲
+            time.sleep(self.TIMING_CONFIG['DIRECTION_SETUP_DELAY'])  # 方向設定延遲
             
             # 對DO11下脈衝啟動
-            success = self._pulse_do(self.DIO_PINS['LIFT_TRIGGER'], 100)
+            success = self._pulse_do(self.DIO_PINS['LIFT_TRIGGER'], self.TIMING_CONFIG['PULSE_WIDTH'])
             
             if success:
-                print("  ✓ 升降缸下降啟動")
-                # 等待下降完成
-                time.sleep(2.0)
+                print("  ✓ 升降缸下降指令已發送")
+                # 等待下降完成 (1秒)
+                time.sleep(self.TIMING_CONFIG['LIFT_MOTION_TIME'])
+                print("  ✓ 升降缸下降完成")
             
             return success
             
@@ -277,15 +289,16 @@ class FlowFlipStationExecutor(FlowExecutor):
             if not self._set_do(self.DIO_PINS['LIFT_DIR2'], 0):  # DO13=LOW
                 return False
                 
-            time.sleep(0.1)  # 方向設定延遲
+            time.sleep(self.TIMING_CONFIG['DIRECTION_SETUP_DELAY'])  # 方向設定延遲
             
             # 對DO11下脈衝啟動
-            success = self._pulse_do(self.DIO_PINS['LIFT_TRIGGER'], 100)
+            success = self._pulse_do(self.DIO_PINS['LIFT_TRIGGER'], self.TIMING_CONFIG['PULSE_WIDTH'])
             
             if success:
-                print("  ✓ 升降缸上升啟動")
-                # 等待上升完成
-                time.sleep(2.0)
+                print("  ✓ 升降缸上升指令已發送")
+                # 等待上升完成 (1秒)
+                time.sleep(self.TIMING_CONFIG['LIFT_MOTION_TIME'])
+                print("  ✓ 升降缸上升完成")
             
             return success
             
@@ -302,11 +315,17 @@ class FlowFlipStationExecutor(FlowExecutor):
             # 使用外部模組 (PGE夾爪)
             if 'PGE_GRIPPER' in self.external_modules and self.external_modules['PGE_GRIPPER']:
                 pge_gripper = self.external_modules['PGE_GRIPPER']
-                return pge_gripper.smart_grip(target_position=position)
+                success = pge_gripper.smart_grip(target_position=position)
+                
+                if success:
+                    print(f"  ✓ PGE智慧夾持到{position}完成")
+                else:
+                    print(f"  ✗ PGE智慧夾持失敗")
+                return success
             else:
                 # 模擬PGE智慧夾持
-                print(f"  ✓ PGE智慧夾持到{position}完成")
-                time.sleep(1.0)  # 模擬夾持時間
+                print(f"  ✓ PGE智慧夾持到{position}完成 (模擬)")
+                time.sleep(self.TIMING_CONFIG['GRIPPER_TIME'])  # 模擬夾持時間
                 return True
                 
         except Exception as e:
@@ -322,11 +341,17 @@ class FlowFlipStationExecutor(FlowExecutor):
             # 使用外部模組 (PGE夾爪)
             if 'PGE_GRIPPER' in self.external_modules and self.external_modules['PGE_GRIPPER']:
                 pge_gripper = self.external_modules['PGE_GRIPPER']
-                return pge_gripper.quick_open(position)
+                success = pge_gripper.quick_open(position)
+                
+                if success:
+                    print(f"  ✓ PGE快速開爪到{position}完成")
+                else:
+                    print(f"  ✗ PGE快速開爪失敗")
+                return success
             else:
                 # 模擬PGE快速開爪
-                print(f"  ✓ PGE快速開爪到{position}完成")
-                time.sleep(0.5)  # 模擬開爪時間
+                print(f"  ✓ PGE快速開爪到{position}完成 (模擬)")
+                time.sleep(self.TIMING_CONFIG['GRIPPER_TIME'] * 0.5)  # 快速開爪時間較短
                 return True
                 
         except Exception as e:
@@ -342,10 +367,11 @@ class FlowFlipStationExecutor(FlowExecutor):
             if not self._set_do(self.DIO_PINS['FLIP_CYLINDER'], 1):
                 return False
                 
-            print("  ✓ 翻轉到180度")
+            print("  ✓ 翻轉指令已發送")
             
             # 等待翻轉完成
-            time.sleep(2.0)
+            time.sleep(self.TIMING_CONFIG['FLIP_TIME'])
+            print("  ✓ 翻轉180度完成")
             
             return True
             

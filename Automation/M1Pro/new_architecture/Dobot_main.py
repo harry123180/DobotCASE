@@ -18,9 +18,9 @@ from enum import Enum, IntEnum
 import logging
 
 # 導入新流程架構模組
-from Dobot_Flow1 import Flow1VisionPickExecutor
-from Dobot_Flow2 import Flow2UnloadExecutor  
-from Dobot_Flow3 import FlowFlipStationExecutor
+from Dobot_Flow1_new import Flow1VisionPickExecutor
+from Dobot_Flow2_new import Flow2UnloadExecutor  
+from Dobot_Flow3_flip import FlowFlipStationExecutor
 
 from pymodbus.client.tcp import ModbusTcpClient
 from dobot_api import DobotApiDashboard, DobotApiMove
@@ -588,119 +588,172 @@ class DobotConcurrentController:
         return True
         
     def _initialize_robot(self) -> bool:
-        """初始化機械臂連接"""
+        """初始化機械臂連接 - 使用實際dobot_api"""
         try:
             robot_config = self.config["robot"]
             
-            # 模擬機械臂對象
-            class MockRobot:
+            from dobot_api import DobotApiDashboard, DobotApiMove
+            
+            class RealRobot:
                 def __init__(self, ip, dashboard_port, move_port):
                     self.ip = ip
                     self.dashboard_port = dashboard_port
                     self.move_port = move_port
-                    self.is_connected = True
+                    self.is_connected = False
+                    self.dashboard_api = None
+                    self.move_api = None
                     
-                    # 模擬API
-                    self.dashboard_api = MockDashboardAPI()
-                    self.move_api = MockMoveAPI()
-                    
-            class MockDashboardAPI:
-                def DO(self, pin, value):
-                    return f"0,DO{pin}={value},"
-                    
-                def DI(self, pin):
-                    return f"0,{pin},0,"
-                    
-                def SpeedFactor(self, speed):
-                    return f"0,Speed={speed}%,"
-                    
-            class MockMoveAPI:
-                def MovJ(self, x, y, z, r):
-                    return f"0,MovJ({x},{y},{z},{r}),"
-                    
-                def MovL(self, x, y, z, r):
-                    return f"0,MovL({x},{y},{z},{r}),"
+                def initialize(self):
+                    """初始化機械臂連接"""
+                    try:
+                        self.dashboard_api = DobotApiDashboard(self.ip, self.dashboard_port)
+                        self.move_api = DobotApiMove(self.ip, self.move_port)
+                        
+                        # 機械臂初始化設置
+                        self.dashboard_api.ClearError()
+                        self.dashboard_api.EnableRobot()
+                        
+                        self.is_connected = True
+                        print(f"✓ 機械臂連接成功: {self.ip}")
+                        return True
+                        
+                    except Exception as e:
+                        print(f"✗ 機械臂初始化失敗: {e}")
+                        self.is_connected = False
+                        return False
             
-            self.robot = MockRobot(
+            self.robot = RealRobot(
                 robot_config["ip"],
                 robot_config["dashboard_port"],
                 robot_config["move_port"]
             )
             
-            print(f"機械臂連接成功: {robot_config['ip']}")
-            return True
+            # 初始化機械臂連接
+            if self.robot.initialize():
+                return True
+            else:
+                print("機械臂初始化失敗")
+                return False
             
+        except ImportError as e:
+            print(f"✗ dobot_api導入失敗: {e}")
+            return False
         except Exception as e:
-            print(f"機械臂連接失敗: {e}")
+            print(f"✗ 機械臂初始化異常: {e}")
             return False
             
     def _initialize_modbus(self) -> bool:
-        """初始化Modbus連接"""
+        """初始化Modbus連接 - 實際ModbusTCP Client"""
         try:
             modbus_config = self.config["modbus"]
             
-            # 模擬Modbus客戶端
-            class MockModbusClient:
-                def __init__(self, host, port):
-                    self.host = host
-                    self.port = port
-                    self.connected = True
-                    
-                def read_holding_registers(self, address, count=1):
-                    class MockResult:
-                        def __init__(self):
-                            self.registers = [0] * count
-                            
-                    return MockResult()
-                    
-                def write_register(self, address, value):
-                    class MockResult:
-                        def __init__(self):
-                            self.address = address
-                            self.value = value
-                            
-                    return MockResult()
+            print(f"正在連接實際ModbusTCP服務器: {modbus_config['server_ip']}:{modbus_config['server_port']}")
             
-            self.modbus_client = MockModbusClient(
-                modbus_config["server_ip"],
-                modbus_config["server_port"]
+            self.modbus_client = ModbusTcpClient(
+                host=modbus_config["server_ip"],
+                port=modbus_config["server_port"],
+                timeout=3.0
             )
             
-            print(f"Modbus連接成功: {modbus_config['server_ip']}:{modbus_config['server_port']}")
-            return True
+            if self.modbus_client.connect():
+                print(f"✓ 實際ModbusTCP連接成功: {modbus_config['server_ip']}:{modbus_config['server_port']}")
+                return True
+            else:
+                print(f"✗ ModbusTCP連接失敗: {modbus_config['server_ip']}:{modbus_config['server_port']}")
+                return False
             
         except Exception as e:
-            print(f"Modbus連接失敗: {e}")
+            print(f"ModbusTCP連接異常: {e}")
             return False
             
     def _initialize_state_machine(self):
-        """初始化狀態機"""
-        class MockStateMachine:
+        """初始化狀態機 - 實際Modbus操作"""
+        class StateMachine:
             def __init__(self, modbus_client, base_address):
                 self.modbus_client = modbus_client
                 self.base_address = base_address
-                self.registers = {}
                 
             def read_register(self, offset):
-                return self.registers.get(offset, 0)
+                try:
+                    if self.modbus_client and hasattr(self.modbus_client, 'connect'):
+                        result = self.modbus_client.read_holding_registers(
+                            address=self.base_address + offset, 
+                            count=1
+                        )
+                        if hasattr(result, 'registers') and len(result.registers) > 0:
+                            return result.registers[0]
+                    return 0
+                except Exception as e:
+                    print(f"讀取寄存器[{self.base_address + offset}]失敗: {e}")
+                    return 0
                 
             def write_register(self, offset, value):
-                self.registers[offset] = value
-                print(f"寫入寄存器[{self.base_address + offset}] = {value}")
+                try:
+                    if self.modbus_client and hasattr(self.modbus_client, 'connect'):
+                        result = self.modbus_client.write_register(
+                            address=self.base_address + offset, 
+                            value=value
+                        )
+                        print(f"寫入寄存器[{self.base_address + offset}] = {value}")
+                        return not (hasattr(result, 'isError') and result.isError())
+                    else:
+                        print(f"模擬寫入寄存器[{self.base_address + offset}] = {value}")
+                        return True
+                except Exception as e:
+                    print(f"寫入寄存器[{self.base_address + offset}]失敗: {e}")
+                    return False
                 
-        self.state_machine = MockStateMachine(
+        self.state_machine = StateMachine(
             self.modbus_client,
             self.config["modbus"]["base_address"]
         )
         
     def _initialize_external_modules(self):
         """初始化外部模組"""
-        # 這裡可以初始化CCD1、VP、夾爪等模組
-        self.external_modules = {
-            'CCD1': None,
-            'VP': None,
-            'GRIPPER': None
-        }
+        try:
+            # 嘗試初始化PGE夾爪
+            try:
+                from GripperHighLevel_PGE_Enhanced import GripperHighLevelAPI, GripperType
+                
+                print("正在初始化PGE夾爪模組...")
+                pge_gripper = GripperHighLevelAPI(
+                    gripper_type=GripperType.PGE,
+                    modbus_host="127.0.0.1",
+                    modbus_port=502
+                )
+                
+                if pge_gripper.connected and pge_gripper.initialized:
+                    self.external_modules['PGE_GRIPPER'] = pge_gripper
+                    print("✓ PGE夾爪模組已連接並初始化")
+                else:
+                    print("⚠️ PGE夾爪連接失敗，將使用模擬模式")
+                    self.external_modules['PGE_GRIPPER'] = None
+                    
+            except ImportError as e:
+                print(f"⚠️ PGE夾爪模組導入失敗: {e}")
+                self.external_modules['PGE_GRIPPER'] = None
+            except Exception as e:
+                print(f"⚠️ PGE夾爪初始化異常: {e}")
+                self.external_modules['PGE_GRIPPER'] = None
+            
+            # 其他外部模組 (暫時設為None)
+            self.external_modules.update({
+                'CCD1': None,
+                'VP': None,
+                'GRIPPER': None  # 原有夾爪
+            })
+            
+            print(f"外部模組初始化完成: {list(self.external_modules.keys())}")
+            
+        except Exception as e:
+            print(f"外部模組初始化失敗: {e}")
+            # 確保至少有基本的外部模組字典
+            self.external_modules = {
+                'PGE_GRIPPER': None,
+                'CCD1': None,
+                'VP': None,
+                'GRIPPER': None
+            }
         
     def _initialize_threads(self) -> bool:
         """初始化執行緒"""

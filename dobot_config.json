@@ -1,0 +1,20 @@
+{
+  "robot": {
+    "ip": "192.168.1.6",
+    "dashboard_port": 29999,
+    "move_port": 30003
+  },
+  "modbus": {
+    "server_ip": "127.0.0.1",
+    "server_port": 502,
+    "base_address": 400
+  },
+  "command_queue": {
+    "max_size": 100,
+    "timeout": 10.0
+  },
+  "threading": {
+    "handshake_interval": 0.05,
+    "status_update_interval": 1.0
+  }
+}
