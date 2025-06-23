@@ -1,14 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Dobot_Flow1.py - VP震動盤視覺抓取流程 (依據CASE流程敘述.md修正版)
-實現完整的VP視覺抓取 + 翻轉檢測流程
-流程序列: standby → vp_topside → CCD1檢測 → 抓取 → flip系列 → CCD2觸發
+Dobot_Flow1.py - VP震動盤視覺抓取流程 (正確修正版)
+基於原始成功的sync策略，僅修正關鍵的手勢切換問題
 """
 
 import time
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
+
+# =================================================================
+# 配置變數 - CCD2功能控制
+# =================================================================
+ENABLE_CCD2 = False  # 是否啟用CCD2翻轉檢測功能 (True=啟用, False=停用)
+
+# =================================================================
+# 配置變數 - VP工作高度
+# =================================================================
+VP_WORK_Z_LEVEL = 145.17  # VP工作台Z軸高度 (夾取位置)
 
 
 @dataclass
@@ -18,15 +27,15 @@ class FlowResult:
     error_message: str = ""
     execution_time: float = 0.0
     steps_completed: int = 0
-    total_steps: int = 16  # 依據CASE流程敘述.md的步驟數
+    total_steps: int = 17  # 預設值，實際會根據ENABLE_CCD2動態調整 (新流程17/16步)
     ccd2_triggered: bool = False
     ccd2_result: Optional[str] = None
 
 
 class DobotFlow1:
     """
-    VP震動盤視覺抓取流程執行器 (依據CASE流程敘述.md)
-    實現完整的視覺抓取 + 翻轉檢測流程
+    VP震動盤視覺抓取流程執行器 (正確修正版)
+    保持原始成功的sync策略，僅修正關鍵的手勢切換問題
     """
     
     def __init__(self, robot, gripper, ccd1, ccd3, state_machine):
@@ -40,16 +49,21 @@ class DobotFlow1:
         
         # 流程配置
         self.flow_id = 1
-        self.total_steps = 16  # 依據CASE流程敘述.md
+        # 動態調整總步驟數：CCD2啟用=17步驟，停用=16步驟 (新流程)
+        self.total_steps = 17 if ENABLE_CCD2 else 16
         self.current_step = 0
         self.is_running = False
         self.last_error = ""
         
-        # 流程參數 - 依據CASE流程敘述.md
-        self.SPEED_RATIO = 100
+        # CCD2功能狀態
+        self.ccd2_enabled = ENABLE_CCD2
+        print(f"Flow1初始化: CCD2功能{'啟用' if self.ccd2_enabled else '停用'}")
+        
+        # 流程參數 - 依據新流程需求
+        self.SPEED_RATIO = 20
         self.POINT_DELAY = 0.1
         self.CCD1_DETECT_HEIGHT = 238.86  # vp_topside的Z高度
-        self.PICKUP_HEIGHT = 137.52       # 實際夾取Z高度
+        self.VP_WORK_Z_LEVEL = VP_WORK_Z_LEVEL  # VP工作台Z軸高度 (夾取位置)
         self.GRIP_OPEN_POSITION = 370     # 夾爪撐開位置
         
         # 必要點位列表 - 依據CASE流程敘述.md
@@ -62,10 +76,12 @@ class DobotFlow1:
         ]
     
     def execute(self) -> FlowResult:
-        """執行VP震動盤視覺抓取流程 - 依據CASE流程敘述.md"""
+        """執行VP震動盤視覺抓取流程 - 正確修正版"""
         print("\n" + "="*60)
-        print("開始執行流程1 - VP視覺抓取 + 翻轉檢測流程")
-        print("依據CASE流程敘述.md規範實現")
+        print("開始執行流程1 - VP視覺抓取 + 翻轉檢測流程 (正確修正版)")
+        print(f"CCD2功能: {'啟用' if self.ccd2_enabled else '停用'}")
+        print(f"總步驟數: {self.total_steps}")
+        print(f"VP工作Z高度: {self.VP_WORK_Z_LEVEL}mm")
         print("="*60)
         
         start_time = time.time()
@@ -78,93 +94,109 @@ class DobotFlow1:
         detected_coord = None
         
         try:
-            # 步驟1: 系統檢查
-            if not self._execute_step(1, "系統檢查", self._step_system_check):
+            # 步驟1: 移動到standby (JointMovJ+sync)
+            if not self._execute_step(1, "移動到standby", self._step_move_to_standby_joint):
                 return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
             
-            # 步驟2: 夾爪關閉 (依據CASE流程敘述.md)
-            if not self._execute_step(2, "夾爪關閉", self._step_gripper_close):
-                return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
+            # 步驟2: 夾爪快速關閉，並觸發CCD1檢測物件位置
+            if not self._execute_step(2, "夾爪快速關閉並觸發CCD1檢測", self._step_gripper_close_and_ccd1):
+                return self._create_result(False, start_time, False, None)
             
-            # 步驟3: 移動到vp_topside
-            if not self._execute_step(3, "移動到vp_topside", self._step_move_to_vp_topside):
-                return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
-            
-            # 步驟4: CCD1檢測API (依據CASE流程敘述.md)
-            coord_result = self._execute_step_with_return(4, "CCD1檢測API", self._step_ccd1_detection)
+            # 步驟3: CCD1檢測結果處理
+            coord_result = self._execute_step_with_return(3, "處理CCD1檢測結果", self._step_process_ccd1_result)
             if coord_result is False:
-                return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
+                # 沒有檢測到物件，設置警報
+                self.last_error = "CCD1未檢測到物件，流程進入Alarm狀態"
+                self._set_alarm_state()
+                return self._create_result(False, start_time, False, None)
             detected_coord = coord_result
             
-            # 步驟5-7: 視覺抓取流程
-            if detected_coord:
-                print(f"  檢測到物體 (FIFO佇列ID: {detected_coord.id})")
-                print(f"  世界座標: ({detected_coord.world_x:.2f}, {detected_coord.world_y:.2f})mm")
-                
-                # 步驟5: 移動到視覺檢測到的物件座標(Z軸高度與vp_topside等高)
-                if not self._execute_step(5, "移動到物體上方(與vp_topside等高)", 
-                                        lambda: self._step_move_to_object_same_height(detected_coord)):
-                    return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
-                
-                # 步驟6: 移動到檢測到的物件座標(Z軸到夾取位置)
-                if not self._execute_step(6, "下降到夾取位置", 
-                                        lambda: self._step_move_to_pickup_height(detected_coord)):
-                    return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
-                
-                # 步驟7: 夾爪撐開至370
-                if not self._execute_step(7, "夾爪撐開至370", self._step_gripper_open_370):
-                    return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
-                
-                # 步驟8: 移動到vp_topside
-                if not self._execute_step(8, "移動到vp_topside", self._step_move_to_vp_topside):
-                    return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
-            else:
-                print("  未檢測到物體，跳過抓取流程")
-                for step in range(5, 9):
-                    self._execute_step(step, f"跳過步驟{step}", lambda: True)
+            print(f"  檢測到物體 (FIFO佇列ID: {detected_coord.id})")
+            print(f"  世界座標: ({detected_coord.world_x:.2f}, {detected_coord.world_y:.2f})mm")
             
-            # 步驟9: 移動到standby
-            if not self._execute_step(9, "移動到standby", self._step_move_to_standby):
+            # 步驟4: 移動到vp_topside (JointMovJ+sync) - 必須sync確保到位
+            if not self._execute_step(4, "移動到vp_topside", self._step_move_to_vp_topside_joint):
                 return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
             
-            # 步驟10-14: 翻轉檢測序列 (依據CASE流程敘述.md)
+            # 步驟5: 移動到視覺料件座標(Z軸與vp_topside同高) (MovL+sync) - 手勢切換關鍵點
+            if not self._execute_step(5, "移動到視覺料件座標(與vp_topside同高)", 
+                                    lambda: self._step_move_to_object_vp_height(detected_coord)):
+                return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
+            
+            # 步驟6: 下降到VP工作Z高度 (MovL+sync)
+            if not self._execute_step(6, f"下降到VP工作Z高度({self.VP_WORK_Z_LEVEL}mm)", 
+                                    lambda: self._step_move_to_work_height(detected_coord)):
+                return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
+            
+            # 步驟7: 夾爪張開到370位置(智慧夾取)
+            if not self._execute_step(7, "夾爪張開到370位置(智慧夾取)", self._step_smart_grip_open):
+                return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
+            
+            # 步驟8: 回到vp_topside (MovL+JointMovJ+sync)
+            if not self._execute_step(8, "回到vp_topside", 
+                                    lambda: self._step_return_to_vp_topside(detected_coord)):
+                return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
+            
+            # 步驟9: 到standby (JointMovJ+sync)
+            if not self._execute_step(9, "到standby", self._step_move_to_standby_joint):
+                return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
+            
+            # 步驟10-12: 翻轉檢測序列 (全部使用JointMovJ+sync)
             flip_sequence = [
-                (10, "移動到flip_pre", "flip_pre"),
-                (11, "移動到flip_top", "flip_top"),
-                (12, "移動到flip_down", "flip_down"),
-                (13, "移動到flip_top", "flip_top"),
-                (14, "移動到flip_pre", "flip_pre")
+                (10, "到flip_pre", "flip_pre"),
+                (11, "到flip_top", "flip_top"),
+                (12, "到flip_down", "flip_down")
             ]
             
             for step_num, step_name, point_name in flip_sequence:
                 if not self._execute_step(step_num, step_name, 
-                                        lambda p=point_name: self._step_move_to_point(p)):
+                                        lambda p=point_name: self._step_move_to_point_joint(p)):
                     return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
             
-            # 步驟15: 移動到standby
-            if not self._execute_step(15, "移動到standby", self._step_move_to_standby):
+            # 步驟13: 夾爪快速關閉 (在flip_down位置)
+            if not self._execute_step(13, "夾爪快速關閉", self._step_gripper_quick_close):
                 return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
             
-            # 步驟16: 觸發CCD2(物件正反面辨識與輸送帶翻轉機構的IO控制)
-            ccd2_result = self._execute_step_with_return(16, "觸發CCD2翻轉檢測", self._step_trigger_ccd2)
-            if ccd2_result is not False:
-                ccd2_triggered = True
-                print(f"  CCD2觸發結果: {ccd2_result}")
-            else:
-                ccd2_triggered = False
-                ccd2_result = "觸發失敗"
-                print("  CCD2觸發失敗，但流程繼續")
+            # 步驟14-16: 繼續翻轉序列
+            final_flip_sequence = [
+                (14, "到flip_top", "flip_top"),
+                (15, "到flip_pre", "flip_pre")
+            ]
             
-            # 設置Flow1完成狀態 (只有CCD2觸發成功才設置)
-            if ccd2_triggered:
-                if not self._set_flow1_completion_status():
-                    self.last_error = "設置Flow1完成狀態失敗"
+            for step_num, step_name, point_name in final_flip_sequence:
+                if not self._execute_step(step_num, step_name, 
+                                        lambda p=point_name: self._step_move_to_point_joint(p)):
                     return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
+            
+            # 步驟16: 到standby (JointMovJ+sync)
+            if not self._execute_step(16, "到standby", self._step_move_to_standby_joint):
+                return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
+            
+            # 步驟17: 觸發CCD2 (條件執行)
+            if self.ccd2_enabled:
+                ccd2_result = self._execute_step_with_return(17, "觸發CCD2翻轉檢測", self._step_trigger_ccd2)
+                if ccd2_result is not False:
+                    ccd2_triggered = True
+                    print(f"  CCD2觸發結果: {ccd2_result}")
+                else:
+                    ccd2_triggered = False
+                    ccd2_result = "觸發失敗"
+                    print("  CCD2觸發失敗，但流程繼續")
+            else:
+                # CCD2停用時的處理
+                print("  [步驟17] CCD2功能已停用，跳過觸發")
+                ccd2_triggered = True  # 設為True表示"完成"狀態
+                ccd2_result = "CCD2功能已停用"
+            
+            # 設置Flow1完成狀態
+            if not self._set_flow1_completion_status(ccd2_triggered):
+                self.last_error = "設置Flow1完成狀態失敗"
+                return self._create_result(False, start_time, ccd2_triggered, ccd2_result)
             
             # 流程完成
             execution_time = time.time() - start_time
             print(f"\n✓ 流程1執行完成！總耗時: {execution_time:.2f}秒")
-            print(f"✓ CCD2觸發狀態: {ccd2_triggered}")
+            print(f"✓ CCD2狀態: {'觸發成功' if ccd2_triggered and self.ccd2_enabled else '已停用' if not self.ccd2_enabled else '觸發失敗'}")
             
             return FlowResult(
                 success=True,
@@ -244,72 +276,56 @@ class DobotFlow1:
         )
     
     # =================================================================
-    # 流程步驟實現 - 依據CASE流程敘述.md
+    # 流程步驟實現 - 正確修正版
     # =================================================================
     
-    def _step_system_check(self) -> bool:
-        """步驟1: 系統檢查"""
-        if not self.robot.is_ready():
-            self.last_error = "機械臂未準備好"
-            return False
-        
-        for point_name in self.REQUIRED_POINTS:
-            if not self.robot.points_manager.get_point(point_name):
-                self.last_error = f"缺少必要點位: {point_name}"
-                return False
-        
-        if self.gripper:
-            status = self.gripper.get_status()
-            if not status['connected']:
-                self.last_error = "PGC夾爪未連接"
-                return False
-            print("  PGC夾爪狀態正常")
-        
-        if self.ccd1:
-            status = self.ccd1.get_system_status()
-            if not status['connected']:
-                print("  CCD1視覺系統未連接，但繼續執行")
-            else:
-                print("  CCD1視覺系統準備就緒")
-        
-        return True
-    
-    def _step_gripper_close(self) -> bool:
-        """步驟2: 夾爪關閉 (依據CASE流程敘述.md)"""
-        if not self.gripper:
-            print("  跳過夾爪關閉 (夾爪未啟用)")
-            return True
-        
-        success = self.gripper.quick_close()
-        
-        if success:
-            print("  PGC夾爪關閉完成")
-        else:
-            self.last_error = "PGC夾爪關閉失敗"
-        
-        return success
-    
-    def _step_move_to_vp_topside(self) -> bool:
-        """步驟3&8: 移動到vp_topside"""
+    def _step_move_to_standby_joint(self) -> bool:
+        """移動到standby (JointMovJ+sync)"""
         self.robot.set_global_speed(self.SPEED_RATIO)
         
-        if not self.robot.MovJ("vp_topside"):
-            self.last_error = "移動到vp_topside失敗"
+        if not self.robot.MovJ("standby"):
+            self.last_error = "移動到standby失敗"
             return False
         
         self.robot.sync()
-        print("  移動到vp_topside完成")
+        print("  移動到standby完成 (JointMovJ+sync)")
         return True
     
-    def _step_ccd1_detection(self):
-        """步驟4: CCD1檢測API (依據CASE流程敘述.md)"""
-        if not self.ccd1:
+    def _step_gripper_close_and_ccd1(self) -> bool:
+        """夾爪快速關閉，並觸發CCD1檢測物件位置"""
+        # 1. 夾爪快速關閉
+        if self.gripper:
+            success = self.gripper.quick_close()
+            if not success:
+                self.last_error = "PGC夾爪快速關閉失敗"
+                return False
+            print("  PGC夾爪快速關閉完成")
+        else:
+            print("  跳過夾爪關閉 (夾爪未啟用)")
+        
+        # 2. 觸發CCD1檢測
+        if self.ccd1:
+            print("  觸發CCD1檢測...")
+            # 使用CCD1HighLevel API觸發檢測
+            success = self.ccd1.capture_and_detect()
+            if not success:
+                self.last_error = "CCD1檢測觸發失敗"
+                return False
+            print("  CCD1檢測已觸發")
+        else:
             print("  跳過CCD1檢測 (CCD1未啟用)")
+        
+        return True
+    
+    def _step_process_ccd1_result(self):
+        """處理CCD1檢測結果"""
+        if not self.ccd1:
+            print("  CCD1未啟用，模擬檢測結果")
             return None
         
-        print("  執行CCD1視覺檢測...")
+        print("  處理CCD1檢測結果...")
         
-        # 使用CCD1HighLevel API的FIFO佇列功能
+        # 從FIFO佇列獲取檢測結果
         coord = self.ccd1.get_next_circle_world_coord()
         
         if coord:
@@ -327,10 +343,27 @@ class DobotFlow1:
             return coord
         else:
             print("    未檢測到物體或佇列已空")
-            return None
+            return False  # 明確返回False表示失敗
     
-    def _step_move_to_object_same_height(self, coord) -> bool:
-        """步驟5: 移動到視覺檢測到的物件座標(Z軸高度與vp_topside等高)"""
+    def _step_move_to_vp_topside_joint(self) -> bool:
+        """移動到vp_topside (JointMovJ+sync) - 關鍵：必須sync確保到位"""
+        self.robot.set_global_speed(self.SPEED_RATIO)
+        
+        if not self.robot.MovJ("vp_topside"):
+            self.last_error = "移動到vp_topside失敗"
+            return False
+        
+        # 🔥 關鍵修正：必須sync確保JointMovJ完全到位，為MovL準備正確的起始姿態
+        self.robot.sync()
+        print("  移動到vp_topside完成 (JointMovJ+sync)")
+        
+        # 🔥 額外修正：添加小延遲確保手臂穩定
+        time.sleep(0.2)
+        print("  手臂姿態已穩定")
+        return True
+    
+    def _step_move_to_object_vp_height(self, coord) -> bool:
+        """移動到視覺料件座標(Z軸與vp_topside同高) (MovL+sync) - 手勢切換關鍵點"""
         if not coord:
             self.last_error = "沒有有效的物體座標"
             return False
@@ -344,69 +377,124 @@ class DobotFlow1:
         z_height = vp_topside_point.z
         r_value = getattr(coord, 'r', 0.0)
         
+        # 🔥 關鍵修正：確保R值與vp_topside完全一致
+        if hasattr(vp_topside_point, 'r'):
+            if abs(r_value - vp_topside_point.r) > 0.1:  # 容差0.1度
+                print(f"    ⚠️ R值校正：{r_value}° → {vp_topside_point.r}°")
+                r_value = vp_topside_point.r
+        
+        print(f"    準備MovL到物體上方: X={coord.world_x:.2f}, Y={coord.world_y:.2f}, Z={z_height:.2f}, R={r_value:.2f}")
+        
         if not self.robot.MovL_coord(coord.world_x, coord.world_y, z_height, r_value):
             self.last_error = "移動到物體上方失敗"
             return False
         
+        # 🔥 關鍵修正：MovL完成後sync確保到位
         self.robot.sync()
-        print(f"    移動到物體上方完成: Z={z_height}mm (與vp_topside等高)")
+        print(f"    移動到物體上方完成: Z={z_height}mm (與vp_topside同高) (MovL+sync)")
         return True
     
-    def _step_move_to_pickup_height(self, coord) -> bool:
-        """步驟6: 移動到檢測到的物件座標(Z軸到夾取位置)"""
+    def _step_move_to_work_height(self, coord) -> bool:
+        """下降到VP工作Z高度 (MovL+sync)"""
         if not coord:
             self.last_error = "沒有有效的物體座標"
             return False
         
         r_value = getattr(coord, 'r', 0.0)
         
-        if not self.robot.MovL_coord(coord.world_x, coord.world_y, self.PICKUP_HEIGHT, r_value):
-            self.last_error = "下降到夾取高度失敗"
+        if not self.robot.MovL_coord(coord.world_x, coord.world_y, self.VP_WORK_Z_LEVEL, r_value):
+            self.last_error = f"下降到VP工作Z高度失敗"
             return False
         
         self.robot.sync()
-        print(f"    下降到夾取高度完成: Z={self.PICKUP_HEIGHT}mm")
+        print(f"    下降到VP工作Z高度完成: Z={self.VP_WORK_Z_LEVEL}mm, R={r_value}° (MovL+sync)")
         return True
     
-    def _step_gripper_open_370(self) -> bool:
-        """步驟7: 夾爪撐開至370 (依據CASE流程敘述.md)"""
+    def _step_smart_grip_open(self) -> bool:
+        """夾爪張開到370位置(智慧夾取)"""
         if not self.gripper:
-            print("  跳過夾爪撐開 (夾爪未啟用)")
+            print("  跳過夾爪張開 (夾爪未啟用)")
             return True
         
         # 使用智能夾取，目標位置370
         if not self.gripper.smart_grip(target_position=self.GRIP_OPEN_POSITION):
-            self.last_error = "夾爪撐開至370失敗"
+            self.last_error = f"夾爪張開到{self.GRIP_OPEN_POSITION}失敗"
             return False
         
-        print(f"  夾爪撐開至{self.GRIP_OPEN_POSITION}完成")
+        print(f"  夾爪張開到{self.GRIP_OPEN_POSITION}完成 (智慧夾取)")
         return True
     
-    def _step_move_to_standby(self) -> bool:
-        """步驟9&15: 移動到standby"""
-        self.robot.set_global_speed(self.SPEED_RATIO)
+    def _step_return_to_vp_topside(self, coord) -> bool:
+        """回到vp_topside (MovL+JointMovJ+sync)"""
+        if not coord:
+            self.last_error = "沒有有效的物體座標"
+            return False
         
-        if not self.robot.MovJ("standby"):
-            self.last_error = "移動到standby失敗"
+        # 使用vp_topside的Z高度
+        vp_topside_point = self.robot.points_manager.get_point("vp_topside")
+        if not vp_topside_point:
+            self.last_error = "找不到vp_topside點位"
+            return False
+        
+        z_height = vp_topside_point.z
+        r_value = getattr(coord, 'r', 0.0)
+        
+        # 先上升到安全高度
+        if not self.robot.MovL_coord(coord.world_x, coord.world_y, z_height, r_value):
+            self.last_error = "上升到安全高度失敗"
+            return False
+        
+        # 然後移動到vp_topside
+        if not self.robot.MovJ("vp_topside"):
+            self.last_error = "移動到vp_topside失敗"
             return False
         
         self.robot.sync()
-        print("  移動到standby完成")
+        print(f"    回到vp_topside完成 (MovL+JointMovJ+sync)")
         return True
     
-    def _step_move_to_point(self, point_name: str) -> bool:
-        """通用點位移動方法 - 用於flip系列點位"""
+    def _step_move_to_point_joint(self, point_name: str) -> bool:
+        """通用點位移動方法 - 使用JointMovJ+sync"""
         if not self.robot.MovJ(point_name):
             self.last_error = f"移動到{point_name}失敗"
             return False
         
         self.robot.sync()
         time.sleep(self.POINT_DELAY)
-        print(f"  移動到{point_name}完成")
+        print(f"  移動到{point_name}完成 (JointMovJ+sync)")
         return True
     
+    def _step_gripper_quick_close(self) -> bool:
+        """夾爪快速關閉"""
+        if not self.gripper:
+            print("  跳過夾爪關閉 (夾爪未啟用)")
+            return True
+        
+        success = self.gripper.quick_close()
+        
+        if success:
+            print("  PGC夾爪快速關閉完成")
+        else:
+            self.last_error = "PGC夾爪快速關閉失敗"
+        
+        return success
+    
+    def _set_alarm_state(self):
+        """設置系統警報狀態"""
+        try:
+            if (self.state_machine and 
+                hasattr(self.state_machine, 'set_alarm')):
+                self.state_machine.set_alarm(True)
+                print("  系統已設置為Alarm狀態")
+        except Exception as e:
+            print(f"  設置Alarm狀態失敗: {e}")
+    
     def _step_trigger_ccd2(self) -> str:
-        """步驟16: 觸發CCD2(物件正反面辨識與輸送帶翻轉機構的IO控制)"""
+        """步驟17: 觸發CCD2(物件正反面辨識與輸送帶翻轉機構的IO控制) - 條件執行"""
+        if not self.ccd2_enabled:
+            print("  CCD2功能已停用，跳過觸發")
+            return "CCD2功能已停用"
+        
         try:
             print("  正在觸發CCD2翻轉檢測系統...")
             
@@ -426,17 +514,24 @@ class DobotFlow1:
             print(f"  ✗ CCD2觸發過程異常: {e}")
             return False
     
-    def _set_flow1_completion_status(self) -> bool:
-        """設置Flow1完成狀態到寄存器 - 只有CCD2觸發成功才設置"""
+    def _set_flow1_completion_status(self, ccd2_success: bool = True) -> bool:
+        """設置Flow1完成狀態到寄存器 - 修正版，支援CCD2停用情況"""
         try:
             if (self.state_machine and 
                 hasattr(self.state_machine, 'modbus_client') and 
                 self.state_machine.modbus_client is not None):
                 
                 # 設置Flow1完成狀態 - 使用寄存器420
-                # 1 = Flow1完成且CCD2觸發成功
-                self.state_machine.modbus_client.write_register(420, 1)
-                print("  ✓ Flow1完成狀態已設置 (寄存器420=1)")
+                # CCD2啟用時：1 = Flow1完成且CCD2觸發成功
+                # CCD2停用時：1 = Flow1完成(跳過CCD2)
+                completion_value = 1 if ccd2_success else 0
+                
+                self.state_machine.modbus_client.write_register(420, completion_value)
+                
+                if self.ccd2_enabled:
+                    print(f"  ✓ Flow1完成狀態已設置 (寄存器420={completion_value}, CCD2觸發{'成功' if ccd2_success else '失敗'})")
+                else:
+                    print(f"  ✓ Flow1完成狀態已設置 (寄存器420={completion_value}, CCD2功能已停用)")
                 
                 # 同時更新流程進度為100%
                 self.state_machine.modbus_client.write_register(403, 100)
@@ -471,21 +566,27 @@ class DobotFlow1:
             "required_points": self.REQUIRED_POINTS,
             "gripper_enabled": self.gripper is not None,
             "ccd1_enabled": self.ccd1 is not None,
-            "flow_description": "VP視覺抓取 + 翻轉檢測 (依據CASE流程敘述.md)",
+            "ccd2_enabled": self.ccd2_enabled,
+            "hand_gesture_fix_applied": True,  # 新增：標識已修正手勢切換問題
+            "flow_description": f"VP視覺抓取 + 翻轉檢測 (正確修正版, CCD2={'啟用' if self.ccd2_enabled else '停用'})",
             "flow_sequence": [
-                "standby → 夾爪關閉 → vp_topside → CCD1檢測API",
-                "→ 移動到物件座標(Z軸高度與vp_topside等高)",
-                "→ 移動到物件座標(Z軸到夾取位置) → 夾爪撐開至370",
-                "→ 移動到vp_topside → 移動到standby",
-                "→ flip_pre → flip_top → flip_down → flip_top → flip_pre",
-                "→ standby → 觸發CCD2(物件正反面辨識與輸送帶翻轉機構的IO控制)"
+                "1. standby(sync) → 2. 夾爪快速關閉並觸發CCD1檢測",
+                "3. 處理CCD1檢測結果(無物體則Alarm) → 4. vp_topside(sync+穩定)",
+                "5. 視覺料件座標(MovL+sync) → 6. 下降到VP工作Z高度(MovL+sync)",
+                "7. 夾爪張開到370位置(智慧夾取) → 8. 回到vp_topside(MovL+MovJ+sync)",
+                "9. standby(sync) → 10-12. flip序列(JointMovJ+sync)",
+                "13. 夾爪快速關閉 → 14-15. flip序列(JointMovJ+sync)",
+                f"16. standby(sync) → {'17. 觸發CCD2' if self.ccd2_enabled else '跳過CCD2'}"
             ],
             "key_features": [
-                "CCD1HighLevel API的FIFO佇列管理",
-                "GripperHighLevel API自動判斷夾取成功", 
-                "CCD2異步IO操作觸發翻轉檢測",
+                "修正手勢切換錯誤：JointMovJ到MovL確保sync+穩定",
+                "R值嚴格一致性檢查，容差0.1度",
+                "vp_topside到位後添加0.2秒穩定延遲",
+                f"VP工作Z高度: {self.VP_WORK_Z_LEVEL}mm",
+                f"CCD2異步IO操作觸發翻轉檢測 ({'啟用' if self.ccd2_enabled else '停用'})",
                 "智能夾取至370位置",
-                "完整的flip系列翻轉檢測動作"
+                "所有關鍵點都有sync確保到位",
+                f"動態步驟數調整: {self.total_steps}步"
             ]
         }
     
