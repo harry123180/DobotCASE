@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Dobot_Flow1_new.py - Flow1 VP視覺抓取流程 (修正版 - 使用外部點位檔案)
+Dobot_Flow1_new.py - Flow1 VP視覺抓取流程 (修正版 - 對應新架構Dobot_main.py)
 基於統一Flow架構的運動控制執行器
-使用外部點位檔案，無法讀取時報錯跳過
+使用paste.txt中的API命名風格，支援外部點位檔案
 """
 
 import time
@@ -127,21 +127,21 @@ class Flow1VisionPickExecutor(FlowExecutor):
         super().__init__(flow_id=1, flow_name="VP視覺抓取流程")
         self.motion_steps = []
         
-        # 流程高度參數（根據實際機台調整）
+        # 流程高度參數（根據paste.txt風格）
         self.VP_DETECT_HEIGHT = 244.65    # VP檢測高度（與vp_topside等高）
-        self.PICKUP_HEIGHT = 148.92       # VP夾取高度（你的機台定義值）
+        self.PICKUP_HEIGHT = 142.92       # VP夾取高度
         
         # 初始化點位管理器
         self.points_manager = PointsManager()
         self.points_loaded = False
         
-        # Flow1需要的點位名稱
+        # Flow1需要的點位名稱 (對應paste.txt中的命名)
         self.REQUIRED_POINTS = [
             "standby",      # 待機點
-            "vp_topside",   # VP震動盤上方點
-            "flip_pre",     # 翻轉預備點
-            "flip_top",     # 翻轉頂部點
-            "flip_down"     # 翻轉底部點
+            "vp_topside",   # VP震動盤上方點 (對應VP_TOPSIDE)
+            "flip_pre",     # 翻轉預備點 (對應Rotate_V2)
+            "flip_top",     # 翻轉頂部點 (對應Rotate_top)
+            "flip_down"     # 翻轉底部點 (對應Rotate_down)
         ]
         
         # CCD2 IO控制腳位
@@ -180,34 +180,35 @@ class Flow1VisionPickExecutor(FlowExecutor):
         self.points_loaded = True
         
     def build_flow_steps(self):
-        """建構Flow1步驟"""
+        """建構Flow1步驟 - 對應paste.txt中的flow1流程"""
         if not self.points_loaded:
             print("警告: 點位未載入，無法建構流程步驟")
             self.motion_steps = []
             self.total_steps = 0
             return
             
+        # 對應paste.txt中的流程步驟
         self.motion_steps = [
             # 1. 初始準備
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
             {'type': 'gripper_close', 'params': {}},
             
-            # 2. VP視覺檢測序列
+            # 2. VP視覺檢測序列 (對應paste.txt步驟2-4)
             {'type': 'move_to_point', 'params': {'point_name': 'vp_topside', 'move_type': 'J'}},
-            {'type': 'ccd1_detection', 'params': {}},
+            {'type': 'ccd1_smart_detection', 'params': {}},  # 使用paste.txt中的智能檢測
             
-            # 3. 移動到檢測位置 (等高)
+            # 3. 移動到檢測位置 (等高) - 對應paste.txt的move_to_object_vp_height
             {'type': 'move_to_detected_position_high', 'params': {}},
             
-            # 4. 下降夾取
+            # 4. 下降夾取 - 對應paste.txt的descend_and_smart_grip
             {'type': 'move_to_detected_position_low', 'params': {}},
-            {'type': 'gripper_smart_release', 'params': {'position': 370}},
+            {'type': 'gripper_smart_release', 'params': {'position': 400}},
             
             # 5. 上升離開
             {'type': 'move_to_point', 'params': {'point_name': 'vp_topside', 'move_type': 'L'}},
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
             
-            # 6. 翻轉檢測序列
+            # 6. 翻轉檢測序列 (對應paste.txt步驟9-16)
             {'type': 'move_to_point', 'params': {'point_name': 'flip_pre', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'flip_top', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'flip_down', 'move_type': 'J'}},
@@ -216,15 +217,16 @@ class Flow1VisionPickExecutor(FlowExecutor):
             {'type': 'move_to_point', 'params': {'point_name': 'flip_pre', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
             
-            # 7. 觸發CCD2檢測
-            {'type': 'trigger_ccd2', 'params': {}}
+            # 7. 觸發CCD2檢測 - 對應paste.txt的angle_correction_with_auto_clear
+            {'type': 'trigger_ccd2', 'params': {}},
+            {'type': 'angle_correction', 'params': {}}  # 增加角度校正步驟
         ]
         
         self.total_steps = len(self.motion_steps)
         print(f"Flow1流程步驟建構完成，共{self.total_steps}步")
     
     def execute(self) -> FlowResult:
-        """執行Flow1主邏輯"""
+        """執行Flow1主邏輯 - 對應paste.txt的執行風格"""
         # 檢查點位是否已載入
         if not self.points_loaded:
             return FlowResult(
@@ -271,8 +273,8 @@ class Flow1VisionPickExecutor(FlowExecutor):
                     success = self._execute_gripper_close()
                 elif step['type'] == 'gripper_smart_release':
                     success = self._execute_gripper_smart_release(step['params'])
-                elif step['type'] == 'ccd1_detection':
-                    detected_position = self._execute_ccd1_detection()
+                elif step['type'] == 'ccd1_smart_detection':  # 對應paste.txt的智能檢測
+                    detected_position = self._execute_ccd1_smart_detection()
                     success = detected_position is not None
                 elif step['type'] == 'move_to_detected_position_high':
                     success = self._execute_move_to_detected_high(detected_position)
@@ -280,6 +282,8 @@ class Flow1VisionPickExecutor(FlowExecutor):
                     success = self._execute_move_to_detected_low(detected_position)
                 elif step['type'] == 'trigger_ccd2':
                     success = self._execute_trigger_ccd2()
+                elif step['type'] == 'angle_correction':
+                    success = self._execute_angle_correction()
                 else:
                     print(f"未知步驟類型: {step['type']}")
                     success = False
@@ -319,7 +323,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
             )
     
     def _execute_move_to_point(self, params: Dict[str, Any]) -> bool:
-        """執行移動到外部點位檔案的點位 - 修正版使用關節角度"""
+        """執行移動到外部點位檔案的點位 - 使用關節角度 (對應paste.txt風格)"""
         try:
             point_name = params['point_name']
             move_type = params['move_type']
@@ -349,7 +353,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
             return False
     
     def _execute_gripper_close(self) -> bool:
-        """執行夾爪關閉"""
+        """執行夾爪關閉 - 對應paste.txt的quick_close API"""
         try:
             gripper_api = self.external_modules.get('gripper')
             if gripper_api:
@@ -362,35 +366,72 @@ class Flow1VisionPickExecutor(FlowExecutor):
             return False
     
     def _execute_gripper_smart_release(self, params: Dict[str, Any]) -> bool:
-        """執行夾爪智能撐開"""
+        """執行夾爪智能撐開 - 修正版（增加等待時間確保撐開完成）"""
         try:
             position = params.get('position', 370)
+            print(f"夾爪智能撐開到位置: {position}")
+            
             gripper_api = self.external_modules.get('gripper')
-            if gripper_api:
-                return gripper_api.smart_release(position)
-            else:
+            if not gripper_api:
                 print("夾爪API未初始化")
                 return False
+            
+            # 🔥 關鍵修正：執行智能撐開操作
+            success = gripper_api.smart_release(position)
+            
+            if success:
+                print(f"✓ 夾爪智能撐開指令發送成功")
+                
+                # 🔥 關鍵新增：等待夾爪撐開操作完全完成
+                print("  等待夾爪撐開動作完成...")
+                time.sleep(1.5)  # 等待1.5秒確保夾爪完全撐開
+                
+                # 可選：檢查夾爪位置確認撐開完成
+                if hasattr(gripper_api, 'get_current_position'):
+                    try:
+                        current_pos = gripper_api.get_current_position()
+                        if current_pos is not None:
+                            print(f"  夾爪當前位置: {current_pos}")
+                            if abs(current_pos - position) <= 20:  # 容差20
+                                print(f"  ✓ 夾爪已撐開到目標位置 (誤差: {abs(current_pos - position)})")
+                            else:
+                                print(f"  ⚠️ 夾爪位置偏差較大 (目標: {position}, 實際: {current_pos})")
+                    except Exception as e:
+                        print(f"  無法讀取夾爪位置: {e}")
+                
+                print(f"✓ 夾爪智能撐開完成 - 位置{position}")
+                return True
+            else:
+                print(f"✗ 夾爪智能撐開失敗")
+                return False
+                
         except Exception as e:
-            print(f"夾爪智能撐開失敗: {e}")
+            print(f"夾爪智能撐開異常: {e}")
             return False
     
-    def _execute_ccd1_detection(self) -> Optional[Dict[str, float]]:
-        """執行CCD1視覺檢測"""
+    def _execute_ccd1_smart_detection(self) -> Optional[Dict[str, float]]:
+        """執行CCD1智能檢測 - 對應paste.txt的get_next_object API"""
         try:
             ccd1_api = self.external_modules.get('ccd1')
             if not ccd1_api:
                 print("CCD1 API未初始化")
                 return None
             
-            # 執行拍照和檢測
-            if not ccd1_api.capture_and_detect():
-                print("CCD1拍照檢測失敗")
+            print("  使用CCD1智能檢測API...")
+            
+            # 檢查CCD1系統狀態
+            system_status = ccd1_api.get_system_status()
+            if not system_status['connected']:
+                print("  ⚠️ CCD1系統未連接")
                 return None
             
-            # 獲取檢測結果
-            circle_coord = ccd1_api.get_next_circle_world_coord()
-            if circle_coord:
+            print(f"  CCD1系統狀態: Ready={system_status.get('ready', False)}")
+            
+            # 🔥 關鍵：使用paste.txt中的get_next_circle_world_coord API
+            # 自動處理：檢查FIFO佇列 → 如果空則自動拍照檢測 → 返回結果或None
+            coord = ccd1_api.get_next_circle_world_coord()
+            
+            if coord:
                 # 獲取vp_topside點位的Z高度和R值
                 vp_topside_point = self.points_manager.get_point('vp_topside')
                 if not vp_topside_point:
@@ -398,8 +439,8 @@ class Flow1VisionPickExecutor(FlowExecutor):
                     return None
                 
                 detected_pos = {
-                    'x': circle_coord.world_x,
-                    'y': circle_coord.world_y,
+                    'x': coord.world_x,
+                    'y': coord.world_y,
                     'z': vp_topside_point.z,  # 使用vp_topside的Z高度
                     'r': vp_topside_point.r   # 繼承vp_topside的R值
                 }
@@ -415,11 +456,32 @@ class Flow1VisionPickExecutor(FlowExecutor):
             return None
     
     def _execute_move_to_detected_high(self, detected_position: Optional[Dict[str, float]]) -> bool:
-        """移動到檢測位置(等高) - 修正版，確保sync到位"""
+        """移動到檢測位置(等高) - 對應paste.txt的move_to_object_vp_height"""
         try:
             if not detected_position:
                 print("檢測位置為空，無法移動")
                 return False
+            
+            # 🔥 關鍵新增：在MovL前切換到左手系
+            print("  切換到左手系（LorR=0）...")
+            if hasattr(self.robot, 'set_arm_orientation'):
+                # 如果robot已有封裝方法
+                if not self.robot.set_arm_orientation(0):  # 0 = 左手系
+                    print("  ⚠️ 切換到左手系失敗，但繼續執行")
+                else:
+                    print("  ✓ 已切換到左手系")
+            elif hasattr(self.robot, 'dashboard_api') and self.robot.dashboard_api:
+                # 直接調用底層API
+                try:
+                    result = self.robot.dashboard_api.SetArmOrientation(0)  # 0 = 左手系
+                    if "0," in str(result):  # 檢查是否成功（ErrorID=0表示成功）
+                        print("  ✓ 已切換到左手系")
+                    else:
+                        print(f"  ⚠️ 切換到左手系可能失敗: {result}")
+                except Exception as e:
+                    print(f"  ⚠️ 切換座標系異常: {e}")
+            else:
+                print("  ⚠️ 無法訪問座標系切換API，跳過")
             
             print(f"移動到檢測位置(等高): ({detected_position['x']:.2f}, {detected_position['y']:.2f}, {self.VP_DETECT_HEIGHT:.2f})")
             
@@ -445,7 +507,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
             return False
     
     def _execute_move_to_detected_low(self, detected_position: Optional[Dict[str, float]]) -> bool:
-        """移動到檢測位置(夾取高度) - 使用你的機台定義值"""
+        """移動到檢測位置(夾取高度) - 修正版（在夾爪操作前sync）"""
         try:
             if not detected_position:
                 print("檢測位置為空，無法移動")
@@ -453,7 +515,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
             
             print(f"移動到檢測位置(夾取): ({detected_position['x']:.2f}, {detected_position['y']:.2f}, {self.PICKUP_HEIGHT:.2f})")
             
-            # 使用你的機台定義的夾取高度
+            # 使用夾取高度
             success = self.robot.move_l(
                 detected_position['x'],
                 detected_position['y'],
@@ -462,19 +524,21 @@ class Flow1VisionPickExecutor(FlowExecutor):
             )
             
             if success:
-                print(f"下降到夾取位置完成，夾取高度={self.PICKUP_HEIGHT:.2f}mm, R={detected_position['r']:.2f}°")
+                # 🔥 關鍵修正：在夾爪操作前必須sync確保機械臂到位
+                self.robot.sync()
+                print(f"✓ 下降到夾取位置完成並已同步，夾取高度={self.PICKUP_HEIGHT:.2f}mm")
+                print("  機械臂已準備好進行夾爪操作")
+                return True
             else:
-                print(f"下降到夾取位置失敗")
-                print(f"目標座標: X={detected_position['x']:.2f}, Y={detected_position['y']:.2f}, Z={self.PICKUP_HEIGHT:.2f}, R={detected_position['r']:.2f}")
-            
-            return success
-            
+                print(f"✗ 下降到夾取位置失敗")
+                return False
+                
         except Exception as e:
             print(f"移動到檢測位置(夾取高度)失敗: {e}")
             return False
     
     def _execute_trigger_ccd2(self) -> bool:
-        """觸發CCD2檢測"""
+        """觸發CCD2檢測 - 對應paste.txt的IO控制"""
         try:
             print("觸發CCD2物件正反面辨識")
             
@@ -496,6 +560,39 @@ class Flow1VisionPickExecutor(FlowExecutor):
             
         except Exception as e:
             print(f"觸發CCD2異常: {e}")
+            return False
+    
+    def _execute_angle_correction(self) -> bool:
+        """執行角度校正 - 對應paste.txt的angle_correction_with_auto_clear"""
+        try:
+            print("執行角度校正到90度")
+            
+            angle_api = self.external_modules.get('angle')
+            if not angle_api:
+                print("角度校正API未初始化")
+                return False
+            
+            # 檢查系統準備狀態
+            if not angle_api.is_system_ready():
+                print("角度校正系統未準備就緒")
+                return False
+            
+            # 執行角度校正
+            result = angle_api.adjust_to_90_degrees()
+            
+            if hasattr(result, 'result') and result.result.name == 'SUCCESS':
+                print("✓ 角度校正成功")
+                if hasattr(result, 'original_angle'):
+                    print(f"  檢測角度: {result.original_angle:.2f}度")
+                if hasattr(result, 'angle_diff'):
+                    print(f"  角度差: {result.angle_diff:.2f}度")
+                return True
+            else:
+                print(f"角度校正失敗: {getattr(result, 'message', '未知錯誤')}")
+                return False
+            
+        except Exception as e:
+            print(f"角度校正異常: {e}")
             return False
     
     def pause(self) -> bool:

@@ -221,7 +221,7 @@ class RealRobotController:
         self.is_connected = False
         self.dashboard_api = None
         self.move_api = None
-        self.global_speed = 20
+        self.global_speed = 50
         
     def _parse_api_response(self, response: str) -> bool:
         """解析API響應"""
