@@ -32,10 +32,10 @@ class Flow4VibrationFeedExecutor(FlowExecutor):
         
         # 時間延遲設定
         self.TIMING_CONFIG = {
-            'FEED_DURATION': 2.0,      # DO4持續時間 (秒)
-            'PULSE_HIGH_TIME': 0.5,    # DO1 HIGH持續時間 (秒)
-            'PULSE_LOW_TIME': 0.5,     # DO1 LOW持續時間 (秒)
-            'PULSE_COUNT': 2           # DO1脈衝次數
+            'FEED_DURATION': 0.3,      # DO4持續時間 (秒)
+            'PULSE_HIGH_TIME': 0.3,    # DO1 HIGH持續時間 (秒)
+            'PULSE_LOW_TIME': 0.3,     # DO1 LOW持續時間 (秒)
+            'PULSE_COUNT': 1           # DO1脈衝次數
         }
         
         # 執行緒控制

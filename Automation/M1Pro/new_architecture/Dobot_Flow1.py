@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Dobot_Flow1_new.py - Flow1 VP視覺抓取流程 (新架構版 - 移除模擬代碼修正版)
+Dobot_Flow1_new.py - Flow1 VP視覺抓取流程 (修正版 - 使用外部點位檔案)
 基於統一Flow架構的運動控制執行器
-禁止任何模擬代碼，全部使用真實API連接
+使用外部點位檔案，無法讀取時報錯跳過
 """
 
 import time
-from typing import Dict, Any, Optional, Tuple
+import os
+import json
+from typing import Dict, Any, Optional, Tuple, List
 from dataclasses import dataclass
 from enum import Enum
 
@@ -15,28 +17,176 @@ from enum import Enum
 from flow_base import FlowExecutor, FlowResult, FlowStatus
 
 
+@dataclass
+class RobotPoint:
+    """機械臂點位數據結構"""
+    name: str
+    x: float
+    y: float
+    z: float
+    r: float
+    j1: float
+    j2: float
+    j3: float
+    j4: float
+
+
+class PointsManager:
+    """點位管理器 - 支援cartesian格式"""
+    
+    def __init__(self, points_file: str = "saved_points/robot_points.json"):
+        # 確保使用絕對路徑，相對於當前執行檔案的目錄
+        if not os.path.isabs(points_file):
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            self.points_file = os.path.join(current_dir, points_file)
+        else:
+            self.points_file = points_file
+        self.points: Dict[str, RobotPoint] = {}
+        
+    def load_points(self) -> bool:
+        """載入點位數據 - 支援cartesian格式"""
+        try:
+            print(f"嘗試載入點位檔案: {self.points_file}")
+            
+            if not os.path.exists(self.points_file):
+                print(f"錯誤: 點位檔案不存在: {self.points_file}")
+                return False
+                
+            with open(self.points_file, "r", encoding="utf-8") as f:
+                points_list = json.load(f)
+            
+            self.points.clear()
+            for point_data in points_list:
+                try:
+                    # 支援兩種格式：pose 或 cartesian
+                    if "pose" in point_data:
+                        # 原始格式
+                        pose_data = point_data["pose"]
+                    elif "cartesian" in point_data:
+                        # 新格式
+                        pose_data = point_data["cartesian"]
+                    else:
+                        print(f"點位 {point_data.get('name', 'unknown')} 缺少座標數據")
+                        continue
+                    
+                    # 檢查關節數據
+                    if "joint" not in point_data:
+                        print(f"點位 {point_data.get('name', 'unknown')} 缺少關節數據")
+                        continue
+                    
+                    joint_data = point_data["joint"]
+                    
+                    point = RobotPoint(
+                        name=point_data["name"],
+                        x=float(pose_data["x"]),
+                        y=float(pose_data["y"]),
+                        z=float(pose_data["z"]),
+                        r=float(pose_data["r"]),
+                        j1=float(joint_data["j1"]),
+                        j2=float(joint_data["j2"]),
+                        j3=float(joint_data["j3"]),
+                        j4=float(joint_data["j4"])
+                    )
+                    
+                    # 處理點位名稱的拼寫錯誤
+                    point_name = point.name
+                    if point_name == "stanby":
+                        point_name = "standby"
+                        print(f"自動修正點位名稱: stanby -> standby")
+                    
+                    self.points[point_name] = point
+                    
+                except Exception as e:
+                    print(f"處理點位 {point_data.get('name', 'unknown')} 時發生錯誤: {e}")
+                    continue
+                
+            print(f"載入點位數據成功，共{len(self.points)}個點位: {list(self.points.keys())}")
+            return True
+            
+        except Exception as e:
+            print(f"錯誤: 載入點位數據失敗: {e}")
+            return False
+    
+    def get_point(self, name: str) -> Optional[RobotPoint]:
+        """獲取指定點位"""
+        return self.points.get(name)
+    
+    def list_points(self) -> List[str]:
+        """列出所有點位名稱"""
+        return list(self.points.keys())
+    
+    def has_point(self, name: str) -> bool:
+        """檢查是否存在指定點位"""
+        return name in self.points
+
+
 class Flow1VisionPickExecutor(FlowExecutor):
-    """Flow1: VP視覺抓取流程執行器"""
+    """Flow1: VP視覺抓取流程執行器 - 使用外部點位檔案版本"""
     
     def __init__(self):
         super().__init__(flow_id=1, flow_name="VP視覺抓取流程")
         self.motion_steps = []
-        self.build_flow_steps()
         
-        # 預定義點位 (真實座標)
-        self.PREDEFINED_POINTS = {
-            'standby': {'x': 250.0, 'y': 0.0, 'z': 150.0, 'r': 0.0},
-            'vp_topside': {'x': 100.0, 'y': 200.0, 'z': 120.0, 'r': 0.0},
-            'flip_pre': {'x': 300.0, 'y': -100.0, 'z': 150.0, 'r': 0.0},
-            'flip_top': {'x': 300.0, 'y': -100.0, 'z': 100.0, 'r': 0.0},
-            'flip_down': {'x': 300.0, 'y': -100.0, 'z': 50.0, 'r': 0.0}
-        }
+        # 流程高度參數（根據實際機台調整）
+        self.VP_DETECT_HEIGHT = 244.65    # VP檢測高度（與vp_topside等高）
+        self.PICKUP_HEIGHT = 148.92       # VP夾取高度（你的機台定義值）
+        
+        # 初始化點位管理器
+        self.points_manager = PointsManager()
+        self.points_loaded = False
+        
+        # Flow1需要的點位名稱
+        self.REQUIRED_POINTS = [
+            "standby",      # 待機點
+            "vp_topside",   # VP震動盤上方點
+            "flip_pre",     # 翻轉預備點
+            "flip_top",     # 翻轉頂部點
+            "flip_down"     # 翻轉底部點
+        ]
         
         # CCD2 IO控制腳位
         self.CCD2_TRIGGER_PIN = 8  # DO8: 觸發CCD2檢測
         
+        # 嘗試載入點位檔案
+        self._load_and_validate_points()
+        
+        # 只有點位載入成功才建構流程步驟
+        if self.points_loaded:
+            self.build_flow_steps()
+        
+    def _load_and_validate_points(self):
+        """載入並驗證點位檔案"""
+        print("Flow1正在載入外部點位檔案...")
+        
+        # 載入點位檔案
+        if not self.points_manager.load_points():
+            print("錯誤: 無法載入點位檔案，Flow1無法執行")
+            self.points_loaded = False
+            return
+        
+        # 檢查所有必要點位是否存在
+        missing_points = []
+        for point_name in self.REQUIRED_POINTS:
+            if not self.points_manager.has_point(point_name):
+                missing_points.append(point_name)
+        
+        if missing_points:
+            print(f"錯誤: 缺少必要點位: {missing_points}")
+            print(f"可用點位: {self.points_manager.list_points()}")
+            self.points_loaded = False
+            return
+        
+        print("✓ 所有必要點位載入成功")
+        self.points_loaded = True
+        
     def build_flow_steps(self):
         """建構Flow1步驟"""
+        if not self.points_loaded:
+            print("警告: 點位未載入，無法建構流程步驟")
+            self.motion_steps = []
+            self.total_steps = 0
+            return
+            
         self.motion_steps = [
             # 1. 初始準備
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
@@ -60,9 +210,9 @@ class Flow1VisionPickExecutor(FlowExecutor):
             # 6. 翻轉檢測序列
             {'type': 'move_to_point', 'params': {'point_name': 'flip_pre', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'flip_top', 'move_type': 'J'}},
-            {'type': 'move_to_point', 'params': {'point_name': 'flip_down', 'move_type': 'L'}},
+            {'type': 'move_to_point', 'params': {'point_name': 'flip_down', 'move_type': 'J'}},
             {'type': 'gripper_close', 'params': {}},
-            {'type': 'move_to_point', 'params': {'point_name': 'flip_top', 'move_type': 'L'}},
+            {'type': 'move_to_point', 'params': {'point_name': 'flip_top', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'flip_pre', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
             
@@ -71,9 +221,20 @@ class Flow1VisionPickExecutor(FlowExecutor):
         ]
         
         self.total_steps = len(self.motion_steps)
+        print(f"Flow1流程步驟建構完成，共{self.total_steps}步")
     
     def execute(self) -> FlowResult:
         """執行Flow1主邏輯"""
+        # 檢查點位是否已載入
+        if not self.points_loaded:
+            return FlowResult(
+                success=False,
+                error_message="點位檔案載入失敗，無法執行Flow1",
+                execution_time=0.0,
+                steps_completed=0,
+                total_steps=0
+            )
+        
         self.status = FlowStatus.RUNNING
         self.start_time = time.time()
         self.current_step = 0
@@ -158,21 +319,27 @@ class Flow1VisionPickExecutor(FlowExecutor):
             )
     
     def _execute_move_to_point(self, params: Dict[str, Any]) -> bool:
-        """執行移動到預定義點位"""
+        """執行移動到外部點位檔案的點位 - 修正版使用關節角度"""
         try:
             point_name = params['point_name']
             move_type = params['move_type']
             
-            if point_name not in self.PREDEFINED_POINTS:
-                print(f"未定義的點位: {point_name}")
+            # 從點位管理器獲取點位
+            point = self.points_manager.get_point(point_name)
+            if not point:
+                print(f"錯誤: 點位管理器中找不到點位: {point_name}")
                 return False
             
-            point = self.PREDEFINED_POINTS[point_name]
+            print(f"移動到點位 {point_name}")
+            print(f"  關節角度: (j1:{point.j1:.1f}, j2:{point.j2:.1f}, j3:{point.j3:.1f}, j4:{point.j4:.1f})")
+            print(f"  笛卡爾座標: ({point.x:.2f}, {point.y:.2f}, {point.z:.2f}, {point.r:.2f})")
             
             if move_type == 'J':
-                return self.robot.move_j(point['x'], point['y'], point['z'], point['r'])
+                # 使用關節角度運動
+                return self.robot.joint_move_j(point.j1, point.j2, point.j3, point.j4)
             elif move_type == 'L':
-                return self.robot.move_l(point['x'], point['y'], point['z'], point['r'])
+                # 直線運動使用笛卡爾座標
+                return self.robot.move_l(point.x, point.y, point.z, point.r)
             else:
                 print(f"未支援的移動類型: {move_type}")
                 return False
@@ -209,7 +376,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
             return False
     
     def _execute_ccd1_detection(self) -> Optional[Dict[str, float]]:
-        """執行CCD1視覺檢測 - PyModbus 3.9.2修正版"""
+        """執行CCD1視覺檢測"""
         try:
             ccd1_api = self.external_modules.get('ccd1')
             if not ccd1_api:
@@ -224,13 +391,20 @@ class Flow1VisionPickExecutor(FlowExecutor):
             # 獲取檢測結果
             circle_coord = ccd1_api.get_next_circle_world_coord()
             if circle_coord:
+                # 獲取vp_topside點位的Z高度和R值
+                vp_topside_point = self.points_manager.get_point('vp_topside')
+                if not vp_topside_point:
+                    print("錯誤: 無法獲取vp_topside點位")
+                    return None
+                
                 detected_pos = {
                     'x': circle_coord.world_x,
                     'y': circle_coord.world_y,
-                    'z': self.PREDEFINED_POINTS['vp_topside']['z'],  # 使用vp_topside的Z高度
-                    'r': 0.0
+                    'z': vp_topside_point.z,  # 使用vp_topside的Z高度
+                    'r': vp_topside_point.r   # 繼承vp_topside的R值
                 }
                 print(f"CCD1檢測成功: ({detected_pos['x']:.2f}, {detected_pos['y']:.2f})")
+                print(f"繼承vp_topside - Z:{detected_pos['z']:.2f}, R:{detected_pos['r']:.2f}")
                 return detected_pos
             else:
                 print("CCD1未檢測到有效物件")
@@ -241,40 +415,59 @@ class Flow1VisionPickExecutor(FlowExecutor):
             return None
     
     def _execute_move_to_detected_high(self, detected_position: Optional[Dict[str, float]]) -> bool:
-        """移動到檢測位置(等高)"""
+        """移動到檢測位置(等高) - 修正版，確保sync到位"""
         try:
             if not detected_position:
                 print("檢測位置為空，無法移動")
                 return False
             
-            # 移動到檢測位置，保持vp_topside的Z高度
-            return self.robot.move_j(
+            print(f"移動到檢測位置(等高): ({detected_position['x']:.2f}, {detected_position['y']:.2f}, {self.VP_DETECT_HEIGHT:.2f})")
+            
+            # 🔥 關鍵修正：使用完整的MovL+sync流程
+            success = self.robot.move_l(
                 detected_position['x'],
                 detected_position['y'],
-                detected_position['z'],
+                self.VP_DETECT_HEIGHT,
                 detected_position['r']
             )
             
+            if success:
+                # 🔥 關鍵：確保MovL到位後才繼續
+                self.robot.sync()
+                print(f"MovL已完成並同步: 檢測高度={self.VP_DETECT_HEIGHT:.2f}mm, R={detected_position['r']:.2f}°")
+                return True
+            else:
+                print(f"MovL指令執行失敗")
+                return False
+                
         except Exception as e:
             print(f"移動到檢測位置(等高)失敗: {e}")
             return False
     
     def _execute_move_to_detected_low(self, detected_position: Optional[Dict[str, float]]) -> bool:
-        """移動到檢測位置(夾取高度)"""
+        """移動到檢測位置(夾取高度) - 使用你的機台定義值"""
         try:
             if not detected_position:
                 print("檢測位置為空，無法移動")
                 return False
             
-            # 下降到夾取高度 (Z軸降低50mm)
-            pick_z = detected_position['z'] - 50.0
+            print(f"移動到檢測位置(夾取): ({detected_position['x']:.2f}, {detected_position['y']:.2f}, {self.PICKUP_HEIGHT:.2f})")
             
-            return self.robot.move_l(
+            # 使用你的機台定義的夾取高度
+            success = self.robot.move_l(
                 detected_position['x'],
                 detected_position['y'],
-                pick_z,
+                self.PICKUP_HEIGHT,  # 148.92mm
                 detected_position['r']
             )
+            
+            if success:
+                print(f"下降到夾取位置完成，夾取高度={self.PICKUP_HEIGHT:.2f}mm, R={detected_position['r']:.2f}°")
+            else:
+                print(f"下降到夾取位置失敗")
+                print(f"目標座標: X={detected_position['x']:.2f}, Y={detected_position['y']:.2f}, Z={self.PICKUP_HEIGHT:.2f}, R={detected_position['r']:.2f}")
+            
+            return success
             
         except Exception as e:
             print(f"移動到檢測位置(夾取高度)失敗: {e}")
@@ -330,3 +523,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
         if self.total_steps == 0:
             return 0
         return int((self.current_step / self.total_steps) * 100)
+    
+    def is_ready(self) -> bool:
+        """檢查Flow1是否準備好執行"""
+        return self.points_loaded and self.total_steps > 0

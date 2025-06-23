@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Dobot_main.py - 機械臂主控制器 (新流程架構版 - 移除模擬代碼修正版)
-實現三執行緒併行架構：運動控制、DIO控制、外部模組交握
-支援統一指令佇列和優先權機制
-禁止任何模擬代碼，全部使用真實API連接
+Dobot_main.py - 機械臂主控制器 (修正指令觸發穩定性版)
+修正Flow3/4指令佇列競爭問題，使用專用佇列確保指令穩定執行
 """
 
 import json
@@ -26,7 +24,6 @@ from Dobot_Flow4 import Flow4VibrationFeedExecutor
 
 # 導入高階API模組
 from CCD1HighLevel import CCD1HighLevelAPI
-# 使用修正後的GripperHighLevel
 from GripperHighLevel import GripperHighLevelAPI, GripperType
 from AngleHighLevel import AngleHighLevel
 
@@ -42,16 +39,18 @@ CONFIG_FILE = "dobot_config.json"
 class CommandType(Enum):
     """指令類型"""
     MOTION = "motion"
-    DIO = "dio"
+    DIO_FLIP = "dio_flip"
+    DIO_VIBRATION = "dio_vibration"
     EXTERNAL = "external"
     EMERGENCY = "emergency"
 
 class CommandPriority(IntEnum):
     """指令優先權 (數值越小優先權越高)"""
-    EMERGENCY = 0    # 緊急停止
-    MOTION = 1       # 運動指令
-    DIO = 2          # DIO指令
-    EXTERNAL = 3     # 外部模組指令
+    EMERGENCY = 0
+    MOTION = 1
+    DIO_FLIP = 2
+    DIO_VIBRATION = 2
+    EXTERNAL = 3
 
 @dataclass
 class Command:
@@ -69,19 +68,21 @@ class Command:
             return self.priority < other.priority
         return self.timestamp < other.timestamp
 
-class CommandQueue:
-    """統一指令佇列 - 修正版"""
+# ==================== 專用指令佇列系統 ====================
+
+class DedicatedCommandQueue:
+    """專用指令佇列 - 每個執行緒使用專用佇列避免競爭"""
     
-    def __init__(self, max_size: int = 100):
-        self.queue = queue.PriorityQueue(max_size)
+    def __init__(self, name: str, max_size: int = 50):
+        self.name = name
+        self.queue = queue.Queue(max_size)
         self.command_id_counter = 1
         self._lock = threading.Lock()
-        # 修正：增加統計信息
         self.put_count = 0
         self.get_count = 0
         
     def put_command(self, command: Command) -> bool:
-        """加入指令到佇列 - 增加詳細日誌"""
+        """加入指令到專用佇列"""
         try:
             with self._lock:
                 command.command_id = self.command_id_counter
@@ -90,32 +91,31 @@ class CommandQueue:
             self.queue.put_nowait(command)
             self.put_count += 1
             
-            # 修正：增加詳細日誌
-            print(f"[Queue] 指令已加入佇列 - ID:{command.command_id}, 類型:{command.command_type.value}, 佇列大小:{self.queue.qsize()}")
+            print(f"[{self.name}Queue] 指令已加入 - ID:{command.command_id}, 類型:{command.command_type.value}, 佇列大小:{self.queue.qsize()}")
             return True
             
         except queue.Full:
-            print(f"[Queue] 指令佇列已滿，丟棄指令: {command.command_type}")
+            print(f"[{self.name}Queue] 佇列已滿，丟棄指令: {command.command_type}")
             return False
         except Exception as e:
-            print(f"[Queue] 加入指令失敗: {e}")
+            print(f"[{self.name}Queue] 加入指令失敗: {e}")
             return False
             
     def get_command(self, timeout: Optional[float] = None) -> Optional[Command]:
-        """取得指令 - 增加詳細日誌"""
+        """取得指令"""
         try:
             command = self.queue.get(timeout=timeout)
             self.get_count += 1
             
             if command:
-                print(f"[Queue] 指令已取出 - ID:{command.command_id}, 類型:{command.command_type.value}, 剩餘:{self.queue.qsize()}")
+                print(f"[{self.name}Queue] 指令已取出 - ID:{command.command_id}, 類型:{command.command_type.value}, 剩餘:{self.queue.qsize()}")
             
             return command
             
         except queue.Empty:
             return None
         except Exception as e:
-            print(f"[Queue] 取得指令失敗: {e}")
+            print(f"[{self.name}Queue] 取得指令失敗: {e}")
             return None
             
     def size(self) -> int:
@@ -130,6 +130,7 @@ class CommandQueue:
             'total_get': self.get_count,
             'pending': self.put_count - self.get_count
         }
+
 # ==================== 機械臂狀態機 ====================
 
 class DobotStateMachine:
@@ -138,19 +139,6 @@ class DobotStateMachine:
     def __init__(self, modbus_client: ModbusTcpClient):
         self.modbus_client = modbus_client
         self.base_addr = DOBOT_BASE_ADDR
-        
-    def _parse_api_response(self, response: str) -> bool:
-        """解析API響應，檢查是否成功"""
-        if not response:
-            return False
-        try:
-            parts = response.strip().split(',')
-            if len(parts) >= 1:
-                error_code = int(parts[0])
-                return error_code == 0
-            return False
-        except (ValueError, IndexError):
-            return False
         
     def set_ready(self, ready: bool = True):
         """設置Ready狀態 - PyModbus 3.9.2修正版"""
@@ -162,9 +150,9 @@ class DobotStateMachine:
                 
             current = result.registers[0]
             if ready:
-                current |= 0x01  # bit0 = 1
+                current |= 0x01
             else:
-                current &= ~0x01  # bit0 = 0
+                current &= ~0x01
             self.modbus_client.write_register(address=self.base_addr, value=current)
         except Exception as e:
             print(f"設置Ready狀態失敗: {e}")
@@ -179,10 +167,10 @@ class DobotStateMachine:
                 
             current = result.registers[0]
             if running:
-                current |= 0x02  # bit1 = 1
-                current &= ~0x01  # Ready = 0
+                current |= 0x02
+                current &= ~0x01
             else:
-                current &= ~0x02  # bit1 = 0
+                current &= ~0x02
             self.modbus_client.write_register(address=self.base_addr, value=current)
         except Exception as e:
             print(f"設置Running狀態失敗: {e}")
@@ -197,10 +185,10 @@ class DobotStateMachine:
                 
             current = result.registers[0]
             if alarm:
-                current |= 0x04  # bit2 = 1
-                current &= ~0x03  # Ready和Running = 0
+                current |= 0x04
+                current &= ~0x03
             else:
-                current &= ~0x04  # bit2 = 0
+                current &= ~0x04
             self.modbus_client.write_register(address=self.base_addr, value=current)
         except Exception as e:
             print(f"設置Alarm狀態失敗: {e}")
@@ -222,8 +210,9 @@ class DobotStateMachine:
 
 # ==================== 真實機械臂控制器 ====================
 
+
 class RealRobotController:
-    """真實機械臂控制器 - 使用dobot_api"""
+    """真實機械臂控制器 - 修正運動完成檢查版本"""
     
     def __init__(self, ip: str, dashboard_port: int = 29999, move_port: int = 30003):
         self.ip = ip
@@ -232,7 +221,7 @@ class RealRobotController:
         self.is_connected = False
         self.dashboard_api = None
         self.move_api = None
-        self.global_speed = 50
+        self.global_speed = 20
         
     def _parse_api_response(self, response: str) -> bool:
         """解析API響應"""
@@ -246,6 +235,26 @@ class RealRobotController:
             return False
         except (ValueError, IndexError):
             return False
+    
+    def _extract_mode_from_response(self, response: str) -> Optional[int]:
+        """從RobotMode響應中提取模式值"""
+        try:
+            if not response:
+                return None
+            
+            # 處理格式如: "0,{4},RobotMode();" 或 "0,4,RobotMode();"
+            parts = response.strip().split(',')
+            if len(parts) >= 2:
+                mode_part = parts[1].strip()
+                
+                # 移除花括號
+                if mode_part.startswith('{') and mode_part.endswith('}'):
+                    mode_part = mode_part[1:-1]
+                
+                return int(mode_part)
+            return None
+        except (ValueError, IndexError):
+            return None
         
     def initialize(self) -> bool:
         """初始化機械臂連接"""
@@ -253,7 +262,6 @@ class RealRobotController:
             self.dashboard_api = DobotApiDashboard(self.ip, self.dashboard_port)
             self.move_api = DobotApiMove(self.ip, self.move_port)
             
-            # 機械臂初始化設置
             clear_result = self.dashboard_api.ClearError()
             if self._parse_api_response(clear_result):
                 print("✓ 清除錯誤成功")
@@ -267,7 +275,9 @@ class RealRobotController:
                 print(f"機械臂啟用失敗: {enable_result}")
                 return False
             
-            # 設定初始速度
+            # 等待機械臂就緒
+            time.sleep(2.0)
+            
             if self.set_global_speed(self.global_speed):
                 print(f"✓ 初始速度設定成功: {self.global_speed}%")
             else:
@@ -301,79 +311,135 @@ class RealRobotController:
             return False
     
     def move_j(self, x: float, y: float, z: float, r: float) -> bool:
-        """關節運動 - 等待完成並檢查回傳"""
+        """關節運動 - 修正版"""
         try:
+            print(f"開始MovJ: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
+            
+            # 發送運動指令
             result = self.move_api.MovJ(x, y, z, r)
             success = self._parse_api_response(result)
-            if success:
-                # 等待運動完成 - 檢查機械臂狀態
-                if self._wait_for_motion_complete():
-                    print(f"✓ MovJ完成: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
-                    return True
-                else:
-                    print(f"✗ MovJ超時: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
-                    return False
-            else:
-                print(f"✗ MovJ指令失敗: {result}")
+            
+            if not success:
+                print(f"✗ MovJ指令發送失敗: {result}")
                 return False
+            
+            print(f"MovJ指令發送成功，等待運動完成...")
+            
+            # 等待運動完成
+            if self._wait_for_motion_complete():
+                print(f"✓ MovJ完成: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
+                return True
+            else:
+                print(f"✗ MovJ超時或失敗: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
+                return False
+                
         except Exception as e:
-            print(f"MovJ執行失敗: {e}")
+            print(f"MovJ執行異常: {e}")
             return False
     
     def move_l(self, x: float, y: float, z: float, r: float) -> bool:
-        """直線運動 - 等待完成並檢查回傳"""
+        """直線運動 - 修正版"""
         try:
+            print(f"開始MovL: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
+            
+            # 發送運動指令
             result = self.move_api.MovL(x, y, z, r)
             success = self._parse_api_response(result)
-            if success:
-                # 等待運動完成 - 檢查機械臂狀態
-                if self._wait_for_motion_complete():
-                    print(f"✓ MovL完成: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
-                    return True
-                else:
-                    print(f"✗ MovL超時: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
-                    return False
-            else:
-                print(f"✗ MovL指令失敗: {result}")
+            
+            if not success:
+                print(f"✗ MovL指令發送失敗: {result}")
                 return False
+            
+            print(f"MovL指令發送成功，等待運動完成...")
+            
+            # 等待運動完成
+            if self._wait_for_motion_complete():
+                print(f"✓ MovL完成: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
+                return True
+            else:
+                print(f"✗ MovL超時或失敗: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
+                return False
+                
         except Exception as e:
-            print(f"MovL執行失敗: {e}")
+            print(f"MovL執行異常: {e}")
             return False
     
     def _wait_for_motion_complete(self, timeout: float = 30.0) -> bool:
-        """等待運動完成 - 檢查機械臂狀態"""
+        """等待運動完成 - 修正回原本邏輯"""
         try:
             start_time = time.time()
+            last_mode = None
+            stable_count = 0
+            required_stable_checks = 3  # 需要連續3次檢查都是模式5
+            
+            print("等待運動完成...")
             
             while time.time() - start_time < timeout:
-                # 檢查機械臂狀態
+                # 獲取機械臂模式
                 result = self.dashboard_api.RobotMode()
-                if self._parse_api_response(result):
-                    # 解析回傳數據，檢查是否完成運動
-                    # RobotMode回傳格式通常是 "0,mode,RobotMode;"
-                    parts = result.strip().split(',')
-                    if len(parts) >= 2:
-                        try:
-                            mode = int(parts[1])
-                            # mode 5 通常表示運動完成(IDLE狀態)
-                            if mode == 5:
-                                return True
-                        except ValueError:
-                            pass
                 
-                time.sleep(0.1)  # 100ms檢查間隔
+                if not self._parse_api_response(result):
+                    print(f"⚠️ 無法獲取機械臂模式: {result}")
+                    time.sleep(0.1)
+                    continue
+                
+                current_mode = self._extract_mode_from_response(result)
+                
+                if current_mode is None:
+                    print(f"⚠️ 無法解析機械臂模式: {result}")
+                    time.sleep(0.1)
+                    continue
+                
+                # 根據dobot_api專案知識：mode 5 表示運動完成(IDLE狀態)
+                if current_mode == 5:
+                    if last_mode == current_mode:
+                        stable_count += 1
+                        if stable_count >= required_stable_checks:
+                            print(f"✓ 機械臂運動完成 (模式: {current_mode})")
+                            return True
+                    else:
+                        stable_count = 1
+                        print(f"機械臂進入完成狀態 (模式: {current_mode})")
+                else:
+                    stable_count = 0
+                    if current_mode != last_mode:  # 只在狀態改變時輸出
+                        if current_mode == 7:
+                            print(f"機械臂運動準備中 (模式: {current_mode})")
+                        else:
+                            print(f"機械臂狀態: {current_mode}")
+                
+                last_mode = current_mode
+                time.sleep(0.1)  # 檢查間隔
             
-            return False  # 超時
+            print(f"✗ 等待運動完成超時 ({timeout}秒), 最後模式: {last_mode}")
+            print("可能原因：運動指令發送失敗或機械臂未進入IDLE狀態")
+            return False
             
         except Exception as e:
-            print(f"等待運動完成檢查失敗: {e}")
+            print(f"等待運動完成檢查異常: {e}")
+            return False
+    
+    def sync(self) -> bool:
+        """同步等待所有運動完成"""
+        try:
+            if self.move_api:
+                result = self.move_api.Sync()
+                return self._parse_api_response(result)
+            return False
+        except Exception as e:
+            print(f"同步等待失敗: {e}")
             return False
     
     def set_do(self, pin: int, value: int) -> bool:
         """設定數位輸出"""
         try:
             result = self.dashboard_api.DOExecute(pin, value)
-            return self._parse_api_response(result)
+            success = self._parse_api_response(result)
+            if success:
+                print(f"✓ DO{pin}設定為{value}")
+            else:
+                print(f"✗ DO{pin}設定失敗: {result}")
+            return success
         except Exception as e:
             print(f"設定DO失敗: {e}")
             return False
@@ -382,10 +448,14 @@ class RealRobotController:
         """讀取數位輸入"""
         try:
             result = self.dashboard_api.DI(pin)
-            if result:
+            if self._parse_api_response(result):
                 parts = result.strip().split(',')
                 if len(parts) >= 2:
-                    return int(parts[1])
+                    di_part = parts[1].strip()
+                    # 移除花括號
+                    if di_part.startswith('{') and di_part.endswith('}'):
+                        di_part = di_part[1:-1]
+                    return int(di_part)
             return None
         except Exception as e:
             print(f"讀取DI失敗: {e}")
@@ -403,6 +473,52 @@ class RealRobotController:
             return success
         except Exception as e:
             print(f"緊急停止失敗: {e}")
+            return False
+    
+    def get_current_pose(self) -> Optional[Dict[str, float]]:
+        """獲取當前位置"""
+        try:
+            result = self.dashboard_api.GetPose()
+            if self._parse_api_response(result):
+                # 解析位置數據
+                parts = result.strip().split(',')
+                if len(parts) >= 5:
+                    return {
+                        'x': float(parts[1]),
+                        'y': float(parts[2]), 
+                        'z': float(parts[3]),
+                        'r': float(parts[4])
+                    }
+            return None
+        except Exception as e:
+            print(f"獲取位置失敗: {e}")
+            return None
+    
+    def joint_move_j(self, j1: float, j2: float, j3: float, j4: float) -> bool:
+        """關節角度運動 - 使用JointMovJ"""
+        try:
+            print(f"開始JointMovJ: (j1:{j1:.1f}, j2:{j2:.1f}, j3:{j3:.1f}, j4:{j4:.1f})")
+            
+            # 發送關節運動指令
+            result = self.move_api.JointMovJ(j1, j2, j3, j4)
+            success = self._parse_api_response(result)
+            
+            if not success:
+                print(f"✗ JointMovJ指令發送失敗: {result}")
+                return False
+            
+            print(f"JointMovJ指令發送成功，等待運動完成...")
+            
+            # 等待運動完成
+            if self._wait_for_motion_complete():
+                print(f"✓ JointMovJ完成: (j1:{j1:.1f}, j2:{j2:.1f}, j3:{j3:.1f}, j4:{j4:.1f})")
+                return True
+            else:
+                print(f"✗ JointMovJ超時或失敗: (j1:{j1:.1f}, j2:{j2:.1f}, j3:{j3:.1f}, j4:{j4:.1f})")
+                return False
+                
+        except Exception as e:
+            print(f"JointMovJ執行異常: {e}")
             return False
     
     def disconnect(self) -> bool:
@@ -428,7 +544,7 @@ class RealRobotController:
 class BaseFlowThread(threading.Thread):
     """執行緒基類"""
     
-    def __init__(self, name: str, command_queue: CommandQueue):
+    def __init__(self, name: str, command_queue: DedicatedCommandQueue):
         super().__init__(daemon=True, name=name)
         self.command_queue = command_queue
         self.running = False
@@ -452,27 +568,26 @@ class BaseFlowThread(threading.Thread):
             'running': self.running,
             'status': self.status,
             'last_error': self.last_error,
-            'operation_count': self.operation_count
+            'operation_count': self.operation_count,
+            'queue_stats': self.command_queue.get_stats()
         }
 
 # ==================== 運動控制執行緒 ====================
 
 class MotionFlowThread(BaseFlowThread):
-    """運動控制執行緒"""
+    """運動控制執行緒 - 只處理Flow1和Flow2"""
     
-    def __init__(self, robot: RealRobotController, command_queue: CommandQueue, 
+    def __init__(self, robot: RealRobotController, command_queue: DedicatedCommandQueue, 
                  state_machine: DobotStateMachine, external_modules: Dict):
         super().__init__("MotionFlow", command_queue)
         self.robot = robot
         self.state_machine = state_machine
         self.external_modules = external_modules
-        
-        # 建立Flow執行器
         self.flow_executors = {}
         self.current_flow = None
         
     def initialize_flows(self):
-        """初始化Flow執行器 - 使用真實API"""
+        """初始化Flow執行器"""
         try:
             # Flow1: VP視覺抓取
             flow1 = Flow1VisionPickExecutor()
@@ -484,10 +599,10 @@ class MotionFlowThread(BaseFlowThread):
             flow2.initialize(self.robot, self.state_machine, self.external_modules)
             self.flow_executors[2] = flow2
             
-            print("✓ Flow執行器初始化完成")
+            print("✓ Motion Flow執行器初始化完成 (Flow1, Flow2)")
             
         except Exception as e:
-            print(f"Flow執行器初始化失敗: {e}")
+            print(f"Motion Flow執行器初始化失敗: {e}")
             self.last_error = str(e)
     
     def run(self):
@@ -497,15 +612,16 @@ class MotionFlowThread(BaseFlowThread):
         
         while self.running:
             try:
-                # 取得運動指令
                 command = self.command_queue.get_command(timeout=0.1)
                 
                 if command and command.command_type == CommandType.MOTION:
+                    print(f"[Motion] 收到運動指令，ID: {command.command_id}")
                     self._handle_motion_command(command)
                     
             except Exception as e:
                 self.last_error = f"運動控制執行緒錯誤: {e}"
-                print(self.last_error)
+                print(f"[Motion] {self.last_error}")
+                traceback.print_exc()
                 
         self.status = "已停止"
         print(f"[{self.name}] 執行緒結束")
@@ -521,18 +637,18 @@ class MotionFlowThread(BaseFlowThread):
             elif cmd_type == 'flow_unload':
                 self._execute_flow2()
             else:
-                print(f"未知運動指令類型: {cmd_type}")
+                print(f"[Motion] 未知運動指令類型: {cmd_type}")
                 
             self.operation_count += 1
             
         except Exception as e:
             self.last_error = f"處理運動指令失敗: {e}"
-            print(self.last_error)
+            print(f"[Motion] {self.last_error}")
     
     def _execute_flow1(self):
-        """執行Flow1 - VP視覺抓取"""
+        """執行Flow1"""
         try:
-            print("開始執行Flow1 - VP視覺抓取")
+            print("[Motion] 開始執行Flow1 - VP視覺抓取")
             self.state_machine.set_running(True)
             self.state_machine.set_current_flow(1)
             
@@ -541,30 +657,30 @@ class MotionFlowThread(BaseFlowThread):
                 result = flow1.execute()
                 
                 if result.success:
-                    print("✓ Flow1執行成功")
+                    print("[Motion] ✓ Flow1執行成功")
                     self.state_machine.set_flow1_complete(True)
                     self.state_machine.set_running(False)
                     self.state_machine.set_current_flow(0)
                     self.state_machine.set_ready(True)
                 else:
-                    print(f"✗ Flow1執行失敗: {result.error_message}")
+                    print(f"[Motion] ✗ Flow1執行失敗: {result.error_message}")
                     self.state_machine.set_alarm(True)
                     self.state_machine.set_running(False)
                     self.state_machine.set_current_flow(0)
             else:
-                print("✗ Flow1執行器未初始化")
+                print("[Motion] ✗ Flow1執行器未初始化")
                 self.state_machine.set_alarm(True)
                 
         except Exception as e:
-            print(f"Flow1執行異常: {e}")
+            print(f"[Motion] Flow1執行異常: {e}")
             self.state_machine.set_alarm(True)
             self.state_machine.set_running(False)
             self.state_machine.set_current_flow(0)
     
     def _execute_flow2(self):
-        """執行Flow2 - CV出料流程"""
+        """執行Flow2"""
         try:
-            print("開始執行Flow2 - CV出料流程")
+            print("[Motion] 開始執行Flow2 - CV出料流程")
             self.state_machine.set_running(True)
             self.state_machine.set_current_flow(2)
             
@@ -573,190 +689,189 @@ class MotionFlowThread(BaseFlowThread):
                 result = flow2.execute()
                 
                 if result.success:
-                    print("✓ Flow2執行成功")
+                    print("[Motion] ✓ Flow2執行成功")
                     self.state_machine.set_running(False)
                     self.state_machine.set_current_flow(0)
                     self.state_machine.set_ready(True)
                 else:
-                    print(f"✗ Flow2執行失敗: {result.error_message}")
+                    print(f"[Motion] ✗ Flow2執行失敗: {result.error_message}")
                     self.state_machine.set_alarm(True)
                     self.state_machine.set_running(False)
                     self.state_machine.set_current_flow(0)
             else:
-                print("✗ Flow2執行器未初始化")
+                print("[Motion] ✗ Flow2執行器未初始化")
                 self.state_machine.set_alarm(True)
                 
         except Exception as e:
-            print(f"Flow2執行異常: {e}")
+            print(f"[Motion] Flow2執行異常: {e}")
             self.state_machine.set_alarm(True)
             self.state_machine.set_running(False)
             self.state_machine.set_current_flow(0)
 
+# ==================== Flow3翻轉站專用執行緒 ====================
 
-
-# ==================== DIO控制執行緒 ====================
-
-# ==================== DIO控制執行緒修正版 ====================
-
-class DIOControlThread(BaseFlowThread):
-    """DIO控制執行緒"""
+class Flow3FlipStationThread(BaseFlowThread):
+    """Flow3翻轉站控制專用執行緒 - 修正指令接收穩定性"""
     
-    def __init__(self, robot: RealRobotController, command_queue: CommandQueue):
-        super().__init__("DIOControl", command_queue)
+    def __init__(self, robot: RealRobotController, command_queue: DedicatedCommandQueue):
+        super().__init__("Flow3FlipStation", command_queue)
         self.robot = robot
-        # 修正：明確初始化flow_executors屬性
-        self.flow_executors = {}
+        self.flow3_executor = None
         
     def initialize_flows(self):
-        """初始化DIO Flow執行器"""
+        """初始化Flow3執行器"""
         try:
-            print("[DIO] 開始初始化DIO Flow執行器...")
-            
-            # Flow3: 翻轉站控制
             flow3 = FlowFlipStationExecutor()
             flow3.initialize(self.robot, None, {})
-            self.flow_executors[3] = flow3
-            print("[DIO] Flow3翻轉站執行器初始化完成")
-            
-            # Flow4: 震動投料控制
-            flow4 = Flow4VibrationFeedExecutor()
-            flow4.initialize(self.robot, None, {})
-            self.flow_executors[4] = flow4
-            print("[DIO] Flow4震動投料執行器初始化完成")
-            
-            print("✓ DIO Flow執行器初始化完成")
-            print(f"[DIO] 已初始化的執行器: {list(self.flow_executors.keys())}")
-            
+            self.flow3_executor = flow3
+            print("✓ Flow3翻轉站執行器初始化完成")
         except Exception as e:
-            print(f"DIO Flow執行器初始化失敗: {e}")
-            traceback.print_exc()
+            print(f"Flow3執行器初始化失敗: {e}")
             self.last_error = str(e)
     
     def run(self):
-        """DIO控制執行緒主循環 - 修正指令處理穩定性"""
+        """Flow3執行緒主循環 - 修正指令處理穩定性"""
         self.status = "運行中"
-        print(f"[{self.name}] 執行緒啟動")
-        print(f"[DIO] 可用執行器: {list(self.flow_executors.keys())}")
+        print(f"[{self.name}] 執行緒啟動，專用佇列接收DIO_FLIP指令")
         
         while self.running:
             try:
-                # 修正1: 增加超時時間，確保能取得指令
-                command = self.command_queue.get_command(timeout=0.5)
+                # 修正：使用更長的timeout確保能接收到指令
+                command = self.command_queue.get_command(timeout=0.2)
                 
-                if command and command.command_type == CommandType.DIO:
-                    print(f"[DIO] 收到DIO指令: {command.command_data}")
+                if command:
+                    print(f"[Flow3] 收到指令 - ID:{command.command_id}, 類型:{command.command_type.value}")
                     
-                    # 修正2: 立即處理指令，不再檢查其他條件
-                    try:
-                        self._handle_dio_command(command)
-                        print(f"[DIO] 指令處理完成，ID: {command.command_id}")
-                    except Exception as cmd_error:
-                        print(f"[DIO] 指令處理失敗: {cmd_error}")
-                        traceback.print_exc()
+                    # 檢查指令類型
+                    if command.command_type == CommandType.DIO_FLIP:
+                        cmd_type = command.command_data.get('type', '')
+                        if cmd_type == 'flow_flip_station':
+                            print(f"[Flow3] 開始處理翻轉站指令，ID: {command.command_id}")
+                            self._execute_flip_station()
+                        else:
+                            print(f"[Flow3] 未知指令子類型: {cmd_type}")
+                    else:
+                        print(f"[Flow3] 收到非DIO_FLIP指令，忽略: {command.command_type}")
                         
-                # 修正3: 縮短空循環睡眠時間，提高響應性
-                elif not command:
-                    time.sleep(0.01)  # 10ms而非100ms
-                    
             except Exception as e:
-                self.last_error = f"DIO控制執行緒錯誤: {e}"
-                print(f"[DIO] {self.last_error}")
+                self.last_error = f"Flow3執行緒錯誤: {e}"
+                print(f"[Flow3] {self.last_error}")
                 traceback.print_exc()
                 time.sleep(0.1)  # 錯誤後短暫休息
                 
         self.status = "已停止"
         print(f"[{self.name}] 執行緒結束")
     
-    def _handle_dio_command(self, command: Command):
-        """處理DIO指令 - 增加詳細日誌"""
+    def _execute_flip_station(self):
+        """執行翻轉站控制"""
         try:
-            cmd_data = command.command_data
-            cmd_type = cmd_data.get('type', '')
-            
-            print(f"[DIO] 開始處理指令類型: {cmd_type}")
-            print(f"[DIO] 指令ID: {command.command_id}")
-            print(f"[DIO] 當前可用執行器: {list(self.flow_executors.keys())}")
-            
-            # 記錄開始時間
+            print("[Flow3] === 開始執行翻轉站控制 ===")
             start_time = time.time()
             
-            if cmd_type == 'flow_flip_station':
-                self._execute_flip_station()
-            elif cmd_type == 'flow_vibration_feed':
-                self._execute_vibration_feed()
-            else:
-                print(f"[DIO] ✗ 未知DIO指令類型: {cmd_type}")
-                return
-                
-            # 記錄處理耗時
-            processing_time = time.time() - start_time
-            print(f"[DIO] 指令處理耗時: {processing_time:.3f}秒")
-            
-            self.operation_count += 1
-            
-        except Exception as e:
-            self.last_error = f"處理DIO指令失敗: {e}"
-            print(f"[DIO] {self.last_error}")
-            traceback.print_exc()
-    
-    def _execute_flip_station(self):
-        """執行翻轉站控制 (Flow3)"""
-        try:
-            print("[DIO] 開始執行翻轉站控制 (Flow3)")
-            
-            # 檢查執行器是否存在
-            if 3 not in self.flow_executors:
-                print("[DIO] ✗ Flow3執行器不存在")
+            if not self.flow3_executor:
+                print("[Flow3] ✗ Flow3執行器未初始化")
                 return
             
-            flow3 = self.flow_executors[3]
-            if flow3:
-                print("[DIO] Flow3執行器已找到，開始執行...")
-                result = flow3.execute()
-                
-                if result.success:
-                    print("[DIO] ✓ 翻轉站控制執行成功")
-                    print(f"[DIO] 耗時: {result.execution_time:.2f}秒")
-                    print(f"[DIO] 完成步驟: {result.steps_completed}/{result.total_steps}")
-                else:
-                    print(f"[DIO] ✗ 翻轉站控制執行失敗: {result.error_message}")
-            else:
-                print("[DIO] ✗ Flow3執行器為None")
-                
-        except Exception as e:
-            print(f"[DIO] 翻轉站控制執行異常: {e}")
-            traceback.print_exc()
-
-    def _execute_vibration_feed(self):
-        """執行震動投料控制 (Flow4) - 增加詳細日誌"""
-        try:
-            print("[DIO] 開始執行震動投料控制 (Flow4)")
+            # 執行Flow3
+            result = self.flow3_executor.execute()
             
-            if 4 not in self.flow_executors:
-                print("[DIO] ✗ Flow4執行器不存在")
-                return
-            
-            flow4 = self.flow_executors[4]
-            if not flow4:
-                print("[DIO] ✗ Flow4執行器為None")
-                return
-                
-            print("[DIO] Flow4執行器已找到，開始執行...")
-            print(f"[DIO] Flow4執行器類型: {type(flow4)}")
-            
-            # 執行Flow4
-            result = flow4.execute()
+            execution_time = time.time() - start_time
             
             if result.success:
-                print("[DIO] ✓ 震動投料控制執行成功")
-                print(f"[DIO] 耗時: {result.execution_time:.2f}秒")
-                print(f"[DIO] 完成步驟: {result.steps_completed}/{result.total_steps}")
+                print(f"[Flow3] ✓ 翻轉站控制執行成功，耗時: {execution_time:.2f}秒")
+                print(f"[Flow3] 完成步驟: {result.steps_completed}/{result.total_steps}")
             else:
-                print(f"[DIO] ✗ 震動投料控制執行失敗: {result.error_message}")
-                print(f"[DIO] 完成步驟: {result.steps_completed}/{result.total_steps}")
+                print(f"[Flow3] ✗ 翻轉站控制執行失敗: {result.error_message}")
+                print(f"[Flow3] 完成步驟: {result.steps_completed}/{result.total_steps}")
+                
+            self.operation_count += 1
+            print("[Flow3] === 翻轉站控制執行完成 ===")
                 
         except Exception as e:
-            print(f"[DIO] 震動投料控制執行異常: {e}")
+            print(f"[Flow3] 翻轉站控制執行異常: {e}")
+            traceback.print_exc()
+
+# ==================== Flow4震動投料專用執行緒 ====================
+
+class Flow4VibrationFeedThread(BaseFlowThread):
+    """Flow4震動投料控制專用執行緒 - 修正指令接收穩定性"""
+    
+    def __init__(self, robot: RealRobotController, command_queue: DedicatedCommandQueue):
+        super().__init__("Flow4VibrationFeed", command_queue)
+        self.robot = robot
+        self.flow4_executor = None
+        
+    def initialize_flows(self):
+        """初始化Flow4執行器"""
+        try:
+            flow4 = Flow4VibrationFeedExecutor()
+            flow4.initialize(self.robot, None, {})
+            self.flow4_executor = flow4
+            print("✓ Flow4震動投料執行器初始化完成")
+        except Exception as e:
+            print(f"Flow4執行器初始化失敗: {e}")
+            self.last_error = str(e)
+    
+    def run(self):
+        """Flow4執行緒主循環 - 修正指令處理穩定性"""
+        self.status = "運行中"
+        print(f"[{self.name}] 執行緒啟動，專用佇列接收DIO_VIBRATION指令")
+        
+        while self.running:
+            try:
+                # 修正：使用更長的timeout確保能接收到指令
+                command = self.command_queue.get_command(timeout=0.2)
+                
+                if command:
+                    print(f"[Flow4] 收到指令 - ID:{command.command_id}, 類型:{command.command_type.value}")
+                    
+                    # 檢查指令類型
+                    if command.command_type == CommandType.DIO_VIBRATION:
+                        cmd_type = command.command_data.get('type', '')
+                        if cmd_type == 'flow_vibration_feed':
+                            print(f"[Flow4] 開始處理震動投料指令，ID: {command.command_id}")
+                            self._execute_vibration_feed()
+                        else:
+                            print(f"[Flow4] 未知指令子類型: {cmd_type}")
+                    else:
+                        print(f"[Flow4] 收到非DIO_VIBRATION指令，忽略: {command.command_type}")
+                        
+            except Exception as e:
+                self.last_error = f"Flow4執行緒錯誤: {e}"
+                print(f"[Flow4] {self.last_error}")
+                traceback.print_exc()
+                time.sleep(0.1)  # 錯誤後短暫休息
+                
+        self.status = "已停止"
+        print(f"[{self.name}] 執行緒結束")
+    
+    def _execute_vibration_feed(self):
+        """執行震動投料控制"""
+        try:
+            print("[Flow4] === 開始執行震動投料控制 ===")
+            start_time = time.time()
+            
+            if not self.flow4_executor:
+                print("[Flow4] ✗ Flow4執行器未初始化")
+                return
+            
+            # 執行Flow4
+            result = self.flow4_executor.execute()
+            
+            execution_time = time.time() - start_time
+            
+            if result.success:
+                print(f"[Flow4] ✓ 震動投料控制執行成功，耗時: {execution_time:.2f}秒")
+                print(f"[Flow4] 完成步驟: {result.steps_completed}/{result.total_steps}")
+            else:
+                print(f"[Flow4] ✗ 震動投料控制執行失敗: {result.error_message}")
+                print(f"[Flow4] 完成步驟: {result.steps_completed}/{result.total_steps}")
+                
+            self.operation_count += 1
+            print("[Flow4] === 震動投料控制執行完成 ===")
+                
+        except Exception as e:
+            print(f"[Flow4] 震動投料控制執行異常: {e}")
             traceback.print_exc()
 
 # ==================== 外部模組執行緒 ====================
@@ -764,7 +879,7 @@ class DIOControlThread(BaseFlowThread):
 class ExternalModuleThread(BaseFlowThread):
     """外部模組交握執行緒"""
     
-    def __init__(self, command_queue: CommandQueue, external_modules: Dict):
+    def __init__(self, command_queue: DedicatedCommandQueue, external_modules: Dict):
         super().__init__("ExternalModule", command_queue)
         self.external_modules = external_modules
         
@@ -775,7 +890,6 @@ class ExternalModuleThread(BaseFlowThread):
         
         while self.running:
             try:
-                # 取得外部模組指令
                 command = self.command_queue.get_command(timeout=0.1)
                 
                 if command and command.command_type == CommandType.EXTERNAL:
@@ -816,7 +930,6 @@ class ExternalModuleThread(BaseFlowThread):
     def _handle_module_operation(self, module, module_name: str, operation: str, params: Dict) -> bool:
         """處理模組操作"""
         try:
-            # 根據模組類型執行相應操作
             if hasattr(module, operation):
                 method = getattr(module, operation)
                 if callable(method):
@@ -832,21 +945,27 @@ class ExternalModuleThread(BaseFlowThread):
 # ==================== 主控制器 ====================
 
 class DobotConcurrentController:
-    """Dobot併行控制器"""
+    """Dobot併行控制器 - 專用佇列版本"""
     
     def __init__(self, config_file: str = CONFIG_FILE):
         self.config_file = config_file
         self.config = self._load_config()
         
+        # 專用指令佇列 - 每個執行緒一個佇列
+        self.motion_queue = DedicatedCommandQueue("Motion")
+        self.flow3_queue = DedicatedCommandQueue("Flow3")
+        self.flow4_queue = DedicatedCommandQueue("Flow4")
+        self.external_queue = DedicatedCommandQueue("External")
+        
         # 核心組件
-        self.command_queue = CommandQueue(max_size=100)
         self.robot = None
         self.modbus_client = None
         self.state_machine = None
         
         # 執行緒
         self.motion_thread = None
-        self.dio_thread = None
+        self.flow3_thread = None
+        self.flow4_thread = None
         self.external_thread = None
         self.handshake_thread = None
         
@@ -858,13 +977,12 @@ class DobotConcurrentController:
         self.last_vp_control = 0
         self.last_unload_control = 0
         self.last_flip_control = 0
-        self.last_vibration_feed_control = 0  # 新增：Flow4震動投料控制
+        self.last_vibration_feed_control = 0
         
     def _load_config(self) -> Dict[str, Any]:
         """載入配置"""
         config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), self.config_file)
         
-        # 預設配置
         default_config = {
             "robot": {
                 "ip": "192.168.1.6",
@@ -882,7 +1000,7 @@ class DobotConcurrentController:
                 "timeout": 3.0
             },
             "gripper": {
-                "type": "PGE",  # 修正：Flow3需要PGE夾爪
+                "type": "PGE",
                 "enabled": True,
                 "base_address": 520,
                 "status_address": 500,
@@ -899,7 +1017,8 @@ class DobotConcurrentController:
             "flows": {
                 "flow1_enabled": True,
                 "flow2_enabled": True,
-                "flow3_enabled": False
+                "flow3_enabled": True,
+                "flow4_enabled": True
             },
             "safety": {
                 "enable_emergency_stop": True,
@@ -912,12 +1031,10 @@ class DobotConcurrentController:
             try:
                 with open(config_path, 'r', encoding='utf-8') as f:
                     user_config = json.load(f)
-                    # 合併配置
                     self._deep_update(default_config, user_config)
             except Exception as e:
                 print(f"載入配置檔案失敗，使用預設配置: {e}")
         else:
-            # 創建預設配置檔案
             try:
                 with open(config_path, 'w', encoding='utf-8') as f:
                     json.dump(default_config, f, indent=2, ensure_ascii=False)
@@ -937,7 +1054,7 @@ class DobotConcurrentController:
     
     def start(self) -> bool:
         """啟動控制器"""
-        print("=== 啟動Dobot併行控制器 ===")
+        print("=== 啟動Dobot併行控制器 (專用佇列版) ===")
         
         if not self._initialize_robot():
             return False
@@ -954,11 +1071,11 @@ class DobotConcurrentController:
         self.running = True
         self._start_handshake_loop()
         
-        print("✓ Dobot併行控制器啟動成功")
+        print("✓ Dobot併行控制器啟動成功 (專用佇列)")
         return True
     
     def _initialize_robot(self) -> bool:
-        """初始化機械臂連接 - 使用真實dobot_api"""
+        """初始化機械臂連接"""
         try:
             robot_config = self.config["robot"]
             
@@ -979,7 +1096,7 @@ class DobotConcurrentController:
             return False
     
     def _initialize_modbus(self) -> bool:
-        """初始化Modbus連接 - PyModbus 3.9.2修正版"""
+        """初始化Modbus連接"""
         try:
             modbus_config = self.config["modbus"]
             self.modbus_client = ModbusTcpClient(
@@ -1006,9 +1123,8 @@ class DobotConcurrentController:
         print("✓ 狀態機初始化完成")
     
     def _initialize_external_modules(self):
-        """初始化外部模組 - 修正API參數"""
+        """初始化外部模組"""
         try:
-            # 初始化CCD1高階API - 使用正確的參數
             if self.config["vision"]["ccd1_enabled"]:
                 try:
                     ccd1_api = CCD1HighLevelAPI(
@@ -1023,11 +1139,8 @@ class DobotConcurrentController:
                 except Exception as e:
                     print(f"⚠️ CCD1高階API初始化失敗: {e}")
             
-            # 初始化夾爪高階API - 使用修正版本
             if self.config["gripper"]["enabled"]:
                 try:
-                    # 使用修正後的GripperHighLevel模組
-                    # 根據配置選擇夾爪類型
                     gripper_type = GripperType.PGE if self.config["gripper"]["type"] == "PGE" else GripperType.PGC
                     
                     gripper_api = GripperHighLevelAPI(
@@ -1043,7 +1156,6 @@ class DobotConcurrentController:
                 except Exception as e:
                     print(f"⚠️ 夾爪高階API初始化失敗: {e}")
             
-            # 初始化角度校正API - 參數正確
             try:
                 angle_api = AngleHighLevel(
                     host=self.config["modbus"]["server_ip"],
@@ -1063,39 +1175,36 @@ class DobotConcurrentController:
             print(f"外部模組初始化異常: {e}")
     
     def _initialize_threads(self) -> bool:
-        """初始化執行緒 - 修正DIO執行緒初始化順序"""
+        """初始化執行緒 - 使用專用佇列"""
         try:
             # 運動控制執行緒
             self.motion_thread = MotionFlowThread(
-                self.robot, self.command_queue, self.state_machine, self.external_modules
+                self.robot, self.motion_queue, self.state_machine, self.external_modules
             )
             self.motion_thread.initialize_flows()
             
-            # DIO控制執行緒 - 修正：先創建，再調用initialize_flows
-            self.dio_thread = DIOControlThread(self.robot, self.command_queue)
+            # Flow3專用執行緒
+            self.flow3_thread = Flow3FlipStationThread(self.robot, self.flow3_queue)
+            self.flow3_thread.initialize_flows()
             
-            # 確保屬性存在後再初始化Flow
-            if not hasattr(self.dio_thread, 'flow_executors'):
-                print("警告：DIO執行緒缺少flow_executors屬性，手動添加")
-                self.dio_thread.flow_executors = {}
-            
-            # 調用初始化
-            self.dio_thread.initialize_flows()
+            # Flow4專用執行緒
+            self.flow4_thread = Flow4VibrationFeedThread(self.robot, self.flow4_queue)
+            self.flow4_thread.initialize_flows()
             
             # 外部模組執行緒
-            self.external_thread = ExternalModuleThread(self.command_queue, self.external_modules)
+            self.external_thread = ExternalModuleThread(self.external_queue, self.external_modules)
             
-            # 啟動執行緒
+            # 啟動所有執行緒
             self.motion_thread.start_thread()
-            self.dio_thread.start_thread()
+            self.flow3_thread.start_thread()
+            self.flow4_thread.start_thread()
             self.external_thread.start_thread()
             
-            print("✓ 執行緒初始化完成")
+            print("✓ 執行緒初始化完成 - 專用佇列架構")
             return True
             
         except Exception as e:
             print(f"✗ 執行緒初始化失敗: {e}")
-            import traceback
             traceback.print_exc()
             return False
     
@@ -1110,104 +1219,101 @@ class DobotConcurrentController:
         while self.running:
             try:
                 self._process_control_registers()
-                time.sleep(0.1)  # 修正：從50ms改為100ms，降低競爭風險
+                time.sleep(0.1)
                 
             except Exception as e:
                 print(f"握手循環錯誤: {e}")
                 time.sleep(1.0)
     
     def _process_control_registers(self):
-            """處理控制寄存器 - 修正觸發穩定性"""
-            try:
-                # 讀取控制寄存器
-                result = self.modbus_client.read_holding_registers(address=DOBOT_BASE_ADDR + 40, count=10)
+        """處理控制寄存器 - 修正指令分派到專用佇列"""
+        try:
+            result = self.modbus_client.read_holding_registers(address=DOBOT_BASE_ADDR + 40, count=10)
+            
+            if hasattr(result, 'isError') and result.isError():
+                return
                 
-                if hasattr(result, 'isError') and result.isError():
-                    print(f"讀取控制寄存器失敗: {result}")
-                    return
-                    
-                registers = result.registers
+            registers = result.registers
+            
+            vp_control = registers[0]
+            unload_control = registers[1]
+            flip_control = registers[7] if len(registers) > 7 else 0
+            vibration_feed_control = registers[8] if len(registers) > 8 else 0
+            
+            # 處理VP視覺取料控制 (Flow1 - 運動)
+            if vp_control == 1 and self.last_vp_control == 0:
+                print("收到VP視覺取料指令，分派到運動控制專用佇列")
+                command = Command(
+                    command_type=CommandType.MOTION,
+                    command_data={'type': 'flow_vp_vision_pick'},
+                    priority=CommandPriority.MOTION
+                )
+                if self.motion_queue.put_command(command):
+                    self.last_vp_control = 1
+                    print("VP視覺取料指令已加入Motion佇列")
+                else:
+                    print("VP視覺取料指令加入Motion佇列失敗")
                 
-                vp_control = registers[0]           # 440: VP視覺取料控制
-                unload_control = registers[1]       # 441: 出料控制
-                flip_control = registers[7] if len(registers) > 7 else 0      # 447: 翻轉站控制
-                vibration_feed_control = registers[8] if len(registers) > 8 else 0  # 448: 震動投料控制
+            elif vp_control == 0 and self.last_vp_control == 1:
+                print("VP視覺取料控制指令已清零")
+                self.last_vp_control = 0
                 
-                # 處理VP視覺取料控制 (Flow1 - 運動)
-                if vp_control == 1 and self.last_vp_control == 0:
-                    print("收到VP視覺取料指令，分派到運動控制執行緒")
-                    command = Command(
-                        command_type=CommandType.MOTION,
-                        command_data={'type': 'flow_vp_vision_pick'},
-                        priority=CommandPriority.MOTION
-                    )
-                    if self.command_queue.put_command(command):
-                        self.last_vp_control = 1
-                        print("VP視覺取料指令已加入佇列")
-                    else:
-                        print("VP視覺取料指令加入佇列失敗")
-                    
-                elif vp_control == 0 and self.last_vp_control == 1:
-                    print("VP視覺取料控制指令已清零")
-                    self.last_vp_control = 0
-                    
-                # 處理出料控制 (Flow2 - 運動)
-                if unload_control == 1 and self.last_unload_control == 0:
-                    print("收到出料指令，分派到運動控制執行緒")
-                    command = Command(
-                        command_type=CommandType.MOTION,
-                        command_data={'type': 'flow_unload'},
-                        priority=CommandPriority.MOTION
-                    )
-                    if self.command_queue.put_command(command):
-                        self.last_unload_control = 1
-                        print("出料指令已加入佇列")
-                    else:
-                        print("出料指令加入佇列失敗")
-                    
-                elif unload_control == 0 and self.last_unload_control == 1:
-                    print("出料控制指令已清零")
-                    self.last_unload_control = 0
-                    
-                # 處理翻轉站控制 (Flow3 - DIO) - 修正觸發邏輯
-                if flip_control == 1 and self.last_flip_control == 0:
-                    print("收到翻轉站指令，分派到DIO控制執行緒")
-                    command = Command(
-                        command_type=CommandType.DIO,
-                        command_data={'type': 'flow_flip_station'},
-                        priority=CommandPriority.DIO
-                    )
-                    if self.command_queue.put_command(command):
-                        self.last_flip_control = 1
-                        print("翻轉站指令已加入佇列")
-                    else:
-                        print("翻轉站指令加入佇列失敗")
-                    
-                elif flip_control == 0 and self.last_flip_control == 1:
-                    print("翻轉站控制指令已清零")
-                    self.last_flip_control = 0
+            # 處理出料控制 (Flow2 - 運動)
+            if unload_control == 1 and self.last_unload_control == 0:
+                print("收到出料指令，分派到運動控制專用佇列")
+                command = Command(
+                    command_type=CommandType.MOTION,
+                    command_data={'type': 'flow_unload'},
+                    priority=CommandPriority.MOTION
+                )
+                if self.motion_queue.put_command(command):
+                    self.last_unload_control = 1
+                    print("出料指令已加入Motion佇列")
+                else:
+                    print("出料指令加入Motion佇列失敗")
                 
-                # 處理震動投料控制 (Flow4 - DIO) - 修正狀態鎖定問題
-                if vibration_feed_control == 1 and self.last_vibration_feed_control == 0:
-                    print("收到震動投料指令，分派到DIO控制執行緒")
-                    command = Command(
-                        command_type=CommandType.DIO,
-                        command_data={'type': 'flow_vibration_feed'},
-                        priority=CommandPriority.DIO
-                    )
-                    if self.command_queue.put_command(command):
-                        self.last_vibration_feed_control = 1
-                        print("震動投料指令已加入佇列")
-                    else:
-                        print("震動投料指令加入佇列失敗")
-                    
-                elif vibration_feed_control == 0 and self.last_vibration_feed_control == 1:
-                    # 直接清零，不檢查佇列狀態
-                    print("震動投料控制指令已清零")
-                    self.last_vibration_feed_control = 0
-                    
-            except Exception as e:
-                print(f"處理控制寄存器失敗: {e}")
+            elif unload_control == 0 and self.last_unload_control == 1:
+                print("出料控制指令已清零")
+                self.last_unload_control = 0
+                
+            # 處理翻轉站控制 (Flow3 - 專用佇列)
+            if flip_control == 1 and self.last_flip_control == 0:
+                print("收到翻轉站指令，分派到Flow3專用佇列")
+                command = Command(
+                    command_type=CommandType.DIO_FLIP,
+                    command_data={'type': 'flow_flip_station'},
+                    priority=CommandPriority.DIO_FLIP
+                )
+                if self.flow3_queue.put_command(command):
+                    self.last_flip_control = 1
+                    print("翻轉站指令已加入Flow3佇列")
+                else:
+                    print("翻轉站指令加入Flow3佇列失敗")
+                
+            elif flip_control == 0 and self.last_flip_control == 1:
+                print("翻轉站控制指令已清零")
+                self.last_flip_control = 0
+            
+            # 處理震動投料控制 (Flow4 - 專用佇列)
+            if vibration_feed_control == 1 and self.last_vibration_feed_control == 0:
+                print("收到震動投料指令，分派到Flow4專用佇列")
+                command = Command(
+                    command_type=CommandType.DIO_VIBRATION,
+                    command_data={'type': 'flow_vibration_feed'},
+                    priority=CommandPriority.DIO_VIBRATION
+                )
+                if self.flow4_queue.put_command(command):
+                    self.last_vibration_feed_control = 1
+                    print("震動投料指令已加入Flow4佇列")
+                else:
+                    print("震動投料指令加入Flow4佇列失敗")
+                
+            elif vibration_feed_control == 0 and self.last_vibration_feed_control == 1:
+                print("震動投料控制指令已清零")
+                self.last_vibration_feed_control = 0
+                
+        except Exception as e:
+            print(f"處理控制寄存器失敗: {e}")
     
     def stop(self):
         """停止控制器"""
@@ -1215,21 +1321,20 @@ class DobotConcurrentController:
         
         self.running = False
         
-        # 停止執行緒
         if self.motion_thread:
             self.motion_thread.stop_thread()
-        if self.dio_thread:
-            self.dio_thread.stop_thread()
+        if self.flow3_thread:
+            self.flow3_thread.stop_thread()
+        if self.flow4_thread:
+            self.flow4_thread.stop_thread()
         if self.external_thread:
             self.external_thread.stop_thread()
             
-        # 斷開連接
         if self.robot:
             self.robot.disconnect()
         if self.modbus_client:
             self.modbus_client.close()
             
-        # 斷開外部模組
         for name, module in self.external_modules.items():
             try:
                 if hasattr(module, 'disconnect'):
@@ -1243,9 +1348,9 @@ class DobotConcurrentController:
         """取得系統狀態"""
         return {
             'running': self.running,
-            'command_queue_size': self.command_queue.size(),
             'motion_thread': self.motion_thread.get_status() if self.motion_thread else None,
-            'dio_thread': self.dio_thread.get_status() if self.dio_thread else None,
+            'flow3_thread': self.flow3_thread.get_status() if self.flow3_thread else None,
+            'flow4_thread': self.flow4_thread.get_status() if self.flow4_thread else None,
             'external_thread': self.external_thread.get_status() if self.external_thread else None
         }
 
@@ -1255,8 +1360,8 @@ def main():
     """主程序"""
     print("="*60)
     print("Dobot M1Pro 併行控制器啟動")
-    print("新流程架構：三執行緒併行 + 統一指令佇列")
-    print("移除所有模擬代碼，使用真實API連接")
+    print("專用佇列架構：四執行緒併行 + 專用指令佇列")
+    print("修正指令觸發穩定性，確保Flow3/4可靠執行")
     print("="*60)
     
     controller = DobotConcurrentController()
@@ -1265,14 +1370,15 @@ def main():
         if controller.start():
             print("\n系統運行中，按 Ctrl+C 停止...")
             
-            # 主循環
             while True:
                 time.sleep(1)
                 
-                # 每10秒輸出一次系統狀態
                 if int(time.time()) % 10 == 0:
                     status = controller.get_system_status()
-                    print(f"\n系統狀態: 佇列大小={status['command_queue_size']}")
+                    print(f"\n系統狀態:")
+                    print(f"Motion: {status['motion_thread']['status'] if status['motion_thread'] else 'None'}")
+                    print(f"Flow3: {status['flow3_thread']['status'] if status['flow3_thread'] else 'None'}")
+                    print(f"Flow4: {status['flow4_thread']['status'] if status['flow4_thread'] else 'None'}")
                     
         else:
             print("控制器啟動失敗")
