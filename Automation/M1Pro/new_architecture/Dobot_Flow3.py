@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Dobot_Flow3.py - Flow3 翻轉站控制流程 (修正版)
+Dobot_Flow3.py - Flow3 翻轉站控制流程 (完整修正版)
 基於統一Flow架構的DIO控制執行器
 控制翻轉站的升降缸、夾爪、翻轉缸、輸送帶
-添加具體API調用打印和錯誤處理
+添加具體API調用打印和完整錯誤處理
 """
 
 import time
@@ -103,14 +103,16 @@ class FlowFlipStationExecutor(FlowExecutor):
         self.start_time = time.time()
         self.current_step = 0
         
-        print(f"\n=== 開始執行Flow3翻轉站控制流程 ===")
-        print(f"總步驟數: {self.total_steps}")
+        print(f"\n[Flow3] === 開始執行Flow3翻轉站控制流程 ===")
+        print(f"[Flow3] 總步驟數: {self.total_steps}")
         
         # 檢查初始化
         if not self.robot:
+            error_msg = "機械臂對象未初始化"
+            print(f"[Flow3] ✗ {error_msg}")
             return FlowResult(
                 success=False,
-                error_message="機械臂對象未初始化",
+                error_message=error_msg,
                 execution_time=time.time() - self.start_time,
                 steps_completed=self.current_step,
                 total_steps=self.total_steps
@@ -118,13 +120,18 @@ class FlowFlipStationExecutor(FlowExecutor):
         
         # 檢查dashboard_api連接
         if not hasattr(self.robot, 'dashboard_api') or not self.robot.dashboard_api:
+            error_msg = "dashboard_api未連接"
+            print(f"[Flow3] ✗ {error_msg}")
             return FlowResult(
                 success=False,
-                error_message="dashboard_api未連接",
+                error_message=error_msg,
                 execution_time=time.time() - self.start_time,
                 steps_completed=self.current_step,
                 total_steps=self.total_steps
             )
+        
+        print(f"[Flow3] ✓ 機械臂連接檢查通過")
+        print(f"[Flow3] ✓ dashboard_api連接檢查通過")
         
         try:
             for step in self.dio_steps:
@@ -135,28 +142,33 @@ class FlowFlipStationExecutor(FlowExecutor):
                 if self.status == FlowStatus.ERROR:
                     break
                 
-                print(f"\nFlow3 步驟 {self.current_step + 1}/{self.total_steps}: {step['type']}")
+                print(f"\n[Flow3] 步驟 {self.current_step + 1}/{self.total_steps}: {step['type']}")
                 
                 # 執行步驟
                 success = self._execute_step(step)
                 
                 if not success:
                     self.status = FlowStatus.ERROR
+                    error_msg = f"步驟 {step['type']} 執行失敗"
+                    print(f"[Flow3] ✗ {error_msg}")
                     return FlowResult(
                         success=False,
-                        error_message=f"步驟 {step['type']} 執行失敗",
+                        error_message=error_msg,
                         execution_time=time.time() - self.start_time,
                         steps_completed=self.current_step,
                         total_steps=self.total_steps
                     )
                 
                 self.current_step += 1
+                print(f"[Flow3] ✓ 步驟 {self.current_step}/{self.total_steps} 完成")
             
             # 流程成功完成
             self.status = FlowStatus.COMPLETED
             execution_time = time.time() - self.start_time
             
-            print(f"\n✓ Flow3翻轉站控制流程執行成功，耗時: {execution_time:.2f}秒")
+            print(f"\n[Flow3] ✓ Flow3翻轉站控制流程執行成功")
+            print(f"[Flow3] 總耗時: {execution_time:.2f}秒")
+            print(f"[Flow3] 完成步驟: {self.current_step}/{self.total_steps}")
             
             return FlowResult(
                 success=True,
@@ -169,7 +181,7 @@ class FlowFlipStationExecutor(FlowExecutor):
         except Exception as e:
             self.status = FlowStatus.ERROR
             error_msg = f"Flow3執行異常: {str(e)}"
-            print(f"\n✗ {error_msg}")
+            print(f"\n[Flow3] ✗ {error_msg}")
             traceback.print_exc()
             
             return FlowResult(
@@ -184,6 +196,8 @@ class FlowFlipStationExecutor(FlowExecutor):
         """執行單一步驟"""
         step_type = step['type']
         params = step.get('params', {})
+        
+        print(f"[Flow3]   執行步驟類型: {step_type}")
         
         if step_type == 'lift_home':
             return self._lift_home()
@@ -202,7 +216,7 @@ class FlowFlipStationExecutor(FlowExecutor):
         elif step_type == 'conveyor_run_until_sensor':
             return self._conveyor_run_until_sensor(params)
         else:
-            print(f"  ✗ 未知步驟類型: {step_type}")
+            print(f"[Flow3]   ✗ 未知步驟類型: {step_type}")
             return False
     
     # ==================== DIO操作方法 ====================
@@ -210,11 +224,11 @@ class FlowFlipStationExecutor(FlowExecutor):
     def _set_do(self, pin: int, value: int) -> bool:
         """設定數位輸出 - 添加具體API調用打印"""
         try:
-            print(f"    正在執行: dashboard_api.DOExecute({pin}, {value})")
+            print(f"[Flow3]     正在執行: dashboard_api.DOExecute({pin}, {value})")
             
             # 使用DOExecute進行立即執行
             result = self.robot.dashboard_api.DOExecute(pin, value)
-            print(f"    API返回結果: {result}")
+            print(f"[Flow3]     API返回結果: {result}")
             
             # 解析API返回值 (格式: "ErrorID,{},DOExecute(pin,value);")
             if result and isinstance(result, str):
@@ -222,27 +236,27 @@ class FlowFlipStationExecutor(FlowExecutor):
                 if len(parts) > 0:
                     error_id = parts[0].strip()
                     if error_id == "0":
-                        print(f"    ✓ DO{pin} = {value} 執行成功")
+                        print(f"[Flow3]     ✓ DO{pin} = {value} 執行成功")
                         return True
                     else:
-                        print(f"    ✗ DO{pin} = {value} 執行失敗，ErrorID: {error_id}")
+                        print(f"[Flow3]     ✗ DO{pin} = {value} 執行失敗，ErrorID: {error_id}")
                         return False
             
-            print(f"    ⚠️ DO{pin} = {value} 返回值格式異常: {result}")
+            print(f"[Flow3]     ⚠️ DO{pin} = {value} 返回值格式異常: {result}")
             return False
             
         except Exception as e:
-            print(f"    ✗ 設定DO{pin}失敗: {e}")
+            print(f"[Flow3]     ✗ 設定DO{pin}失敗: {e}")
             traceback.print_exc()
             return False
 
     def _get_di(self, pin: int) -> int:
         """讀取數位輸入 - 添加具體API調用打印"""
         try:
-            print(f"    正在執行: dashboard_api.DI({pin})")
+            print(f"[Flow3]     正在執行: dashboard_api.DI({pin})")
             
             result = self.robot.dashboard_api.DI(pin)
-            print(f"    API返回結果: {result}")
+            print(f"[Flow3]     API返回結果: {result}")
             
             # 解析DI返回值 (格式: "ErrorID,{DI_pin},{DI_value},")
             if result and isinstance(result, str):
@@ -253,17 +267,17 @@ class FlowFlipStationExecutor(FlowExecutor):
                     
                     if error_id == "0":
                         value = int(di_value) if di_value.isdigit() else 0
-                        print(f"    ✓ DI{pin} = {value}")
+                        print(f"[Flow3]     ✓ DI{pin} = {value}")
                         return value
                     else:
-                        print(f"    ✗ DI{pin} 讀取失敗，ErrorID: {error_id}")
+                        print(f"[Flow3]     ✗ DI{pin} 讀取失敗，ErrorID: {error_id}")
                         return 0
             
-            print(f"    ⚠️ DI{pin} 返回值格式異常: {result}")
+            print(f"[Flow3]     ⚠️ DI{pin} 返回值格式異常: {result}")
             return 0
             
         except Exception as e:
-            print(f"    ✗ 讀取DI{pin}失敗: {e}")
+            print(f"[Flow3]     ✗ 讀取DI{pin}失敗: {e}")
             traceback.print_exc()
             return 0
 
@@ -272,30 +286,30 @@ class FlowFlipStationExecutor(FlowExecutor):
     def _lift_home(self) -> bool:
         """升降缸回原點"""
         try:
-            print("  升降缸回原點")
+            print("[Flow3]   升降缸回原點")
             
             # DO14=HIGH -> 回原點脈衝
             if not self._set_do(self.DIO_PINS['LIFT_HOME'], 1):
                 return False
                 
-            print(f"  等待回原點完成 ({self.TIMING_CONFIG['LIFT_HOME_TIME']}秒)")
+            print(f"[Flow3]   等待回原點完成 ({self.TIMING_CONFIG['LIFT_HOME_TIME']}秒)")
             time.sleep(self.TIMING_CONFIG['LIFT_HOME_TIME'])
             
             # DO14=LOW -> 結束脈衝
             if not self._set_do(self.DIO_PINS['LIFT_HOME'], 0):
                 return False
                 
-            print("  ✓ 升降缸回原點完成")
+            print("[Flow3]   ✓ 升降缸回原點完成")
             return True
             
         except Exception as e:
-            print(f"  ✗ 升降缸回原點失敗: {e}")
+            print(f"[Flow3]   ✗ 升降缸回原點失敗: {e}")
             return False
             
     def _lift_down(self) -> bool:
         """升降缸下降"""
         try:
-            print("  升降缸下降")
+            print("[Flow3]   升降缸下降")
             
             # 設定方向為下降 (DIR1=LOW, DIR2=HIGH)
             if not self._set_do(self.DIO_PINS['LIFT_DIR1'], 0):
@@ -309,24 +323,24 @@ class FlowFlipStationExecutor(FlowExecutor):
             if not self._set_do(self.DIO_PINS['LIFT_TRIGGER'], 1):
                 return False
                 
-            print(f"  等待下降完成 ({self.TIMING_CONFIG['LIFT_MOTION_TIME']}秒)")
+            print(f"[Flow3]   等待下降完成 ({self.TIMING_CONFIG['LIFT_MOTION_TIME']}秒)")
             time.sleep(self.TIMING_CONFIG['LIFT_MOTION_TIME'])
             
             # 停止脈衝 DO11=LOW
             if not self._set_do(self.DIO_PINS['LIFT_TRIGGER'], 0):
                 return False
                 
-            print("  ✓ 升降缸下降完成")
+            print("[Flow3]   ✓ 升降缸下降完成")
             return True
             
         except Exception as e:
-            print(f"  ✗ 升降缸下降失敗: {e}")
+            print(f"[Flow3]   ✗ 升降缸下降失敗: {e}")
             return False
             
     def _lift_up(self) -> bool:
         """升降缸上升"""
         try:
-            print("  升降缸上升")
+            print("[Flow3]   升降缸上升")
             
             # 設定方向為上升 (DIR1=HIGH, DIR2=LOW)
             if not self._set_do(self.DIO_PINS['LIFT_DIR1'], 1):
@@ -340,90 +354,90 @@ class FlowFlipStationExecutor(FlowExecutor):
             if not self._set_do(self.DIO_PINS['LIFT_TRIGGER'], 1):
                 return False
                 
-            print(f"  等待上升完成 ({self.TIMING_CONFIG['LIFT_MOTION_TIME']}秒)")
+            print(f"[Flow3]   等待上升完成 ({self.TIMING_CONFIG['LIFT_MOTION_TIME']}秒)")
             time.sleep(self.TIMING_CONFIG['LIFT_MOTION_TIME'])
             
             # 停止脈衝 DO11=LOW
             if not self._set_do(self.DIO_PINS['LIFT_TRIGGER'], 0):
                 return False
                 
-            print("  ✓ 升降缸上升完成")
+            print("[Flow3]   ✓ 升降缸上升完成")
             return True
             
         except Exception as e:
-            print(f"  ✗ 升降缸上升失敗: {e}")
+            print(f"[Flow3]   ✗ 升降缸上升失敗: {e}")
             return False
     
     def _pge_smart_grip(self, params: Dict[str, Any]) -> bool:
         """PGE智慧夾持"""
         try:
             position = params.get('position', self.GRIPPER_POSITIONS['GRIP'])
-            print(f"  PGE智慧夾持 (位置: {position})")
+            print(f"[Flow3]   PGE智慧夾持 (位置: {position})")
             
             # 這裡應該調用PGE夾爪API，暫時用模擬
-            print(f"  正在執行: PGE.MoveTo({position})")
+            print(f"[Flow3]   正在執行: PGE.MoveTo({position})")
             time.sleep(self.TIMING_CONFIG['GRIPPER_TIME'])
-            print("  ✓ PGE智慧夾持完成")
+            print("[Flow3]   ✓ PGE智慧夾持完成")
             
             return True
                 
         except Exception as e:
-            print(f"  ✗ PGE智慧夾持失敗: {e}")
+            print(f"[Flow3]   ✗ PGE智慧夾持失敗: {e}")
             return False
             
     def _pge_quick_release(self, params: Dict[str, Any]) -> bool:
         """PGE快速開爪"""
         try:
             position = params.get('position', self.GRIPPER_POSITIONS['RELEASE'])
-            print(f"  PGE快速開爪 (位置: {position})")
+            print(f"[Flow3]   PGE快速開爪 (位置: {position})")
             
             # 這裡應該調用PGE夾爪API，暫時用模擬
-            print(f"  正在執行: PGE.QuickRelease({position})")
+            print(f"[Flow3]   正在執行: PGE.QuickRelease({position})")
             time.sleep(self.TIMING_CONFIG['GRIPPER_TIME'])
-            print("  ✓ PGE快速開爪完成")
+            print("[Flow3]   ✓ PGE快速開爪完成")
             
             return True
                 
         except Exception as e:
-            print(f"  ✗ PGE快速開爪失敗: {e}")
+            print(f"[Flow3]   ✗ PGE快速開爪失敗: {e}")
             return False
             
     def _flip_180(self) -> bool:
         """翻轉缸180度翻轉"""
         try:
-            print("  翻轉缸180度翻轉")
+            print("[Flow3]   翻轉缸180度翻轉")
             
             # DO5=HIGH -> 180度
             if not self._set_do(self.DIO_PINS['FLIP_CYLINDER'], 1):
                 return False
                 
-            print(f"  等待翻轉完成 ({self.TIMING_CONFIG['FLIP_TIME']}秒)")
+            print(f"[Flow3]   等待翻轉完成 ({self.TIMING_CONFIG['FLIP_TIME']}秒)")
             time.sleep(self.TIMING_CONFIG['FLIP_TIME'])
-            print("  ✓ 翻轉180度完成")
+            print("[Flow3]   ✓ 翻轉180度完成")
             
             return True
             
         except Exception as e:
-            print(f"  ✗ 翻轉失敗: {e}")
+            print(f"[Flow3]   ✗ 翻轉失敗: {e}")
             return False
     
     def _flip_0(self) -> bool:
         """翻轉缸回0度"""
         try:
-            print("  翻轉缸回0度")
+            print("[Flow3]   翻轉缸回0度")
             
             # DO5=LOW -> 0度
             if not self._set_do(self.DIO_PINS['FLIP_CYLINDER'], 0):
                 return False
                 
-            print(f"  等待翻轉完成 ({self.TIMING_CONFIG['FLIP_TIME']}秒)")
+            print(f"[Flow3]   等待翻轉完成 ({self.TIMING_CONFIG['FLIP_TIME']}秒)")
             time.sleep(self.TIMING_CONFIG['FLIP_TIME'])
-            print("  ✓ 翻轉回0度完成")
+            print("[Flow3]   ✓ 翻轉回0度完成")
             
             return True
             
         except Exception as e:
-            print(f"  ✗ 翻轉回0度失敗: {e}")
+            print(f"[Flow3]   ✗ 翻轉回0度失敗: {e}")
             return False
             
     def _conveyor_run_until_sensor(self, params: Dict[str, Any]) -> bool:
@@ -431,13 +445,13 @@ class FlowFlipStationExecutor(FlowExecutor):
         try:
             sensor_pin = params['sensor_pin']
             timeout = params.get('timeout', 30.0)
-            print(f"  啟動輸送帶，等待感測器DI{sensor_pin}觸發 (超時: {timeout}秒)")
+            print(f"[Flow3]   啟動輸送帶，等待感測器DI{sensor_pin}觸發 (超時: {timeout}秒)")
             
             # 啟動輸送帶 DO2=HIGH
             if not self._set_do(self.DIO_PINS['CONVEYOR'], 1):
                 return False
                 
-            print("  ✓ 輸送帶已啟動")
+            print("[Flow3]   ✓ 輸送帶已啟動")
             
             # 等待感測器觸發
             start_time = time.time()
@@ -446,23 +460,23 @@ class FlowFlipStationExecutor(FlowExecutor):
                 sensor_value = self._get_di(sensor_pin)
                 
                 if sensor_value == 1:
-                    print(f"  ✓ 感測器DI{sensor_pin}已觸發")
+                    print(f"[Flow3]   ✓ 感測器DI{sensor_pin}已觸發")
                     break
                     
                 time.sleep(0.1)  # 100ms檢查間隔
             else:
-                print(f"  ⚠️ 感測器等待超時 ({timeout}秒)")
+                print(f"[Flow3]   ⚠️ 感測器等待超時 ({timeout}秒)")
                 
             # 停止輸送帶 DO2=LOW
             if not self._set_do(self.DIO_PINS['CONVEYOR'], 0):
-                print("  ⚠️ 停止輸送帶失敗")
+                print("[Flow3]   ⚠️ 停止輸送帶失敗")
             else:
-                print("  ✓ 輸送帶已停止")
+                print("[Flow3]   ✓ 輸送帶已停止")
                 
             return True
             
         except Exception as e:
-            print(f"  ✗ 輸送帶控制失敗: {e}")
+            print(f"[Flow3]   ✗ 輸送帶控制失敗: {e}")
             return False
     
     # ==================== Flow控制方法 ====================
@@ -471,7 +485,7 @@ class FlowFlipStationExecutor(FlowExecutor):
         """暫停Flow"""
         if self.status == FlowStatus.RUNNING:
             self.status = FlowStatus.PAUSED
-            print("Flow3翻轉站控制已暫停")
+            print("[Flow3] 翻轉站控制已暫停")
             return True
         return False
         
@@ -479,7 +493,7 @@ class FlowFlipStationExecutor(FlowExecutor):
         """恢復Flow"""
         if self.status == FlowStatus.PAUSED:
             self.status = FlowStatus.RUNNING
-            print("Flow3翻轉站控制已恢復")
+            print("[Flow3] 翻轉站控制已恢復")
             return True
         return False
         
@@ -489,11 +503,11 @@ class FlowFlipStationExecutor(FlowExecutor):
         
         # 緊急停止：關閉所有輸出
         try:
-            print("Flow3緊急停止，關閉所有輸出")
+            print("[Flow3] 緊急停止，關閉所有輸出")
             self._set_do(self.DIO_PINS['CONVEYOR'], 0)      # 停止輸送帶
             self._set_do(self.DIO_PINS['FLIP_CYLINDER'], 0) # 翻轉缸回0度
             self._set_do(self.DIO_PINS['LIFT_TRIGGER'], 0)  # 停止升降缸
-            print("Flow3翻轉站控制已緊急停止")
+            print("[Flow3] 翻轉站控制已緊急停止")
         except:
             pass
             
@@ -504,4 +518,5 @@ class FlowFlipStationExecutor(FlowExecutor):
         if self.total_steps == 0:
             return 0
         return int((self.current_step / self.total_steps) * 100)
+
 

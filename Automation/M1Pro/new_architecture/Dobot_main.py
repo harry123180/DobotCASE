@@ -563,7 +563,7 @@ class MotionFlowThread(BaseFlowThread):
             self.state_machine.set_running(False)
             self.state_machine.set_current_flow(0)
 
-# ==================== DIO控制執行緒 ====================
+
 
 # ==================== DIO控制執行緒 ====================
 
@@ -573,30 +573,39 @@ class DIOControlThread(BaseFlowThread):
     def __init__(self, robot: RealRobotController, command_queue: CommandQueue):
         super().__init__("DIOControl", command_queue)
         self.robot = robot
+        # 修正：明確初始化flow_executors屬性
+        self.flow_executors = {}
         
     def initialize_flows(self):
         """初始化DIO Flow執行器"""
         try:
+            print("[DIO] 開始初始化DIO Flow執行器...")
+            
             # Flow3: 翻轉站控制
             flow3 = FlowFlipStationExecutor()
             flow3.initialize(self.robot, None, {})
             self.flow_executors[3] = flow3
+            print("[DIO] Flow3翻轉站執行器初始化完成")
             
             # Flow4: 震動投料控制
             flow4 = Flow4VibrationFeedExecutor()
             flow4.initialize(self.robot, None, {})
             self.flow_executors[4] = flow4
+            print("[DIO] Flow4震動投料執行器初始化完成")
             
             print("✓ DIO Flow執行器初始化完成")
+            print(f"[DIO] 已初始化的執行器: {list(self.flow_executors.keys())}")
             
         except Exception as e:
             print(f"DIO Flow執行器初始化失敗: {e}")
+            traceback.print_exc()
             self.last_error = str(e)
     
     def run(self):
         """DIO控制執行緒主循環"""
         self.status = "運行中"
         print(f"[{self.name}] 執行緒啟動")
+        print(f"[DIO] 可用執行器: {list(self.flow_executors.keys())}")
         
         while self.running:
             try:
@@ -604,11 +613,13 @@ class DIOControlThread(BaseFlowThread):
                 command = self.command_queue.get_command(timeout=0.1)
                 
                 if command and command.command_type == CommandType.DIO:
+                    print(f"[DIO] 收到DIO指令: {command.command_data}")
                     self._handle_dio_command(command)
                     
             except Exception as e:
                 self.last_error = f"DIO控制執行緒錯誤: {e}"
-                print(self.last_error)
+                print(f"[DIO] {self.last_error}")
+                traceback.print_exc()
                 
         self.status = "已停止"
         print(f"[{self.name}] 執行緒結束")
@@ -620,6 +631,7 @@ class DIOControlThread(BaseFlowThread):
             cmd_type = cmd_data.get('type', '')
             
             print(f"[DIO] 處理指令類型: {cmd_type}")
+            print(f"[DIO] 當前可用執行器: {list(self.flow_executors.keys())}")
             
             if cmd_type == 'flow_flip_station':
                 self._execute_flip_station()
@@ -639,9 +651,18 @@ class DIOControlThread(BaseFlowThread):
         """執行翻轉站控制 (Flow3)"""
         try:
             print("[DIO] 開始執行翻轉站控制 (Flow3)")
+            print(f"[DIO] flow_executors內容: {self.flow_executors}")
             
-            # 修正：使用flow_executors[3]而不是flow_flip_executor
-            flow3 = self.flow_executors.get(3)
+            # 檢查執行器是否存在
+            if 3 not in self.flow_executors:
+                print("[DIO] ✗ Flow3執行器不存在於flow_executors中")
+                print(f"[DIO] 可用的執行器: {list(self.flow_executors.keys())}")
+                return
+            
+            flow3 = self.flow_executors[3]
+            print(f"[DIO] Flow3執行器類型: {type(flow3)}")
+            print(f"[DIO] Flow3執行器名稱: {getattr(flow3, 'flow_name', 'Unknown')}")
+            
             if flow3:
                 print("[DIO] Flow3執行器已找到，開始執行...")
                 result = flow3.execute()
@@ -654,8 +675,7 @@ class DIOControlThread(BaseFlowThread):
                     print(f"[DIO] ✗ 翻轉站控制執行失敗: {result.error_message}")
                     print(f"[DIO] 完成步驟: {result.steps_completed}/{result.total_steps}")
             else:
-                print("[DIO] ✗ Flow3翻轉站執行器未初始化")
-                print(f"[DIO] 可用的flow_executors: {list(self.flow_executors.keys())}")
+                print("[DIO] ✗ Flow3執行器為None")
                 
         except Exception as e:
             print(f"[DIO] 翻轉站控制執行異常: {e}")
@@ -666,8 +686,11 @@ class DIOControlThread(BaseFlowThread):
         try:
             print("[DIO] 開始執行震動投料控制 (Flow4)")
             
-            # 使用flow_executors[4]
-            flow4 = self.flow_executors.get(4)
+            if 4 not in self.flow_executors:
+                print("[DIO] ✗ Flow4執行器不存在於flow_executors中")
+                return
+            
+            flow4 = self.flow_executors[4]
             if flow4:
                 print("[DIO] Flow4執行器已找到，開始執行...")
                 result = flow4.execute()
@@ -680,8 +703,7 @@ class DIOControlThread(BaseFlowThread):
                     print(f"[DIO] ✗ 震動投料控制執行失敗: {result.error_message}")
                     print(f"[DIO] 完成步驟: {result.steps_completed}/{result.total_steps}")
             else:
-                print("[DIO] ✗ Flow4震動投料執行器未初始化")
-                print(f"[DIO] 可用的flow_executors: {list(self.flow_executors.keys())}")
+                print("[DIO] ✗ Flow4執行器為None")
                 
         except Exception as e:
             print(f"[DIO] 震動投料控制執行異常: {e}")
