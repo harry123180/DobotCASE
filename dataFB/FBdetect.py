@@ -9,6 +9,9 @@ from skimage.feature import local_binary_pattern
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import json
+from datetime import datetime
+from tkinter import filedialog
 
 # 全域變數用於ROI選擇
 roi_selecting = False
@@ -403,6 +406,18 @@ class ROIControlWindow:
         self.lbp_radius = ctk.IntVar(value=3)  # LBP半徑
         self.lbp_points = ctk.IntVar(value=24)  # LBP點數
         
+        # 條件分類參數 - 修改為支援ID的版本
+        self.classification_enabled = ctk.BooleanVar(value=False)
+        self.show_classification_result = ctk.BooleanVar(value=True)  # 是否在圖像上顯示分類結果
+        
+        # 類別ID管理
+        self.next_category_id = 1
+        self.classification_categories = []
+        self.classification_conditions = {}
+        
+        # 初始化預設類別
+        self.init_default_categories()
+        
         # 圖像顯示選項
         self.image_options = [
             "原圖",
@@ -445,7 +460,69 @@ class ROIControlWindow:
         # 當前處理結果
         self.processed_images = {}
         
+        # 分類結果
+        self.classification_result = None
+        
         self.setup_ui()
+    
+    def get_next_category_id(self) -> int:
+        """獲取下一個類別ID"""
+        current_id = self.next_category_id
+        self.next_category_id += 1
+        return current_id
+    
+    def init_default_categories(self):
+        """初始化預設類別 - 確保每個類別都有唯一ID"""
+        # 創建預設類別
+        category_a = {
+            "id": self.get_next_category_id(),
+            "name": "類型A",
+            "enabled": True,
+            "logic": "AND",
+            "description": "高亮度物件分類"
+        }
+        
+        category_b = {
+            "id": self.get_next_category_id(),
+            "name": "類型B",
+            "enabled": True,
+            "logic": "AND", 
+            "description": "低亮度物件分類"
+        }
+        
+        self.classification_categories = [category_a, category_b]
+        
+        # 初始化條件
+        self.classification_conditions = {
+            category_a["name"]: {
+                "id": category_a["id"],
+                "enabled": ctk.BooleanVar(value=True),
+                "logic": ctk.StringVar(value="AND"),
+                "conditions": [
+                    {
+                        "feature": ctk.StringVar(value="平均值"),
+                        "operator": ctk.StringVar(value=">"),
+                        "value": ctk.DoubleVar(value=100.0),
+                        "enabled": ctk.BooleanVar(value=True),
+                        "description": "亮度平均值大於100"
+                    }
+                ]
+            },
+            category_b["name"]: {
+                "id": category_b["id"],
+                "enabled": ctk.BooleanVar(value=True),
+                "logic": ctk.StringVar(value="AND"),
+                "conditions": [
+                    {
+                        "feature": ctk.StringVar(value="平均值"),
+                        "operator": ctk.StringVar(value="<="),
+                        "value": ctk.DoubleVar(value=100.0),
+                        "enabled": ctk.BooleanVar(value=True),
+                        "description": "亮度平均值小於等於100"
+                    }
+                ]
+            }
+        }
         
     def setup_ui(self):
         # 主容器分為左右兩部分
@@ -531,10 +608,10 @@ class ROIControlWindow:
         nav_buttons = ctk.CTkFrame(nav_frame)
         nav_buttons.pack()
         
-        prev_btn = ctk.CTkButton(nav_buttons, text="◀ 上一張", command=self.previous_image, width=100)
+        prev_btn = ctk.CTkButton(nav_buttons, text="上一張", command=self.previous_image, width=100)
         prev_btn.pack(side="left", padx=5)
         
-        next_btn = ctk.CTkButton(nav_buttons, text="下一張 ▶", command=self.next_image, width=100)
+        next_btn = ctk.CTkButton(nav_buttons, text="下一張", command=self.next_image, width=100)
         next_btn.pack(side="left", padx=5)
         
         self.file_info_label = ctk.CTkLabel(nav_buttons, text="等待載入圖像")
@@ -580,20 +657,24 @@ class ROIControlWindow:
         clear_btn = ctk.CTkButton(roi_buttons, text="清除ROI", command=self.clear_roi, width=100)
         clear_btn.pack(side="left", padx=5)
         
-        # 圖像處理參數區域
-        params_frame = ctk.CTkFrame(control_panel)
-        params_frame.pack(fill="x", padx=10, pady=5)
+        # 圖像處理參數區域改為左右布局
+        params_container = ctk.CTkFrame(control_panel)
+        params_container.pack(fill="x", padx=10, pady=5)
         
-        params_label = ctk.CTkLabel(params_frame, text="圖像處理參數", font=ctk.CTkFont(size=16, weight="bold"))
+        # 左側: 圖像處理參數
+        left_params_frame = ctk.CTkFrame(params_container)
+        left_params_frame.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        
+        params_label = ctk.CTkLabel(left_params_frame, text="圖像處理參數", font=ctk.CTkFont(size=16, weight="bold"))
         params_label.pack(pady=5)
         
         # 參數控制區域分為多列
-        params_grid = ctk.CTkFrame(params_frame)
-        params_grid.pack()
+        params_grid = ctk.CTkFrame(left_params_frame)
+        params_grid.pack(fill="x", padx=5)
         
         # 高斯模糊
         gaussian_frame = ctk.CTkFrame(params_grid)
-        gaussian_frame.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
+        gaussian_frame.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
         
         ctk.CTkLabel(gaussian_frame, text="高斯核大小:").pack()
         self.gaussian_value_label = ctk.CTkLabel(gaussian_frame, text="5")
@@ -604,7 +685,7 @@ class ROIControlWindow:
         
         # 閾值控制
         threshold_frame = ctk.CTkFrame(params_grid)
-        threshold_frame.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
+        threshold_frame.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
         
         self.otsu_checkbox = ctk.CTkCheckBox(threshold_frame, text="OTSU自動", variable=self.use_otsu, command=self.on_threshold_mode_changed)
         self.otsu_checkbox.pack()
@@ -618,7 +699,7 @@ class ROIControlWindow:
         
         # Canny參數
         canny_frame = ctk.CTkFrame(params_grid)
-        canny_frame.grid(row=0, column=2, padx=10, pady=5, sticky="ew")
+        canny_frame.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
         
         ctk.CTkLabel(canny_frame, text="Canny低閾值:").pack()
         self.canny_low_label = ctk.CTkLabel(canny_frame, text="50")
@@ -636,7 +717,7 @@ class ROIControlWindow:
         
         # LBP參數
         lbp_frame = ctk.CTkFrame(params_grid)
-        lbp_frame.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
+        lbp_frame.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
         
         ctk.CTkLabel(lbp_frame, text="LBP半徑:").pack()
         self.lbp_radius_label = ctk.CTkLabel(lbp_frame, text="3")
@@ -653,12 +734,19 @@ class ROIControlWindow:
         self.lbp_points_slider.pack(fill="x", padx=5)
         
         # 特徵統計顯示區域
-        stats_frame = ctk.CTkFrame(params_grid)
-        stats_frame.grid(row=1, column=1, columnspan=2, padx=10, pady=5, sticky="ew")
+        stats_frame = ctk.CTkFrame(left_params_frame)
+        stats_frame.pack(fill="x", padx=5, pady=5)
         
         ctk.CTkLabel(stats_frame, text="特徵統計", font=ctk.CTkFont(size=14, weight="bold")).pack()
         self.stats_text = ctk.CTkTextbox(stats_frame, height=100, width=300)
         self.stats_text.pack(fill="both", expand=True, padx=5, pady=5)
+        
+        # 右側: 條件分類
+        right_params_frame = ctk.CTkFrame(params_container)
+        right_params_frame.pack(side="right", fill="both", expand=True, padx=(5, 0))
+        
+        # 條件分類區域
+        self.setup_classification_panel(right_params_frame)
         
         self.update_threshold_controls()
         
@@ -673,6 +761,832 @@ class ROIControlWindow:
         help_text = "操作說明: 左鍵拖拽=ROI選擇(僅左側原圖) | 右鍵拖拽=平移圖像 | 滾輪=縮放 | 雙擊=重置視圖"
         help_label = ctk.CTkLabel(help_frame, text=help_text, font=ctk.CTkFont(size=12))
         help_label.pack(pady=5)
+    
+    def setup_classification_panel(self, parent):
+        """設置條件分類面板 - 添加JSON匯出功能"""
+        # 條件分類主框架
+        classification_main_frame = ctk.CTkFrame(parent)
+        classification_main_frame.pack(fill="both", expand=True, padx=5, pady=5)
+        
+        # 標題和控制區域
+        header_frame = ctk.CTkFrame(classification_main_frame)
+        header_frame.pack(fill="x", padx=5, pady=5)
+        
+        ctk.CTkLabel(header_frame, text="條件分類", font=ctk.CTkFont(size=16, weight="bold")).pack(side="left")
+        
+        # 右側控制按鈕
+        controls_frame = ctk.CTkFrame(header_frame)
+        controls_frame.pack(side="right")
+        
+        self.classification_checkbox = ctk.CTkCheckBox(
+            controls_frame, 
+            text="啟用",
+            variable=self.classification_enabled,
+            command=self.on_classification_toggle
+        )
+        self.classification_checkbox.pack(side="left", padx=5)
+        
+        show_result_checkbox = ctk.CTkCheckBox(
+            controls_frame,
+            text="顯示結果",
+            variable=self.show_classification_result,
+            command=self.refresh_display
+        )
+        show_result_checkbox.pack(side="left", padx=5)
+        
+        # 類別管理區域
+        category_management_frame = ctk.CTkFrame(classification_main_frame)
+        category_management_frame.pack(fill="x", padx=5, pady=5)
+        
+        ctk.CTkLabel(category_management_frame, text="類別管理:", font=ctk.CTkFont(size=14, weight="bold")).pack(side="left")
+        
+        add_category_btn = ctk.CTkButton(
+            category_management_frame,
+            text="新增類別",
+            command=self.add_category,
+            width=80
+        )
+        add_category_btn.pack(side="right", padx=2)
+        
+        # JSON匯出區域
+        export_frame = ctk.CTkFrame(classification_main_frame)
+        export_frame.pack(fill="x", padx=5, pady=5)
+        
+        ctk.CTkLabel(export_frame, text="配置匯出:", font=ctk.CTkFont(size=14, weight="bold")).pack(side="left")
+        
+        export_btn = ctk.CTkButton(
+            export_frame,
+            text="匯出JSON配置",
+            command=self.export_classification_config,
+            width=120
+        )
+        export_btn.pack(side="right", padx=2)
+        
+        preview_btn = ctk.CTkButton(
+            export_frame,
+            text="預覽配置",
+            command=self.preview_classification_config,
+            width=100
+        )
+        preview_btn.pack(side="right", padx=2)
+        
+        # 分類設置框架 - 使用滾動區域
+        self.classification_scroll_frame = ctk.CTkScrollableFrame(classification_main_frame)
+        self.classification_scroll_frame.pack(fill="both", expand=True, padx=5, pady=5)
+        
+        # 創建分類設置
+        self.create_classification_categories()
+        
+        # 分類結果顯示
+        result_frame = ctk.CTkFrame(classification_main_frame)
+        result_frame.pack(fill="x", padx=5, pady=5)
+        
+        ctk.CTkLabel(result_frame, text="分類結果:", font=ctk.CTkFont(size=14, weight="bold")).pack(side="left")
+        self.classification_result_label = ctk.CTkLabel(result_frame, text="等待分析", font=ctk.CTkFont(size=14))
+        self.classification_result_label.pack(side="left", padx=10)
+        
+        # 初始狀態設置
+        self.update_classification_panel_state()
+    
+    def add_category(self):
+        """新增分類類別 - 修改版本，添加ID管理"""
+        # 創建自定義新增對話框
+        dialog_window = ctk.CTkToplevel(self.root)
+        dialog_window.title("新增類別")
+        dialog_window.geometry("300x200")
+        dialog_window.transient(self.root)
+        dialog_window.grab_set()
+        
+        # 置中顯示
+        dialog_window.update_idletasks()
+        x = (dialog_window.winfo_screenwidth() // 2) - (300 // 2)
+        y = (dialog_window.winfo_screenheight() // 2) - (200 // 2)
+        dialog_window.geometry(f"300x200+{x}+{y}")
+        
+        # 對話框內容
+        ctk.CTkLabel(dialog_window, text="請輸入新類別資訊:", font=ctk.CTkFont(size=14)).pack(pady=10)
+        
+        # 類別名稱
+        ctk.CTkLabel(dialog_window, text="類別名稱:").pack()
+        name_entry = ctk.CTkEntry(dialog_window, width=200)
+        name_entry.pack(pady=5)
+        name_entry.focus()
+        
+        # 類別描述
+        ctk.CTkLabel(dialog_window, text="類別描述:").pack()
+        desc_entry = ctk.CTkEntry(dialog_window, width=200)
+        desc_entry.pack(pady=5)
+        
+        result = None
+        
+        def on_ok():
+            nonlocal result
+            name = name_entry.get().strip()
+            description = desc_entry.get().strip()
+            if name:
+                result = {
+                    "name": name,
+                    "description": description if description else f"{name}分類"
+                }
+            dialog_window.destroy()
+        
+        def on_cancel():
+            nonlocal result
+            result = None
+            dialog_window.destroy()
+        
+        # 按鈕區域
+        button_frame = ctk.CTkFrame(dialog_window)
+        button_frame.pack(pady=10)
+        
+        ok_btn = ctk.CTkButton(button_frame, text="確定", command=on_ok)
+        ok_btn.pack(side="left", padx=5)
+        
+        cancel_btn = ctk.CTkButton(button_frame, text="取消", command=on_cancel)
+        cancel_btn.pack(side="left", padx=5)
+        
+        # 綁定Enter鍵
+        name_entry.bind('<Return>', lambda e: on_ok())
+        dialog_window.bind('<Escape>', lambda e: on_cancel())
+        
+        # 等待對話框關閉
+        dialog_window.wait_window()
+        
+        # 處理結果
+        if result and result["name"] not in [cat["name"] for cat in self.classification_categories]:
+            new_category = {
+                "id": self.get_next_category_id(),
+                "name": result["name"],
+                "enabled": True,
+                "logic": "AND",
+                "description": result["description"]
+            }
+            
+            self.classification_categories.append(new_category)
+            
+            # 初始化新類別的條件
+            self.classification_conditions[result["name"]] = {
+                "id": new_category["id"],
+                "enabled": ctk.BooleanVar(value=True),
+                "logic": ctk.StringVar(value="AND"),
+                "conditions": [
+                    {
+                        "feature": ctk.StringVar(value="平均值"),
+                        "operator": ctk.StringVar(value=">"),
+                        "value": ctk.DoubleVar(value=0.0),
+                        "enabled": ctk.BooleanVar(value=True),
+                        "description": "預設條件"
+                    }
+                ]
+            }
+            
+            # 重新創建界面
+            self.create_classification_categories()
+            self.evaluate_classification()
+            print(f"新增類別: ID={new_category['id']}, 名稱='{result['name']}'")
+    
+    def edit_category_name(self, old_name):
+        """編輯類別名稱"""
+        # 創建自定義編輯對話框
+        dialog_window = ctk.CTkToplevel(self.root)
+        dialog_window.title("編輯類別")
+        dialog_window.geometry("300x150")
+        dialog_window.transient(self.root)
+        dialog_window.grab_set()
+        
+        # 置中顯示
+        dialog_window.update_idletasks()
+        x = (dialog_window.winfo_screenwidth() // 2) - (300 // 2)
+        y = (dialog_window.winfo_screenheight() // 2) - (150 // 2)
+        dialog_window.geometry(f"300x150+{x}+{y}")
+        
+        # 對話框內容
+        ctk.CTkLabel(dialog_window, text="編輯類別名稱:", font=ctk.CTkFont(size=14)).pack(pady=10)
+        
+        entry = ctk.CTkEntry(dialog_window, width=200)
+        entry.pack(pady=10)
+        entry.insert(0, old_name)  # 設置初始值
+        entry.focus()
+        
+        result = None
+        
+        def on_ok():
+            nonlocal result
+            result = entry.get().strip()
+            dialog_window.destroy()
+        
+        def on_cancel():
+            nonlocal result
+            result = None
+            dialog_window.destroy()
+        
+        # 按鈕區域
+        button_frame = ctk.CTkFrame(dialog_window)
+        button_frame.pack(pady=10)
+        
+        ok_btn = ctk.CTkButton(button_frame, text="確定", command=on_ok)
+        ok_btn.pack(side="left", padx=5)
+        
+        cancel_btn = ctk.CTkButton(button_frame, text="取消", command=on_cancel)
+        cancel_btn.pack(side="left", padx=5)
+        
+        # 綁定Enter鍵
+        entry.bind('<Return>', lambda e: on_ok())
+        dialog_window.bind('<Escape>', lambda e: on_cancel())
+        
+        # 等待對話框關閉
+        dialog_window.wait_window()
+        
+        # 處理結果
+        if result and result != old_name and result not in [cat["name"] for cat in self.classification_categories]:
+            # 找到對應的類別並更新名稱
+            for category in self.classification_categories:
+                if category["name"] == old_name:
+                    category["name"] = result
+                    break
+            
+            # 更新條件字典
+            self.classification_conditions[result] = self.classification_conditions.pop(old_name)
+            
+            # 重新創建界面
+            self.create_classification_categories()
+            self.evaluate_classification()
+            print(f"類別名稱已從 '{old_name}' 更改為 '{result}'")
+    
+    def remove_category(self, category_name):
+        """移除類別"""
+        if len(self.classification_categories) > 1:  # 至少保留一個類別
+            # 移除類別
+            self.classification_categories = [cat for cat in self.classification_categories if cat["name"] != category_name]
+            
+            # 移除條件
+            if category_name in self.classification_conditions:
+                del self.classification_conditions[category_name]
+            
+            # 重新創建界面
+            self.create_classification_categories()
+            self.evaluate_classification()
+    
+    def create_classification_categories(self):
+        """創建分類類別設置"""
+        # 清空現有內容
+        for widget in self.classification_scroll_frame.winfo_children():
+            widget.destroy()
+        
+        # 為每個類別創建設置區域
+        for i, category in enumerate(self.classification_categories):
+            self.create_category_panel(category, i)
+    
+    def create_category_panel(self, category, index):
+        """創建單個類別的設置面板"""
+        category_name = category["name"]
+        
+        # 類別主框架
+        category_frame = ctk.CTkFrame(self.classification_scroll_frame)
+        category_frame.pack(fill="x", padx=5, pady=5)
+        
+        # 類別標題和控制
+        title_frame = ctk.CTkFrame(category_frame)
+        title_frame.pack(fill="x", padx=5, pady=5)
+        
+        # 左側：類別名稱、ID和啟用
+        left_title_frame = ctk.CTkFrame(title_frame)
+        left_title_frame.pack(side="left", fill="x", expand=True)
+        
+        category_label = ctk.CTkLabel(left_title_frame, text=f"{category_name} (ID: {category['id']}):", font=ctk.CTkFont(size=14, weight="bold"))
+        category_label.pack(side="left")
+        
+        category_enabled = ctk.CTkCheckBox(
+            left_title_frame,
+            text="啟用",
+            variable=self.classification_conditions[category_name]["enabled"],
+            command=lambda: self.evaluate_classification()
+        )
+        category_enabled.pack(side="left", padx=10)
+        
+        # 右側：管理按鈕
+        right_title_frame = ctk.CTkFrame(title_frame)
+        right_title_frame.pack(side="right")
+        
+        edit_btn = ctk.CTkButton(
+            right_title_frame,
+            text="編輯",
+            command=lambda: self.edit_category_name(category_name),
+            width=50
+        )
+        edit_btn.pack(side="left", padx=2)
+        
+        if len(self.classification_categories) > 1:
+            remove_btn = ctk.CTkButton(
+                right_title_frame,
+                text="刪除",
+                command=lambda: self.remove_category(category_name),
+                width=50
+            )
+            remove_btn.pack(side="left", padx=2)
+        
+        # 邏輯運算選擇
+        logic_frame = ctk.CTkFrame(category_frame)
+        logic_frame.pack(fill="x", padx=5, pady=2)
+        
+        ctk.CTkLabel(logic_frame, text="條件關係:").pack(side="left")
+        logic_combo = ctk.CTkComboBox(
+            logic_frame,
+            values=["AND", "OR"],
+            variable=self.classification_conditions[category_name]["logic"],
+            command=lambda x: self.evaluate_classification(),
+            width=80
+        )
+        logic_combo.pack(side="left", padx=5)
+        
+        # 條件列表框架
+        conditions_frame = ctk.CTkFrame(category_frame)
+        conditions_frame.pack(fill="x", padx=5, pady=5)
+        
+        # 顯示現有條件
+        self.update_category_conditions(category_name, conditions_frame)
+        
+        # 新增條件按鈕
+        add_btn = ctk.CTkButton(
+            category_frame,
+            text=f"新增條件",
+            command=lambda: self.add_condition(category_name),
+            width=100
+        )
+        add_btn.pack(pady=5)
+    
+    def update_category_conditions(self, category_name, parent_frame):
+        """更新類別的條件顯示"""
+        # 清空現有條件顯示
+        for widget in parent_frame.winfo_children():
+            widget.destroy()
+        
+        conditions = self.classification_conditions[category_name]["conditions"]
+        
+        for i, condition in enumerate(conditions):
+            self.create_condition_widget(parent_frame, category_name, condition, i)
+    
+    def create_condition_widget(self, parent, category_name, condition, index):
+        """創建單個條件的控制元件"""
+        condition_frame = ctk.CTkFrame(parent)
+        condition_frame.pack(fill="x", padx=5, pady=2)
+        
+        # 啟用條件的勾選框
+        enabled_check = ctk.CTkCheckBox(
+            condition_frame,
+            text="",
+            variable=condition["enabled"],
+            command=lambda: self.evaluate_classification(),
+            width=20
+        )
+        enabled_check.pack(side="left", padx=2)
+        
+        # 特徵選擇
+        feature_combo = ctk.CTkComboBox(
+            condition_frame,
+            values=["平均值", "標準差", "偏度", "峰度"],
+            variable=condition["feature"],
+            command=lambda x: self.evaluate_classification(),
+            width=80
+        )
+        feature_combo.pack(side="left", padx=2)
+        
+        # 運算符選擇
+        operator_combo = ctk.CTkComboBox(
+            condition_frame,
+            values=[">", ">=", "<", "<=", "=="],
+            variable=condition["operator"],
+            command=lambda x: self.evaluate_classification(),
+            width=60
+        )
+        operator_combo.pack(side="left", padx=2)
+        
+        # 數值輸入 - 支援小數點
+        value_entry = ctk.CTkEntry(
+            condition_frame,
+            width=100,
+            placeholder_text="0.0"
+        )
+        value_entry.pack(side="left", padx=2)
+        
+        # 設置初始值
+        initial_value = condition["value"].get()
+        value_entry.insert(0, str(initial_value))
+        
+        # 數值驗證和更新函數
+        def validate_and_update():
+            try:
+                text = value_entry.get().strip()
+                if text == "" or text == "-" or text == ".":
+                    return True
+                
+                value = float(text)
+                condition["value"].set(value)
+                
+                if hasattr(self, '_classification_timer'):
+                    self.root.after_cancel(self._classification_timer)
+                self._classification_timer = self.root.after(300, self.evaluate_classification)
+                
+                return True
+            except ValueError:
+                return True
+        
+        def on_focus_out(event):
+            try:
+                text = value_entry.get().strip()
+                if text == "" or text == "-" or text == ".":
+                    value_entry.delete(0, "end")
+                    value_entry.insert(0, "0.0")
+                    condition["value"].set(0.0)
+                else:
+                    value = float(text)
+                    condition["value"].set(value)
+                    value_entry.delete(0, "end")
+                    value_entry.insert(0, str(value))
+                
+                self.evaluate_classification()
+            except ValueError:
+                value_entry.delete(0, "end")
+                value_entry.insert(0, str(condition["value"].get()))
+        
+        def on_key_release(event):
+            validate_and_update()
+        
+        # 綁定事件
+        value_entry.bind('<KeyRelease>', on_key_release)
+        value_entry.bind('<FocusOut>', on_focus_out)
+        
+        # 刪除按鈕
+        delete_btn = ctk.CTkButton(
+            condition_frame,
+            text="刪除",
+            command=lambda: self.remove_condition(category_name, index),
+            width=60
+        )
+        delete_btn.pack(side="right", padx=2)
+    
+    def add_condition(self, category_name):
+        """新增條件"""
+        new_condition = {
+            "feature": ctk.StringVar(value="平均值"),
+            "operator": ctk.StringVar(value=">"),
+            "value": ctk.DoubleVar(value=0.0),
+            "enabled": ctk.BooleanVar(value=True),
+            "description": "新條件"
+        }
+        
+        self.classification_conditions[category_name]["conditions"].append(new_condition)
+        self.create_classification_categories()
+        self.evaluate_classification()
+    
+    def remove_condition(self, category_name, index):
+        """移除條件"""
+        if len(self.classification_conditions[category_name]["conditions"]) > 1:
+            del self.classification_conditions[category_name]["conditions"][index]
+            self.create_classification_categories()
+            self.evaluate_classification()
+    
+    def export_classification_config(self):
+        """匯出分類配置為JSON"""
+        try:
+            config = self.generate_classification_json()
+            
+            # 獲取當前時間作為檔案名
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"classification_config_{timestamp}.json"
+            
+            # 使用檔案對話框選擇儲存位置 - 修正參數名稱
+            filepath = filedialog.asksaveasfilename(
+                defaultextension=".json",
+                filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+                initialfile=filename,  # 修正: 使用 initialfile 而不是 initialvalue
+                title="儲存分類配置"
+            )
+            
+            if filepath:
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    json.dump(config, f, indent=2, ensure_ascii=False)
+                
+                print(f"分類配置已匯出: {filepath}")
+                
+                # 顯示成功訊息
+                success_window = ctk.CTkToplevel(self.root)
+                success_window.title("匯出成功")
+                success_window.geometry("500x150")
+                success_window.transient(self.root)
+                success_window.grab_set()
+                
+                # 置中顯示
+                success_window.update_idletasks()
+                x = (success_window.winfo_screenwidth() // 2) - (500 // 2)
+                y = (success_window.winfo_screenheight() // 2) - (150 // 2)
+                success_window.geometry(f"500x150+{x}+{y}")
+                
+                ctk.CTkLabel(success_window, text="配置匯出成功！", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=20)
+                ctk.CTkLabel(success_window, text=f"檔案位置: {filepath}", font=ctk.CTkFont(size=12)).pack(pady=10)
+                
+                ctk.CTkButton(success_window, text="確定", command=success_window.destroy).pack(pady=10)
+            
+        except Exception as e:
+            print(f"匯出配置失敗: {e}")
+            # 顯示錯誤訊息
+            error_window = ctk.CTkToplevel(self.root)
+            error_window.title("匯出失敗")
+            error_window.geometry("400x150")
+            error_window.transient(self.root)
+            error_window.grab_set()
+            
+            # 置中顯示
+            error_window.update_idletasks()
+            x = (error_window.winfo_screenwidth() // 2) - (400 // 2)
+            y = (error_window.winfo_screenheight() // 2) - (150 // 2)
+            error_window.geometry(f"400x150+{x}+{y}")
+            
+            ctk.CTkLabel(error_window, text="配置匯出失敗！", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=20)
+            ctk.CTkLabel(error_window, text=f"錯誤: {str(e)}", font=ctk.CTkFont(size=12)).pack(pady=10)
+            
+            ctk.CTkButton(error_window, text="確定", command=error_window.destroy).pack(pady=10)
+    
+    def preview_classification_config(self):
+        """預覽分類配置"""
+        try:
+            config = self.generate_classification_json()
+            
+            # 創建預覽視窗
+            preview_window = ctk.CTkToplevel(self.root)
+            preview_window.title("配置預覽")
+            preview_window.geometry("800x600")
+            preview_window.transient(self.root)
+            
+            # 置中顯示
+            preview_window.update_idletasks()
+            x = (preview_window.winfo_screenwidth() // 2) - (800 // 2)
+            y = (preview_window.winfo_screenheight() // 2) - (600 // 2)
+            preview_window.geometry(f"800x600+{x}+{y}")
+            
+            # 標題
+            ctk.CTkLabel(preview_window, text="分類配置預覽", font=ctk.CTkFont(size=18, weight="bold")).pack(pady=10)
+            
+            # JSON內容顯示
+            text_frame = ctk.CTkFrame(preview_window)
+            text_frame.pack(fill="both", expand=True, padx=20, pady=10)
+            
+            text_widget = ctk.CTkTextbox(text_frame, width=750, height=500, font=ctk.CTkFont(family="Courier", size=11))
+            text_widget.pack(fill="both", expand=True, padx=10, pady=10)
+            
+            # 插入JSON內容
+            json_text = json.dumps(config, indent=2, ensure_ascii=False)
+            text_widget.insert("1.0", json_text)
+            
+            # 底部按鈕
+            button_frame = ctk.CTkFrame(preview_window)
+            button_frame.pack(fill="x", padx=20, pady=10)
+            
+            close_btn = ctk.CTkButton(button_frame, text="關閉", command=preview_window.destroy)
+            close_btn.pack(side="right", padx=5)
+            
+            copy_btn = ctk.CTkButton(button_frame, text="複製到剪貼板", command=lambda: self.copy_to_clipboard(json_text))
+            copy_btn.pack(side="right", padx=5)
+            
+        except Exception as e:
+            print(f"預覽配置失敗: {e}")
+    
+    def copy_to_clipboard(self, text):
+        """複製文字到剪貼板"""
+        try:
+            self.root.clipboard_clear()
+            self.root.clipboard_append(text)
+            print("配置已複製到剪貼板")
+        except Exception as e:
+            print(f"複製失敗: {e}")
+    
+    def generate_classification_json(self) -> dict:
+        """生成分類配置JSON"""
+        config = {
+            "module_info": {
+                "module_name": "CCD2分類模組",
+                "version": "1.0",
+                "created_date": datetime.now().strftime("%Y-%m-%d"),
+                "description": "基於圖像特徵的分類條件配置",
+                "image_processing_pipeline": [
+                    "灰階轉換",
+                    "ROI區域提取",
+                    "高斯模糊",
+                    "二值化處理", 
+                    "Canny邊緣檢測",
+                    "LBP紋理分析",
+                    "輪廓粗糙度檢測",
+                    "亮度分布分析"
+                ]
+            },
+            "categories": [],
+            "processing_parameters": {
+                "gaussian_kernel": self.gaussian_kernel.get(),
+                "use_otsu": self.use_otsu.get(),
+                "manual_threshold": self.manual_threshold.get(),
+                "canny_low": self.canny_low.get(),
+                "canny_high": self.canny_high.get(),
+                "lbp_radius": self.lbp_radius.get(),
+                "lbp_points": self.lbp_points.get(),
+                "roi": {
+                    "enabled": bool(roi_rect is not None),
+                    "x": roi_rect[0] if roi_rect else 0,
+                    "y": roi_rect[1] if roi_rect else 0,
+                    "width": roi_rect[2] if roi_rect else 100,
+                    "height": roi_rect[3] if roi_rect else 100
+                }
+            },
+            "feature_definitions": {
+                "平均值": {
+                    "type": "brightness_stats",
+                    "field": "mean",
+                    "unit": "灰階值",
+                    "range": [0, 255],
+                    "description": "圖像亮度平均值"
+                },
+                "標準差": {
+                    "type": "brightness_stats",
+                    "field": "std", 
+                    "unit": "灰階值",
+                    "range": [0, 255],
+                    "description": "圖像亮度標準差"
+                },
+                "偏度": {
+                    "type": "brightness_stats",
+                    "field": "skewness",
+                    "unit": "統計值",
+                    "range": [-3, 3],
+                    "description": "亮度分布偏度"
+                },
+                "峰度": {
+                    "type": "brightness_stats",
+                    "field": "kurtosis",
+                    "unit": "統計值",
+                    "range": [-3, 10],
+                    "description": "亮度分布峰度"
+                }
+            },
+            "operator_definitions": {
+                ">": "大於",
+                ">=": "大於等於",
+                "<": "小於", 
+                "<=": "小於等於",
+                "==": "等於"
+            },
+            "logic_definitions": {
+                "AND": "所有條件都必須滿足",
+                "OR": "任一條件滿足即可"
+            }
+        }
+        
+        # 轉換類別資訊
+        for category in self.classification_categories:
+            category_name = category["name"]
+            category_config = self.classification_conditions.get(category_name)
+            
+            if category_config:
+                category_data = {
+                    "id": category["id"],
+                    "name": category["name"],
+                    "enabled": category_config["enabled"].get(),
+                    "logic": category_config["logic"].get(),
+                    "description": category.get("description", f"{category_name}分類"),
+                    "conditions": []
+                }
+                
+                # 轉換條件
+                for condition in category_config["conditions"]:
+                    condition_data = {
+                        "feature": condition["feature"].get(),
+                        "operator": condition["operator"].get(),
+                        "threshold": condition["value"].get(),
+                        "enabled": condition["enabled"].get(),
+                        "description": condition.get("description", "")
+                    }
+                    category_data["conditions"].append(condition_data)
+                
+                config["categories"].append(category_data)
+        
+        return config
+    
+    def on_classification_toggle(self):
+        """條件分類啟用/停用切換"""
+        self.update_classification_panel_state()
+        if self.classification_enabled.get():
+            self.evaluate_classification()
+        else:
+            self.classification_result_label.configure(text="已停用")
+    
+    def update_classification_panel_state(self):
+        """更新條件分類面板的啟用狀態"""
+        enabled = self.classification_enabled.get()
+        
+        # 設置內容框架的狀態
+        for widget in self.classification_scroll_frame.winfo_children():
+            self.set_widget_state(widget, "normal" if enabled else "disabled")
+    
+    def set_widget_state(self, widget, state):
+        """遞迴設置控件狀態"""
+        try:
+            if hasattr(widget, 'configure'):
+                if isinstance(widget, (ctk.CTkButton, ctk.CTkComboBox, ctk.CTkEntry, ctk.CTkCheckBox)):
+                    widget.configure(state=state)
+        except:
+            pass
+        
+        # 遞迴處理子控件
+        for child in widget.winfo_children():
+            self.set_widget_state(child, state)
+    
+    def evaluate_classification(self):
+        """評估分類條件 - 修改版本，返回類別ID而非名稱"""
+        if not self.classification_enabled.get() or 'brightness_stats' not in self.processed_images:
+            return
+        
+        stats = self.processed_images['brightness_stats']
+        
+        # 特徵值映射
+        feature_values = {
+            "平均值": stats['mean'],
+            "標準差": stats['std'],
+            "偏度": stats['skewness'],
+            "峰度": stats['kurtosis']
+        }
+        
+        results = []
+        
+        # 評估每個類別
+        for category in self.classification_categories:
+            category_name = category["name"]
+            category_conditions = self.classification_conditions.get(category_name)
+            
+            if not category_conditions or not category_conditions["enabled"].get():
+                continue
+            
+            conditions = category_conditions["conditions"]
+            logic = category_conditions["logic"].get()
+            
+            if not conditions:
+                continue
+            
+            # 評估所有條件
+            condition_results = []
+            for condition in conditions:
+                if not condition["enabled"].get():
+                    continue
+                
+                try:
+                    feature = condition["feature"].get()
+                    operator = condition["operator"].get()
+                    threshold = condition["value"].get()
+                    
+                    if feature in feature_values:
+                        value = feature_values[feature]
+                        
+                        if operator == ">":
+                            result = value > threshold
+                        elif operator == ">=":
+                            result = value >= threshold
+                        elif operator == "<":
+                            result = value < threshold
+                        elif operator == "<=":
+                            result = value <= threshold
+                        elif operator == "==":
+                            result = abs(value - threshold) < 0.001
+                        else:
+                            result = False
+                        
+                        condition_results.append(result)
+                except:
+                    continue
+            
+            if condition_results:
+                # 根據邏輯運算計算最終結果
+                if logic == "AND":
+                    category_result = all(condition_results)
+                else:  # OR
+                    category_result = any(condition_results)
+                
+                if category_result:
+                    results.append({
+                        "id": category["id"],
+                        "name": category_name
+                    })
+        
+        # 更新分類結果顯示
+        if results:
+            # 優先顯示第一個匹配的類別
+            first_result = results[0]
+            result_text = f"ID: {first_result['id']} ({first_result['name']})"
+            self.classification_result = first_result
+        else:
+            result_text = "無匹配"
+            self.classification_result = None
+        
+        self.classification_result_label.configure(text=result_text)
+        
+        # 更新統計顯示
+        self.update_feature_stats()
     
     def on_gaussian_changed(self, value):
         """高斯模糊滑桿變更事件"""
@@ -961,6 +1875,10 @@ class ROIControlWindow:
         
         # 更新特徵統計
         self.update_feature_stats()
+        
+        # 觸發分類評估
+        if self.classification_enabled.get():
+            self.evaluate_classification()
     
     def get_image_by_selection(self, selection):
         """根據選擇獲取對應的圖像"""
@@ -1001,8 +1919,12 @@ LBP參數:
 
 處理參數:
 高斯核: {self.gaussian_kernel.get()}
-閾值模式: {'OTSU' if self.use_otsu.get() else 'Manual'}
-"""
+閾值模式: {'OTSU' if self.use_otsu.get() else 'Manual'}"""
+
+        # 如果啟用分類，添加分類結果
+        if self.classification_enabled.get() and hasattr(self, 'classification_result') and self.classification_result:
+            result_text = f"ID: {self.classification_result['id']} ({self.classification_result['name']})"
+            stats_text += f"\n\n分類結果: {result_text}"
         
         self.stats_text.delete("1.0", "end")
         self.stats_text.insert("1.0", stats_text)
@@ -1173,6 +2095,7 @@ def start_roi_control_window():
     roi_control_window.run()
 
 def main():
+    """主函數"""
     global roi_rect, roi_start_point, roi_end_point, current_image, bmp_files, current_index, data_folder
     
     # 啟動ROI控制視窗線程
