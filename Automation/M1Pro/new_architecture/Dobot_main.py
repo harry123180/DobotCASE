@@ -44,36 +44,35 @@ ENABLE_HANDSHAKE_DEBUG = False  # True=開啟HandshakeLoop調試訊息, False=�
 # ==================== 新架構寄存器映射 ====================
 
 class MotionRegisters:
-    """運動類Flow寄存器映射 (基地址1100-1149)"""
+    """運動類Flow寄存器映射 (基地址1200-1249) - 修正地址衝突版本"""
     
-    # 運動狀態寄存器 (1100-1119) - 只讀
-    MOTION_STATUS = 1100          # 運動狀態寄存器 (bit0=Ready, bit1=Running, bit2=Alarm, bit3=Initialized)
-    CURRENT_MOTION_FLOW = 1101    # 當前運動Flow (0=無, 1=Flow1, 2=Flow2, 5=Flow5)
-    MOTION_PROGRESS = 1102        # 運動進度 (0-100百分比)
-    MOTION_ERROR_CODE = 1103      # 運動錯誤碼
-    FLOW1_COMPLETE = 1104         # Flow1完成狀態 (0=未完成, 1=完成且角度校正成功)
-    FLOW2_COMPLETE = 1105         # Flow2完成狀態
-    FLOW5_COMPLETE = 1106         # Flow5完成狀態
-    MOTION_OP_COUNT = 1107        # 運動操作計數
-    MOTION_ERR_COUNT = 1108       # 運動錯誤計數
-    MOTION_RUN_TIME = 1109        # 運動系統運行時間(分鐘)
-    # 1110-1119 保留
+    # 運動狀態寄存器 (1200-1219) - 只讀
+    MOTION_STATUS = 1200          # 運動狀態寄存器 (bit0=Ready, bit1=Running, bit2=Alarm, bit3=Initialized)
+    CURRENT_MOTION_FLOW = 1201    # 當前運動Flow (0=無, 1=Flow1, 2=Flow2, 5=Flow5)
+    MOTION_PROGRESS = 1202        # 運動進度 (0-100百分比)
+    MOTION_ERROR_CODE = 1203      # 運動錯誤碼
+    FLOW1_COMPLETE = 1204         # Flow1完成狀態 (0=未完成, 1=完成且角度校正成功)
+    FLOW2_COMPLETE = 1205         # Flow2完成狀態
+    FLOW5_COMPLETE = 1206         # Flow5完成狀態
+    MOTION_OP_COUNT = 1207        # 運動操作計數
+    MOTION_ERR_COUNT = 1208       # 運動錯誤計數
+    MOTION_RUN_TIME = 1209        # 運動系統運行時間(分鐘)
+    # 1210-1219 保留狀態寄存器
     
-    # 運動控制寄存器 (1140-1149) - 讀寫
-    FLOW1_CONTROL = 1140          # Flow1控制 (0=清空, 1=啟動VP視覺抓取)
-    FLOW2_CONTROL = 1141          # Flow2控制 (0=清空, 1=啟動出料流程)
-    FLOW5_CONTROL = 1142          # Flow5控制 (0=清空, 1=啟動機械臂運轉)
-    MOTION_CLEAR_ALARM = 1143     # 運動清除警報 (0=無動作, 1=清除Alarm)
-    MOTION_EMERGENCY_STOP = 1144  # 運動緊急停止 (0=正常, 1=緊急停止)
-    # 1145-1149 保留
+    # 運動控制寄存器 (1240-1249) - 讀寫
+    FLOW1_CONTROL = 1240          # Flow1控制 (0=清空, 1=啟動VP視覺抓取)
+    FLOW2_CONTROL = 1241          # Flow2控制 (0=清空, 1=啟動出料流程)
+    FLOW5_CONTROL = 1242          # Flow5控制 (0=清空, 1=啟動機械臂運轉)
+    MOTION_CLEAR_ALARM = 1243     # 運動清除警報 (0=無動作, 1=清除Alarm)
+    MOTION_EMERGENCY_STOP = 1244  # 運動緊急停止 (0=正常, 1=緊急停止)
+    # 1245-1249 保留控制寄存器
 
 class IORegisters:
-    """IO類Flow寄存器映射 (447-449)"""
+    """IO類Flow寄存器映射 (447-449) - 保持不變"""
     
     FLOW3_CONTROL = 447           # Flow3控制 (0=清空, 1=啟動翻轉站)
     FLOW4_CONTROL = 448           # Flow4控制 (0=清空, 1=啟動震動投料)
     IO_RESERVED = 449             # 保留IO控制
-
 # ==================== 指令系統 ====================
 
 class CommandType(Enum):
@@ -169,7 +168,7 @@ class DedicatedCommandQueue:
 # ==================== 運動類狀態機 ====================
 
 class MotionStateMachine:
-    """運動類Flow狀態機 - 基地址1100"""
+    """運動類Flow狀態機 - 修正地址1200版本"""
     
     def __init__(self, modbus_client: ModbusTcpClient):
         self.modbus_client = modbus_client
@@ -187,8 +186,10 @@ class MotionStateMachine:
         self.flow2_complete = 0  
         self.flow5_complete = 0
         
+        print(f"✓ MotionStateMachine初始化完成 - 新基地址: {MotionRegisters.MOTION_STATUS}")
+        
     def set_ready(self, ready: bool = True):
-        """設置Ready狀態 - 含詳細調試訊息"""
+        """設置Ready狀態 - 使用新地址1200"""
         try:
             old_register = self.status_register
             with self._lock:
@@ -204,7 +205,7 @@ class MotionStateMachine:
             print(f"[MotionStateMachine] 設置運動Ready狀態失敗: {e}")
             
     def set_running(self, running: bool = True):
-        """設置Running狀態 - 含詳細調試訊息"""
+        """設置Running狀態 - 使用新地址1200"""
         try:
             old_register = self.status_register
             with self._lock:
@@ -220,7 +221,7 @@ class MotionStateMachine:
             print(f"[MotionStateMachine] 設置運動Running狀態失敗: {e}")
             
     def set_alarm(self, alarm: bool = True):
-        """設置Alarm狀態 - 含詳細調試訊息"""
+        """設置Alarm狀態 - 使用新地址1200"""
         try:
             old_register = self.status_register
             with self._lock:
@@ -237,7 +238,7 @@ class MotionStateMachine:
             print(f"[MotionStateMachine] 設置運動Alarm狀態失敗: {e}")
             
     def set_current_flow(self, flow_id: int):
-        """設置當前流程ID - 含詳細調試訊息"""
+        """設置當前流程ID - 使用新地址1201"""
         try:
             with self._lock:
                 old_flow = self.current_flow
@@ -264,7 +265,7 @@ class MotionStateMachine:
             print(f"[MotionStateMachine] 設置運動流程ID失敗: {e}")
             
     def set_progress(self, progress: int):
-        """設置進度 - 含詳細調試訊息"""
+        """設置進度 - 使用新地址1202"""
         try:
             with self._lock:
                 old_progress = self.progress
@@ -283,7 +284,7 @@ class MotionStateMachine:
             print(f"[MotionStateMachine] 設置運動進度失敗: {e}")
             
     def set_flow_complete(self, flow_id: int, complete: bool = True):
-        """設置Flow完成狀態 - 含詳細調試訊息"""
+        """設置Flow完成狀態 - 使用新地址1204-1206"""
         try:
             value = 1 if complete else 0
             address = None
@@ -331,7 +332,7 @@ class MotionStateMachine:
         return ready
         
     def _update_status_to_plc(self):
-        """更新狀態到PLC - 含詳細調試訊息"""
+        """更新狀態到PLC - 使用新地址1200"""
         try:
             print(f"[MotionStateMachine] 更新狀態到PLC:")
             print(f"[MotionStateMachine]   狀態寄存器: 地址{MotionRegisters.MOTION_STATUS} = {self.status_register} ({self.status_register:04b})")
@@ -358,15 +359,15 @@ class MotionStateMachine:
             print(f"[MotionStateMachine] 更新運動狀態到PLC失敗: {e}")
             
     def _verify_register_writes(self):
-        """驗證寄存器寫入結果"""
+        """驗證寄存器寫入結果 - 使用新地址範圍"""
         try:
             print(f"[MotionStateMachine] 驗證寄存器寫入結果:")
             
-            # 讀取狀態寄存器範圍 (1100-1109)
+            # 讀取狀態寄存器範圍 (1200-1209)
             status_result = self.modbus_client.read_holding_registers(address=MotionRegisters.MOTION_STATUS, count=10)
             if hasattr(status_result, 'registers') and len(status_result.registers) >= 10:
                 registers = status_result.registers
-                print(f"[MotionStateMachine] 狀態寄存器驗證 (1100-1109):")
+                print(f"[MotionStateMachine] 狀態寄存器驗證 (1200-1209):")
                 for i, reg_value in enumerate(registers):
                     addr = MotionRegisters.MOTION_STATUS + i
                     if addr == MotionRegisters.MOTION_STATUS:
@@ -394,11 +395,10 @@ class MotionStateMachine:
                 
         except Exception as e:
             print(f"[MotionStateMachine] 驗證寄存器寫入失敗: {e}")
-
 # ==================== 真實機械臂控制器 ====================
 
 class RealRobotController:
-    """真實機械臂控制器 - PyModbus 3.9.2相容版"""
+    """真實機械臂控制器 - 修正Sync()缺失問題"""
     
     def __init__(self, ip: str, dashboard_port: int = 29999, move_port: int = 30003):
         self.ip = ip
@@ -439,7 +439,7 @@ class RealRobotController:
             return None
         except (ValueError, IndexError):
             return None
-        
+            
     def initialize(self) -> bool:
         """初始化機械臂連接"""
         try:
@@ -494,10 +494,11 @@ class RealRobotController:
             return False
     
     def move_j(self, x: float, y: float, z: float, r: float) -> bool:
-        """關節運動"""
+        """關節運動 - 修正版，加入Sync()調用"""
         try:
             print(f"開始MovJ: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
             
+            # 發送運動指令到隊列
             result = self.move_api.MovJ(x, y, z, r)
             success = self._parse_api_response(result)
             
@@ -505,13 +506,17 @@ class RealRobotController:
                 print(f"✗ MovJ指令發送失敗: {result}")
                 return False
             
-            print(f"MovJ指令發送成功，等待運動完成...")
+            print(f"MovJ指令發送成功，調用Sync()執行...")
             
-            if self._wait_for_motion_complete():
+            # 🔥 關鍵修正：調用Sync()執行隊列中的指令
+            sync_result = self.move_api.Sync()
+            sync_success = self._parse_api_response(sync_result)
+            
+            if sync_success:
                 print(f"✓ MovJ完成: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
                 return True
             else:
-                print(f"✗ MovJ超時或失敗: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
+                print(f"✗ MovJ同步執行失敗: {sync_result}")
                 return False
                 
         except Exception as e:
@@ -519,10 +524,11 @@ class RealRobotController:
             return False
     
     def move_l(self, x: float, y: float, z: float, r: float) -> bool:
-        """直線運動"""
+        """直線運動 - 修正版，加入Sync()調用"""
         try:
             print(f"開始MovL: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
             
+            # 發送運動指令到隊列
             result = self.move_api.MovL(x, y, z, r)
             success = self._parse_api_response(result)
             
@@ -530,13 +536,17 @@ class RealRobotController:
                 print(f"✗ MovL指令發送失敗: {result}")
                 return False
             
-            print(f"MovL指令發送成功，等待運動完成...")
+            print(f"MovL指令發送成功，調用Sync()執行...")
             
-            if self._wait_for_motion_complete():
+            # 🔥 關鍵修正：調用Sync()執行隊列中的指令
+            sync_result = self.move_api.Sync()
+            sync_success = self._parse_api_response(sync_result)
+            
+            if sync_success:
                 print(f"✓ MovL完成: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
                 return True
             else:
-                print(f"✗ MovL超時或失敗: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
+                print(f"✗ MovL同步執行失敗: {sync_result}")
                 return False
                 
         except Exception as e:
@@ -544,11 +554,11 @@ class RealRobotController:
             return False
     
     def joint_move_j(self, j1: float, j2: float, j3: float, j4: float) -> bool:
-        """關節角度運動 - 使用JointMovJ"""
+        """關節角度運動 - 修正版，加入Sync()調用"""
         try:
             print(f"開始JointMovJ: (j1:{j1:.1f}, j2:{j2:.1f}, j3:{j3:.1f}, j4:{j4:.1f})")
             
-            # 發送關節運動指令
+            # 發送關節運動指令到隊列
             result = self.move_api.JointMovJ(j1, j2, j3, j4)
             success = self._parse_api_response(result)
             
@@ -556,69 +566,39 @@ class RealRobotController:
                 print(f"✗ JointMovJ指令發送失敗: {result}")
                 return False
             
-            print(f"JointMovJ指令發送成功，等待運動完成...")
+            print(f"JointMovJ指令發送成功，調用Sync()執行...")
             
-            if self._wait_for_motion_complete():
+            # 🔥 關鍵修正：調用Sync()執行隊列中的指令
+            sync_result = self.move_api.Sync()
+            sync_success = self._parse_api_response(sync_result)
+            
+            if sync_success:
                 print(f"✓ JointMovJ完成: (j1:{j1:.1f}, j2:{j2:.1f}, j3:{j3:.1f}, j4:{j4:.1f})")
                 return True
             else:
-                print(f"✗ JointMovJ超時或失敗: (j1:{j1:.1f}, j2:{j2:.1f}, j3:{j3:.1f}, j4:{j4:.1f})")
+                print(f"✗ JointMovJ同步執行失敗: {sync_result}")
                 return False
                 
         except Exception as e:
             print(f"JointMovJ執行異常: {e}")
             return False
     
-    def _wait_for_motion_complete(self, timeout: float = 30.0) -> bool:
-        """等待運動完成"""
+    def sync(self) -> bool:
+        """同步等待所有運動完成 - 修正版"""
         try:
-            start_time = time.time()
-            last_mode = None
-            stable_count = 0
-            required_stable_checks = 3
+            print("執行Sync()同步等待...")
+            result = self.move_api.Sync()
+            success = self._parse_api_response(result)
             
-            print("等待運動完成...")
-            
-            while time.time() - start_time < timeout:
-                result = self.dashboard_api.RobotMode()
+            if success:
+                print("✓ Sync()同步完成")
+                return True
+            else:
+                print(f"✗ Sync()同步失敗: {result}")
+                return False
                 
-                if not self._parse_api_response(result):
-                    print(f"⚠️ 無法獲取機械臂模式: {result}")
-                    time.sleep(0.1)
-                    continue
-                
-                current_mode = self._extract_mode_from_response(result)
-                
-                if current_mode is None:
-                    print(f"⚠️ 無法解析機械臂模式: {result}")
-                    time.sleep(0.1)
-                    continue
-                
-                if current_mode == 5:  # IDLE狀態
-                    if last_mode == current_mode:
-                        stable_count += 1
-                        if stable_count >= required_stable_checks:
-                            print(f"✓ 機械臂運動完成 (模式: {current_mode})")
-                            return True
-                    else:
-                        stable_count = 1
-                        print(f"機械臂進入完成狀態 (模式: {current_mode})")
-                else:
-                    stable_count = 0
-                    if current_mode != last_mode:
-                        if current_mode == 7:
-                            print(f"機械臂運動準備中 (模式: {current_mode})")
-                        else:
-                            print(f"機械臂狀態: {current_mode}")
-                
-                last_mode = current_mode
-                time.sleep(0.1)
-            
-            print(f"✗ 等待運動完成超時 ({timeout}秒), 最後模式: {last_mode}")
-            return False
-            
         except Exception as e:
-            print(f"等待運動完成檢查異常: {e}")
+            print(f"同步等待失敗: {e}")
             return False
     
     def set_do(self, pin: int, value: int) -> bool:
@@ -635,6 +615,22 @@ class RealRobotController:
             print(f"設定DO失敗: {e}")
             return False
     
+    def get_di(self, pin: int) -> Optional[int]:
+        """讀取數位輸入"""
+        try:
+            result = self.dashboard_api.DI(pin)
+            if self._parse_api_response(result):
+                parts = result.strip().split(',')
+                if len(parts) >= 2:
+                    di_part = parts[1].strip()
+                    if di_part.startswith('{') and di_part.endswith('}'):
+                        di_part = di_part[1:-1]
+                    return int(di_part)
+            return None
+        except Exception as e:
+            print(f"讀取DI失敗: {e}")
+            return None
+    
     def emergency_stop(self) -> bool:
         """緊急停止"""
         try:
@@ -648,6 +644,24 @@ class RealRobotController:
         except Exception as e:
             print(f"緊急停止失敗: {e}")
             return False
+    
+    def get_current_pose(self) -> Optional[Dict[str, float]]:
+        """獲取當前位置"""
+        try:
+            result = self.dashboard_api.GetPose()
+            if self._parse_api_response(result):
+                parts = result.strip().split(',')
+                if len(parts) >= 5:
+                    return {
+                        'x': float(parts[1]),
+                        'y': float(parts[2]), 
+                        'z': float(parts[3]),
+                        'r': float(parts[4])
+                    }
+            return None
+        except Exception as e:
+            print(f"獲取位置失敗: {e}")
+            return None
     
     def disconnect(self) -> bool:
         """斷開機械臂連接"""
@@ -666,7 +680,6 @@ class RealRobotController:
         except Exception as e:
             print(f"機械臂斷開連接失敗: {e}")
             return False
-
 # ==================== 執行緒基類 ====================
 
 class BaseFlowThread(threading.Thread):
@@ -1359,10 +1372,16 @@ class DobotNewArchController:
             traceback.print_exc()
     
     def _initialize_motion_state_machine(self):
-        """初始化運動類狀態機"""
+        """初始化運動類狀態機 - 新地址版本"""
+        print(f"=== 初始化運動類狀態機 ===")
+        print(f"新架構地址範圍: {MotionRegisters.MOTION_STATUS}-{MotionRegisters.MOTION_STATUS+49}")
+        print(f"狀態寄存器: {MotionRegisters.MOTION_STATUS}-{MotionRegisters.MOTION_RUN_TIME}")
+        print(f"控制寄存器: {MotionRegisters.FLOW1_CONTROL}-{MotionRegisters.MOTION_EMERGENCY_STOP}")
+        print(f"解決地址衝突: 避開CCD2模組1000-1099範圍")
+        
         self.motion_state_machine = MotionStateMachine(self.modbus_client)
         self.motion_state_machine.set_ready(True)
-        print("✓ 運動類狀態機初始化完成 - 基地址1100")
+        print("✓ 運動類狀態機初始化完成 - 新基地址1200")
     
     def _initialize_external_modules(self):
         """初始化外部模組"""
@@ -1533,12 +1552,12 @@ class DobotNewArchController:
             print(f"[系統狀態] 打印系統狀態失敗: {e}")
     
     def _process_motion_control_registers(self):
-        """處理運動類控制寄存器 (1140-1149) - 可控制調試訊息"""
+        """處理運動類控制寄存器 (1240-1249) - 修正地址版本"""
         try:
             if ENABLE_HANDSHAKE_DEBUG:
                 print(f"[HandshakeLoop] 讀取運動控制寄存器 {MotionRegisters.FLOW1_CONTROL}-{MotionRegisters.FLOW1_CONTROL+4}")
             
-            # 讀取運動控制寄存器
+            # 讀取運動控制寄存器 (1240-1244)
             result = self.modbus_client.read_holding_registers(address=MotionRegisters.FLOW1_CONTROL, count=5)
             
             if hasattr(result, 'isError') and result.isError():
@@ -1553,19 +1572,19 @@ class DobotNewArchController:
                 
             registers = result.registers
             
-            flow1_control = registers[0]  # 1140
-            flow2_control = registers[1]  # 1141
-            flow5_control = registers[2]  # 1142
-            motion_clear_alarm = registers[3]  # 1143
-            motion_emergency_stop = registers[4]  # 1144
+            flow1_control = registers[0]  # 1240
+            flow2_control = registers[1]  # 1241
+            flow5_control = registers[2]  # 1242
+            motion_clear_alarm = registers[3]  # 1243
+            motion_emergency_stop = registers[4]  # 1244
             
             if ENABLE_HANDSHAKE_DEBUG:
                 print(f"[HandshakeLoop] 運動控制寄存器讀取成功:")
-                print(f"[HandshakeLoop]   Flow1控制 (1140): {flow1_control}")
-                print(f"[HandshakeLoop]   Flow2控制 (1141): {flow2_control}")
-                print(f"[HandshakeLoop]   Flow5控制 (1142): {flow5_control}")
-                print(f"[HandshakeLoop]   清除警報 (1143): {motion_clear_alarm}")
-                print(f"[HandshakeLoop]   緊急停止 (1144): {motion_emergency_stop}")
+                print(f"[HandshakeLoop]   Flow1控制 (1240): {flow1_control}")
+                print(f"[HandshakeLoop]   Flow2控制 (1241): {flow2_control}")
+                print(f"[HandshakeLoop]   Flow5控制 (1242): {flow5_control}")
+                print(f"[HandshakeLoop]   清除警報 (1243): {motion_clear_alarm}")
+                print(f"[HandshakeLoop]   緊急停止 (1244): {motion_emergency_stop}")
             
             # 處理Flow1控制 (運動類)
             if flow1_control == 1 and self.last_flow1_control == 0:
@@ -1698,104 +1717,45 @@ class DobotNewArchController:
             print(f"[HandshakeLoop] 處理運動類控制寄存器失敗: {e}")
             traceback.print_exc()
     
-    def _process_io_control_registers(self):
-        """處理IO類控制寄存器 (447-449) - 可控制調試訊息"""
+    def _print_system_status(self, loop_count: int):
+        """打印系統狀態摘要 - 使用新地址範圍"""
         try:
-            if ENABLE_HANDSHAKE_DEBUG:
-                print(f"[HandshakeLoop] 讀取IO控制寄存器 {IORegisters.FLOW3_CONTROL}-{IORegisters.FLOW4_CONTROL}")
+            print(f"\n[系統狀態] 循環計數: {loop_count}")
             
-            # 讀取IO控制寄存器
-            result = self.modbus_client.read_holding_registers(address=IORegisters.FLOW3_CONTROL, count=2)
-            
-            if hasattr(result, 'isError') and result.isError():
-                if ENABLE_HANDSHAKE_DEBUG:
-                    print(f"[HandshakeLoop] ✗ 讀取IO控制寄存器失敗: {result}")
-                return
-            
-            if not hasattr(result, 'registers') or len(result.registers) < 2:
-                if ENABLE_HANDSHAKE_DEBUG:
-                    print(f"[HandshakeLoop] ✗ IO控制寄存器數據不足: {result}")
-                return
+            # 讀取並顯示運動狀態寄存器 (1200-1209)
+            motion_status_result = self.modbus_client.read_holding_registers(address=MotionRegisters.MOTION_STATUS, count=10)
+            if hasattr(motion_status_result, 'registers') and len(motion_status_result.registers) >= 10:
+                registers = motion_status_result.registers
+                status_reg = registers[0]
+                current_flow = registers[1] 
+                progress = registers[2]
+                flow1_complete = registers[4] if len(registers) > 4 else 0
+                flow2_complete = registers[5] if len(registers) > 5 else 0
+                flow5_complete = registers[6] if len(registers) > 6 else 0
                 
-            registers = result.registers
-            
-            flow3_control = registers[0]  # 447
-            flow4_control = registers[1]  # 448
-            
-            if ENABLE_HANDSHAKE_DEBUG:
-                print(f"[HandshakeLoop] IO控制寄存器讀取成功:")
-                print(f"[HandshakeLoop]   Flow3控制 (447): {flow3_control}")
-                print(f"[HandshakeLoop]   Flow4控制 (448): {flow4_control}")
-            
-            # 處理Flow3控制 (IO類併行)
-            if flow3_control == 1 and self.last_flow3_control == 0:
-                if ENABLE_HANDSHAKE_DEBUG:
-                    print(f"[HandshakeLoop] 檢測到Flow3控制指令: {self.last_flow3_control} -> {flow3_control}")
-                command = Command(
-                    command_type=CommandType.DIO_FLIP,
-                    command_data={'type': 'flow_flip_station'},
-                    priority=CommandPriority.DIO_FLIP
-                )
-                if self.flow3_queue.put_command(command):
-                    self.last_flow3_control = 1
-                    if ENABLE_HANDSHAKE_DEBUG:
-                        print("[HandshakeLoop] ✓ Flow3指令已加入Flow3佇列")
-                    
-                    # 自動清零控制寄存器
-                    if ENABLE_HANDSHAKE_DEBUG:
-                        print(f"[HandshakeLoop] 自動清零Flow3控制寄存器 {IORegisters.FLOW3_CONTROL}")
-                    clear_result = self.modbus_client.write_register(address=IORegisters.FLOW3_CONTROL, value=0)
-                    if hasattr(clear_result, 'isError') and clear_result.isError():
-                        if ENABLE_HANDSHAKE_DEBUG:
-                            print(f"[HandshakeLoop] ✗ 清零Flow3控制寄存器失敗: {clear_result}")
-                    else:
-                        if ENABLE_HANDSHAKE_DEBUG:
-                            print(f"[HandshakeLoop] ✓ 清零Flow3控制寄存器成功")
-                else:
-                    if ENABLE_HANDSHAKE_DEBUG:
-                        print("[HandshakeLoop] ✗ Flow3指令加入Flow3佇列失敗")
+                print(f"[系統狀態] 運動狀態: {status_reg} ({status_reg:04b}) - 地址1200")
+                print(f"[系統狀態] 當前Flow: {current_flow}, 進度: {progress}% - 地址1201-1202")
+                print(f"[系統狀態] Flow完成狀態: F1={flow1_complete}, F2={flow2_complete}, F5={flow5_complete} - 地址1204-1206")
+            else:
+                print(f"[系統狀態] ✗ 無法讀取運動狀態寄存器(1200-1209)")
                 
-            elif flow3_control == 0 and self.last_flow3_control == 1:
-                if ENABLE_HANDSHAKE_DEBUG:
-                    print(f"[HandshakeLoop] Flow3控制指令已清零: {self.last_flow3_control} -> {flow3_control}")
-                self.last_flow3_control = 0
+            # 顯示執行緒狀態
+            if self.motion_thread:
+                print(f"[系統狀態] Motion執行緒: {self.motion_thread.status}, 操作計數: {self.motion_thread.operation_count}")
+            if self.flow3_thread:
+                print(f"[系統狀態] Flow3執行緒: {self.flow3_thread.status}, 操作計數: {self.flow3_thread.operation_count}")
+            if self.flow4_thread:
+                print(f"[系統狀態] Flow4執行緒: {self.flow4_thread.status}, 操作計數: {self.flow4_thread.operation_count}")
+                
+            # 顯示佇列狀態
+            print(f"[系統狀態] 佇列大小: Motion={self.motion_queue.size()}, Flow3={self.flow3_queue.size()}, Flow4={self.flow4_queue.size()}")
+            print(f"[系統狀態] 機械臂連接: {'✓' if self.robot and self.robot.is_connected else '✗'}")
+            print(f"[系統狀態] Modbus連接: {'✓' if self.modbus_client and self.modbus_client.connected else '✗'}")
+            print(f"[系統狀態] 新架構地址: 狀態1200-1209, 控制1240-1249")
+            print("")
             
-            # 處理Flow4控制 (IO類併行)
-            if flow4_control == 1 and self.last_flow4_control == 0:
-                if ENABLE_HANDSHAKE_DEBUG:
-                    print(f"[HandshakeLoop] 檢測到Flow4控制指令: {self.last_flow4_control} -> {flow4_control}")
-                command = Command(
-                    command_type=CommandType.DIO_VIBRATION,
-                    command_data={'type': 'flow_vibration_feed'},
-                    priority=CommandPriority.DIO_VIBRATION
-                )
-                if self.flow4_queue.put_command(command):
-                    self.last_flow4_control = 1
-                    if ENABLE_HANDSHAKE_DEBUG:
-                        print("[HandshakeLoop] ✓ Flow4指令已加入Flow4佇列")
-                    
-                    # 自動清零控制寄存器
-                    if ENABLE_HANDSHAKE_DEBUG:
-                        print(f"[HandshakeLoop] 自動清零Flow4控制寄存器 {IORegisters.FLOW4_CONTROL}")
-                    clear_result = self.modbus_client.write_register(address=IORegisters.FLOW4_CONTROL, value=0)
-                    if hasattr(clear_result, 'isError') and clear_result.isError():
-                        if ENABLE_HANDSHAKE_DEBUG:
-                            print(f"[HandshakeLoop] ✗ 清零Flow4控制寄存器失敗: {clear_result}")
-                    else:
-                        if ENABLE_HANDSHAKE_DEBUG:
-                            print(f"[HandshakeLoop] ✓ 清零Flow4控制寄存器成功")
-                else:
-                    if ENABLE_HANDSHAKE_DEBUG:
-                        print("[HandshakeLoop] ✗ Flow4指令加入Flow4佇列失敗")
-                
-            elif flow4_control == 0 and self.last_flow4_control == 1:
-                if ENABLE_HANDSHAKE_DEBUG:
-                    print(f"[HandshakeLoop] Flow4控制指令已清零: {self.last_flow4_control} -> {flow4_control}")
-                self.last_flow4_control = 0
-                
         except Exception as e:
-            print(f"[HandshakeLoop] 處理IO類控制寄存器失敗: {e}")
-            traceback.print_exc()
+            print(f"[系統狀態] 打印系統狀態失敗: {e}")
     
     def stop(self):
         """停止控制器"""
@@ -1854,12 +1814,13 @@ class DobotNewArchController:
 # ==================== 主程序 ====================
 
 def main():
-    """主程序"""
+    """主程序 - 地址修正版本"""
     print("="*80)
     print("Dobot M1Pro 新架構混合交握控制器啟動")
-    print("運動類Flow (Flow1,2,5): 基地址1100-1149，狀態機交握，序列化執行")
+    print("運動類Flow (Flow1,2,5): 基地址1200-1249，狀態機交握，序列化執行")
     print("IO類Flow (Flow3,4): 地址447-449，專用佇列併行執行")
     print("混合交握協議：確保運動安全性，提供IO操作並行能力")
+    print("地址衝突解決：原1100-1149 → 新1200-1249，避開CCD2模組")
     print("="*80)
     
     controller = DobotNewArchController()
@@ -1867,25 +1828,26 @@ def main():
     try:
         if controller.start():
             print("\n系統運行中，按 Ctrl+C 停止...")
-            print("\n寄存器地址映射:")
-            print("運動類狀態機: 1100-1149")
-            print("  - 運動狀態: 1100 (bit0=Ready, bit1=Running, bit2=Alarm)")
-            print("  - 當前Flow: 1101 (1=Flow1, 2=Flow2, 5=Flow5)")
-            print("  - Flow控制: 1140(Flow1), 1141(Flow2), 1142(Flow5)")
-            print("IO類併行控制: 447-449")
+            print("\n寄存器地址映射 (修正版):")
+            print("運動類狀態機: 1200-1249")
+            print("  - 運動狀態: 1200 (bit0=Ready, bit1=Running, bit2=Alarm)")
+            print("  - 當前Flow: 1201 (1=Flow1, 2=Flow2, 5=Flow5)")
+            print("  - Flow控制: 1240(Flow1), 1241(Flow2), 1242(Flow5)")
+            print("IO類併行控制: 447-449 (保持不變)")
             print("  - Flow3翻轉站: 447")
             print("  - Flow4震動投料: 448")
-            print("\n架構特點:")
-            print("  - 運動Flow序列化執行，確保機械臂安全")
-            print("  - IO Flow併行執行，提高系統效率")
-            print("  - 狀態機交握vs專用佇列混合模式")
+            print("\n地址變更說明:")
+            print("  - 原地址: 1100-1149 (與CCD2模組1000-1099衝突)")
+            print("  - 新地址: 1200-1249 (避開所有現有模組)")
+            print("  - 衝突現象: 1111被意外寫入值25")
+            print("  - 解決方案: 重新分配到安全地址範圍")
             
             while True:
                 time.sleep(5)
                 
                 # 每5秒顯示系統狀態
                 status = controller.get_system_status()
-                print(f"\n[{time.strftime('%H:%M:%S')}] 系統狀態:")
+                print(f"\n[{time.strftime('%H:%M:%S')}] 系統狀態 (新地址1200):")
                 print(f"  運動系統: {status['motion_status']}")
                 print(f"  當前運動Flow: {status['current_motion_flow']}")
                 print(f"  Motion執行緒: {status['motion_thread']['status'] if status['motion_thread'] else 'None'}")
