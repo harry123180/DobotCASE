@@ -1,0 +1,58 @@
+{
+  "module_info": {
+    "module_name": "CCD2分類模組",
+    "version": "1.0",
+    "created_date": "2025-06-24",
+    "description": "預設圖像分類配置"
+  },
+  "categories": [
+    {
+      "id": 1,
+      "name": "類型A",
+      "enabled": true,
+      "logic": "AND",
+      "description": "高亮度物件分類",
+      "conditions": [
+        {
+          "feature": "平均值",
+          "operator": ">",
+          "threshold": 100.0,
+          "enabled": true,
+          "description": "亮度平均值大於100"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "類型B",
+      "enabled": true,
+      "logic": "AND",
+      "description": "低亮度物件分類",
+      "conditions": [
+        {
+          "feature": "平均值",
+          "operator": "<=",
+          "threshold": 100.0,
+          "enabled": true,
+          "description": "亮度平均值小於等於100"
+        }
+      ]
+    }
+  ],
+  "processing_parameters": {
+    "gaussian_kernel": 5,
+    "use_otsu": true,
+    "manual_threshold": 127,
+    "canny_low": 50,
+    "canny_high": 150,
+    "lbp_radius": 3,
+    "lbp_points": 24,
+    "roi": {
+      "enabled": false,
+      "x": 0,
+      "y": 0,
+      "width": 100,
+      "height": 100
+    }
+  }
+}

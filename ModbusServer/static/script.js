@@ -1,5 +1,5 @@
 // script.js
-// 更新：支援無符號 0-65535 範圍
+// V1.1更新：支援0-1999暫存器範圍，移除測試數據設定功能
 
 // 全域變數
 let autoRefreshInterval = null;
@@ -52,6 +52,7 @@ function refreshStatus() {
                 <p><strong>當前 SlaveID:</strong> ${data.slave_id}</p>
                 <p><strong>總暫存器數:</strong> ${data.total_registers}</p>
                 <p><strong>非零暫存器數:</strong> ${data.non_zero_count}</p>
+                <p><strong>版本:</strong> ${data.version || '1.1.0'}</p>
                 <p><strong>數值範圍:</strong> 0 ~ 65535 (無符號16位)</p>
                 <p><strong>最後更新:</strong> ${new Date().toLocaleString()}</p>
             `;
@@ -70,8 +71,8 @@ function updateDisplay() {
     currentDisplayCount = parseInt(document.getElementById('display-count').value) || 20;
     currentDisplayFormat = document.getElementById('display-format').value || 'decimal';
     
-    // 限制範圍
-    currentDisplayStart = Math.max(0, Math.min(999, currentDisplayStart));
+    // 限制範圍 - V1.1更新：0-1999
+    currentDisplayStart = Math.max(0, Math.min(1999, currentDisplayStart));
     currentDisplayCount = Math.max(1, Math.min(100, currentDisplayCount));
     
     // 更新顯示設定的輸入框
@@ -303,6 +304,12 @@ function writeRegister() {
     const address = parseInt(document.getElementById('reg-address').value);
     const value = parseInt(document.getElementById('reg-value').value);
     
+    // 檢查地址範圍 - V1.1更新
+    if (address < 0 || address > 1999) {
+        showMessage('❌ 地址必須在 0-1999 範圍內', 'error');
+        return;
+    }
+    
     // 檢查無符號範圍
     if (isNaN(value) || value < 0 || value > 65535) {
         showMessage('❌ 數值必須在 0-65535 範圍內', 'error');
@@ -333,6 +340,12 @@ function writeRegister() {
 function readRegister() {
     const address = parseInt(document.getElementById('reg-address').value);
     
+    // 檢查地址範圍 - V1.1更新
+    if (address < 0 || address > 1999) {
+        showMessage('❌ 地址必須在 0-1999 範圍內', 'error');
+        return;
+    }
+    
     fetch(`/api/register/${address}`)
         .then(response => response.json())
         .then(data => {
@@ -354,7 +367,7 @@ function toggleAutoRefresh() {
         // 停止自動刷新
         clearInterval(autoRefreshInterval);
         autoRefreshInterval = null;
-        button.textContent = '🔄 開啟自動刷新';
+        button.textContent = '開啟自動刷新';
         button.classList.remove('auto-refresh-active');
     } else {
         // 開始自動刷新
@@ -363,7 +376,7 @@ function toggleAutoRefresh() {
             refreshStatus();
         }, 3000); // 每3秒刷新一次
         
-        button.textContent = '⏸️ 停止自動刷新';
+        button.textContent = '停止自動刷新';
         button.classList.add('auto-refresh-active');
     }
 }
@@ -374,7 +387,8 @@ function clearAllRegisters() {
         return;
     }
     
-    const values = new Array(1000).fill(0);
+    // V1.1更新：增加到2000個暫存器
+    const values = new Array(2000).fill(0);
     
     fetch('/api/registers', {
         method: 'POST',
@@ -393,44 +407,17 @@ function clearAllRegisters() {
     .catch(error => showMessage(`❌ 請求失敗: ${error}`, 'error'));
 }
 
-// 設定測試數據 - 更新為無符號範圍
-function setTestData() {
-    const testData = [
-        {address: 0, value: 100},
-        {address: 1, value: 200},
-        {address: 10, value: 1000},
-        {address: 50, value: 5000},
-        {address: 100, value: 12345},
-        {address: 200, value: 32768},   // 超過有符號範圍但在無符號範圍內
-        {address: 500, value: 65535},   // 最大無符號值
-        {address: 999, value: 40000}    // 無符號範圍內的高值
-    ];
-    
-    Promise.all(testData.map(item => 
-        fetch(`/api/register/${item.address}`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({value: item.value})
-        })
-    ))
-    .then(() => {
-        showMessage('✅ 測試數據已設定 (無符號 0-65535)', 'success');
-        loadRegistersRange();
-    })
-    .catch(error => {
-        showMessage(`❌ 設定測試數據失敗: ${error}`, 'error');
-    });
-}
-
-// 匯出暫存器數據
+// 匯出暫存器數據 - V1.1更新
 function exportRegisters() {
     fetch('/api/status')
         .then(response => response.json())
         .then(data => {
             const exportData = {
                 timestamp: new Date().toISOString(),
+                version: "1.1.0",
                 slave_id: data.slave_id,
                 value_range: "0-65535 (unsigned 16-bit)",
+                register_range: "0-1999 (2000 registers)",
                 registers: data.non_zero_registers,
                 comments: {} // 需要從當前頁面收集註解
             };
@@ -448,20 +435,20 @@ function exportRegisters() {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `modbus_registers_unsigned_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.json`;
+            a.download = `modbus_registers_v11_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             
-            showMessage('✅ 暫存器數據已匯出 (無符號格式)', 'success');
+            showMessage('✅ 暫存器數據已匯出 (V1.1格式)', 'success');
         })
         .catch(error => {
             showMessage(`❌ 匯出失敗: ${error}`, 'error');
         });
 }
 
-// 匯入暫存器數據
+// 匯入暫存器數據 - V1.1更新
 function importRegisters() {
     const fileInput = document.getElementById('import-file');
     const file = fileInput.files[0];
@@ -478,39 +465,45 @@ function importRegisters() {
                 return;
             }
             
-            // 匯入暫存器值 - 檢查無符號範圍
+            // 匯入暫存器值 - 檢查地址和數值範圍
             const promises = [];
             for (const [address, value] of Object.entries(data.registers)) {
+                const numAddress = parseInt(address);
                 const numValue = parseInt(value);
-                if (numValue >= 0 && numValue <= 65535) {
+                
+                // V1.1更新：檢查地址範圍0-1999
+                if (numAddress >= 0 && numAddress <= 1999 && numValue >= 0 && numValue <= 65535) {
                     promises.push(
-                        fetch(`/api/register/${address}`, {
+                        fetch(`/api/register/${numAddress}`, {
                             method: 'POST',
                             headers: {'Content-Type': 'application/json'},
                             body: JSON.stringify({value: numValue})
                         })
                     );
                 } else {
-                    showMessage(`⚠️ 跳過超出範圍的值: 地址${address} = ${value}`, 'warning');
+                    showMessage(`⚠️ 跳過超出範圍的值: 地址${numAddress} = ${numValue}`, 'warning');
                 }
             }
             
             // 匯入註解
             if (data.comments) {
                 for (const [address, comment] of Object.entries(data.comments)) {
-                    promises.push(
-                        fetch(`/api/comment/${address}`, {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({comment: comment})
-                        })
-                    );
+                    const numAddress = parseInt(address);
+                    if (numAddress >= 0 && numAddress <= 1999) {
+                        promises.push(
+                            fetch(`/api/comment/${numAddress}`, {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({comment: comment})
+                            })
+                        );
+                    }
                 }
             }
             
             Promise.all(promises)
                 .then(() => {
-                    showMessage('✅ 暫存器數據已匯入 (無符號格式)', 'success');
+                    showMessage('✅ 暫存器數據已匯入 (V1.1格式)', 'success');
                     loadRegistersRange();
                 })
                 .catch(error => {

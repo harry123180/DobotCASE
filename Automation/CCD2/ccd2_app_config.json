@@ -1,0 +1,21 @@
+{
+  "module_id": "CCD2分類Web UI",
+  "tcp_server": {
+    "host": "127.0.0.1",
+    "port": 502,
+    "unit_id": 1,
+    "timeout": 1.0
+  },
+  "modbus_mapping": {
+    "base_address": 1000
+  },
+  "web_server": {
+    "host": "localhost",
+    "port": 5055,
+    "debug": false
+  },
+  "classification": {
+    "condition_folder": "condition",
+    "auto_scan": true
+  }
+}
