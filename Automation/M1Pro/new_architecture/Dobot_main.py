@@ -1511,7 +1511,82 @@ class DobotNewArchController:
                 
         if ENABLE_HANDSHAKE_DEBUG:
             print("[HandshakeLoop] 新架構混合交握循環結束")
+    def _process_io_control_registers(self):
+        """處理IO類控制寄存器 (447-449)"""
+        try:
+            if ENABLE_HANDSHAKE_DEBUG:
+                print(f"[HandshakeLoop] 讀取IO控制寄存器 {IORegisters.FLOW3_CONTROL}-{IORegisters.FLOW4_CONTROL}")
+            
+            # 讀取IO控制寄存器 (447-448)
+            result = self.modbus_client.read_holding_registers(address=IORegisters.FLOW3_CONTROL, count=2)
+            
+            if hasattr(result, 'isError') and result.isError():
+                if ENABLE_HANDSHAKE_DEBUG:
+                    print(f"[HandshakeLoop] ✗ 讀取IO控制寄存器失敗: {result}")
+                return
+            
+            if not hasattr(result, 'registers') or len(result.registers) < 2:
+                if ENABLE_HANDSHAKE_DEBUG:
+                    print(f"[HandshakeLoop] ✗ IO控制寄存器數據不足: {result}")
+                return
                 
+            registers = result.registers
+            
+            flow3_control = registers[0]  # 447
+            flow4_control = registers[1]  # 448
+            
+            if ENABLE_HANDSHAKE_DEBUG:
+                print(f"[HandshakeLoop] IO控制寄存器讀取成功:")
+                print(f"[HandshakeLoop]   Flow3控制 (447): {flow3_control}")
+                print(f"[HandshakeLoop]   Flow4控制 (448): {flow4_control}")
+            
+            # 處理Flow3控制 (IO類翻轉站)
+            if flow3_control == 1 and self.last_flow3_control == 0:
+                if ENABLE_HANDSHAKE_DEBUG:
+                    print(f"[HandshakeLoop] 檢測到Flow3控制指令: {self.last_flow3_control} -> {flow3_control}")
+                command = Command(
+                    command_type=CommandType.DIO_FLIP,
+                    command_data={'type': 'flow_flip_station'},
+                    priority=CommandPriority.DIO_FLIP
+                )
+                if self.flow3_queue.put_command(command):
+                    self.last_flow3_control = 1
+                    if ENABLE_HANDSHAKE_DEBUG:
+                        print("[HandshakeLoop] ✓ Flow3指令已加入翻轉站佇列")
+                else:
+                    if ENABLE_HANDSHAKE_DEBUG:
+                        print("[HandshakeLoop] ✗ Flow3指令加入翻轉站佇列失敗")
+                
+            elif flow3_control == 0 and self.last_flow3_control == 1:
+                if ENABLE_HANDSHAKE_DEBUG:
+                    print(f"[HandshakeLoop] Flow3控制指令已清零: {self.last_flow3_control} -> {flow3_control}")
+                self.last_flow3_control = 0
+                
+            # 處理Flow4控制 (IO類震動投料)
+            if flow4_control == 1 and self.last_flow4_control == 0:
+                if ENABLE_HANDSHAKE_DEBUG:
+                    print(f"[HandshakeLoop] 檢測到Flow4控制指令: {self.last_flow4_control} -> {flow4_control}")
+                command = Command(
+                    command_type=CommandType.DIO_VIBRATION,
+                    command_data={'type': 'flow_vibration_feed'},
+                    priority=CommandPriority.DIO_VIBRATION
+                )
+                if self.flow4_queue.put_command(command):
+                    self.last_flow4_control = 1
+                    if ENABLE_HANDSHAKE_DEBUG:
+                        print("[HandshakeLoop] ✓ Flow4指令已加入震動投料佇列")
+                else:
+                    if ENABLE_HANDSHAKE_DEBUG:
+                        print("[HandshakeLoop] ✗ Flow4指令加入震動投料佇列失敗")
+                
+            elif flow4_control == 0 and self.last_flow4_control == 1:
+                if ENABLE_HANDSHAKE_DEBUG:
+                    print(f"[HandshakeLoop] Flow4控制指令已清零: {self.last_flow4_control} -> {flow4_control}")
+                self.last_flow4_control = 0
+                
+        except Exception as e:
+            print(f"[HandshakeLoop] 處理IO類控制寄存器失敗: {e}")
+            traceback.print_exc()
     def _print_system_status(self, loop_count: int):
         """打印系統狀態摘要"""
         try:

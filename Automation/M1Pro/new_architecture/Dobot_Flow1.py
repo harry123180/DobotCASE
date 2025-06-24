@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Dobot_Flow1_new.py - Flow1 VP視覺抓取流程 (修正版 - 對應新架構Dobot_main.py)
+Dobot_Flow1_new.py - Flow1 VP視覺抓取流程 (移除角度校正版)
 基於統一Flow架構的運動控制執行器
 使用paste.txt中的API命名風格，支援外部點位檔案
+完全移除角度校正相關功能
 """
 
 import time
@@ -121,7 +122,7 @@ class PointsManager:
 
 
 class Flow1VisionPickExecutor(FlowExecutor):
-    """Flow1: VP視覺抓取流程執行器 - 使用外部點位檔案版本"""
+    """Flow1: VP視覺抓取流程執行器 - 移除角度校正版本"""
     
     def __init__(self):
         super().__init__(flow_id=1, flow_name="VP視覺抓取流程")
@@ -180,14 +181,14 @@ class Flow1VisionPickExecutor(FlowExecutor):
         self.points_loaded = True
         
     def build_flow_steps(self):
-        """建構Flow1步驟 - 對應paste.txt中的flow1流程"""
+        """建構Flow1步驟 - 移除角度校正版本"""
         if not self.points_loaded:
             print("警告: 點位未載入，無法建構流程步驟")
             self.motion_steps = []
             self.total_steps = 0
             return
             
-        # 對應paste.txt中的流程步驟
+        # 對應paste.txt中的流程步驟 - 移除角度校正
         self.motion_steps = [
             # 1. 初始準備
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
@@ -217,16 +218,16 @@ class Flow1VisionPickExecutor(FlowExecutor):
             {'type': 'move_to_point', 'params': {'point_name': 'flip_pre', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
             
-            # 7. 觸發CCD2檢測 - 對應paste.txt的angle_correction_with_auto_clear
+            # 7. 觸發CCD2檢測 (移除角度校正)
             {'type': 'trigger_ccd2', 'params': {}},
-            {'type': 'angle_correction', 'params': {}}  # 增加角度校正步驟
+            # ❌ 移除: {'type': 'angle_correction', 'params': {}}
         ]
         
         self.total_steps = len(self.motion_steps)
-        print(f"Flow1流程步驟建構完成，共{self.total_steps}步")
+        print(f"Flow1流程步驟建構完成，共{self.total_steps}步 (已移除角度校正)")
     
     def execute(self) -> FlowResult:
-        """執行Flow1主邏輯 - 對應paste.txt的執行風格"""
+        """執行Flow1主邏輯 - 移除角度校正版本"""
         # 檢查點位是否已載入
         if not self.points_loaded:
             return FlowResult(
@@ -282,8 +283,9 @@ class Flow1VisionPickExecutor(FlowExecutor):
                     success = self._execute_move_to_detected_low(detected_position)
                 elif step['type'] == 'trigger_ccd2':
                     success = self._execute_trigger_ccd2()
-                elif step['type'] == 'angle_correction':
-                    success = self._execute_angle_correction()
+                # ❌ 移除角度校正處理
+                # elif step['type'] == 'angle_correction':
+                #     success = self._execute_angle_correction()
                 else:
                     print(f"未知步驟類型: {step['type']}")
                     success = False
@@ -538,7 +540,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
             return False
     
     def _execute_trigger_ccd2(self) -> bool:
-        """觸發CCD2檢測 - 對應paste.txt的IO控制"""
+        """觸發CCD2檢測 - 簡化版本，移除後續角度校正"""
         try:
             print("觸發CCD2物件正反面辨識")
             
@@ -555,45 +557,17 @@ class Flow1VisionPickExecutor(FlowExecutor):
                 print("CCD2復位失敗")
                 return False
             
-            print("✓ CCD2觸發成功")
+            print("✓ CCD2觸發成功 (已移除後續角度校正)")
             return True
             
         except Exception as e:
             print(f"觸發CCD2異常: {e}")
             return False
     
-    def _execute_angle_correction(self) -> bool:
-        """執行角度校正 - 對應paste.txt的angle_correction_with_auto_clear"""
-        try:
-            print("執行角度校正到90度")
-            
-            angle_api = self.external_modules.get('angle')
-            if not angle_api:
-                print("角度校正API未初始化")
-                return False
-            
-            # 檢查系統準備狀態
-            if not angle_api.is_system_ready():
-                print("角度校正系統未準備就緒")
-                return False
-            
-            # 執行角度校正
-            result = angle_api.adjust_to_90_degrees()
-            
-            if hasattr(result, 'result') and result.result.name == 'SUCCESS':
-                print("✓ 角度校正成功")
-                if hasattr(result, 'original_angle'):
-                    print(f"  檢測角度: {result.original_angle:.2f}度")
-                if hasattr(result, 'angle_diff'):
-                    print(f"  角度差: {result.angle_diff:.2f}度")
-                return True
-            else:
-                print(f"角度校正失敗: {getattr(result, 'message', '未知錯誤')}")
-                return False
-            
-        except Exception as e:
-            print(f"角度校正異常: {e}")
-            return False
+    # ❌ 完全移除角度校正方法
+    # def _execute_angle_correction(self) -> bool:
+    #     """已移除: 角度校正功能"""
+    #     pass
     
     def pause(self) -> bool:
         """暫停Flow"""
