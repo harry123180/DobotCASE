@@ -1,0 +1,121 @@
+{
+  "module_info": {
+    "module_name": "CCD2分類模組",
+    "version": "1.0",
+    "created_date": "2025-06-24",
+    "description": "基於圖像特徵的分類條件配置",
+    "image_processing_pipeline": [
+      "灰階轉換",
+      "ROI區域提取",
+      "高斯模糊",
+      "二值化處理",
+      "Canny邊緣檢測",
+      "LBP紋理分析",
+      "輪廓粗糙度檢測",
+      "亮度分布分析"
+    ]
+  },
+  "categories": [
+    {
+      "id": 1,
+      "name": "背面",
+      "enabled": true,
+      "logic": "AND",
+      "description": "高亮度物件分類",
+      "conditions": [
+        {
+          "feature": "偏度",
+          "operator": ">",
+          "threshold": 2.4,
+          "enabled": true,
+          "description": "亮度平均值大於100"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "正面",
+      "enabled": true,
+      "logic": "AND",
+      "description": "低亮度物件分類",
+      "conditions": [
+        {
+          "feature": "偏度",
+          "operator": "<",
+          "threshold": 2.4,
+          "enabled": true,
+          "description": "亮度平均值小於等於100"
+        }
+      ]
+    }
+  ],
+  "processing_parameters": {
+    "gaussian_kernel": 15,
+    "use_otsu": true,
+    "manual_threshold": 127,
+    "canny_low": 50,
+    "canny_high": 150,
+    "lbp_radius": 3,
+    "lbp_points": 24,
+    "roi": {
+      "enabled": true,
+      "x": 792,
+      "y": 1010,
+      "width": 416,
+      "height": 403
+    }
+  },
+  "feature_definitions": {
+    "平均值": {
+      "type": "brightness_stats",
+      "field": "mean",
+      "unit": "灰階值",
+      "range": [
+        0,
+        255
+      ],
+      "description": "圖像亮度平均值"
+    },
+    "標準差": {
+      "type": "brightness_stats",
+      "field": "std",
+      "unit": "灰階值",
+      "range": [
+        0,
+        255
+      ],
+      "description": "圖像亮度標準差"
+    },
+    "偏度": {
+      "type": "brightness_stats",
+      "field": "skewness",
+      "unit": "統計值",
+      "range": [
+        -3,
+        3
+      ],
+      "description": "亮度分布偏度"
+    },
+    "峰度": {
+      "type": "brightness_stats",
+      "field": "kurtosis",
+      "unit": "統計值",
+      "range": [
+        -3,
+        10
+      ],
+      "description": "亮度分布峰度"
+    }
+  },
+  "operator_definitions": {
+    ">": "大於",
+    ">=": "大於等於",
+    "<": "小於",
+    "<=": "小於等於",
+    "==": "等於"
+  },
+  "logic_definitions": {
+    "AND": "所有條件都必須滿足",
+    "OR": "任一條件滿足即可"
+  }
+}
