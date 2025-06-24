@@ -1,5 +1,5 @@
 # modbus_tcp_server_production.py
-# V1.1版本 - 修改版本：擴展暫存器範圍到0-1999，預設不加載測試數據
+# 生產環境版本 - 支援分離檔案版本 (templates + static)
 # 更新：支援無符號 0-65535 範圍，加強錯誤處理和定時日誌記錄
 
 import logging
@@ -183,8 +183,8 @@ class ModbusTCPServerApp:
         self.server_port = 502
         self.web_port = 8000
         
-        # 初始化暫存器數據 (0-1999, 共2000個暫存器) - V1.1更新
-        self.register_count = 2000  # 修改：從1000增加到2000
+        # 初始化暫存器數據 (0-999, 共1000個暫存器)
+        self.register_count = 3000
         self.registers = [0] * self.register_count
         
         # 暫存器註解
@@ -220,7 +220,6 @@ class ModbusTCPServerApp:
         self.setup_signal_handlers()
         
         print("✓ Modbus TCP Server 應用程式初始化完成")
-        print(f"✓ 暫存器範圍: 0-{self.register_count-1} (共{self.register_count}個)")  # V1.1更新
     
     def setup_signal_handlers(self):
         """設定信號處理器以優雅關閉"""
@@ -397,7 +396,7 @@ class ModbusTCPServerApp:
                 'non_zero_registers': non_zero_registers,
                 'slave_id': self.slave_id,
                 'server_running': self.server_running,
-                'version': '1.1.0',  # V1.1更新
+                'version': '1.0.0',
                 'uptime': time.time() - getattr(self, 'start_time', time.time())
             }
         except Exception as e:
@@ -567,8 +566,8 @@ class ModbusTCPServerApp:
             identity.ProductCode = 'PMS'
             identity.VendorUrl = 'https://github.com/your-repo'
             identity.ProductName = 'Python Modbus TCP Server'
-            identity.ModelName = 'Production Server V1.1'  # V1.1更新
-            identity.MajorMinorRevision = '1.1.0'
+            identity.ModelName = 'Production Server'
+            identity.MajorMinorRevision = '1.0.0'
             
             # 創建上下文
             context = self.create_modbus_context()
@@ -604,14 +603,43 @@ class ModbusTCPServerApp:
         except Exception as e:
             logging.error(f"Web伺服器啟動失敗: {e}\n{traceback.format_exc()}")
     
-    def initialize_empty_state(self):
-        """初始化空白狀態 - V1.1修改：不加載測試數據"""
+    def initialize_test_data(self):
+        """初始化測試數據 - 使用無符號範圍"""
         try:
-            print("✓ 暫存器初始化完成 - 所有暫存器預設為0")
-            print("✓ 註解功能已啟用 - 可透過Web介面添加註解")
-            print(f"✓ 暫存器範圍: 0-{self.register_count-1}")
+            # 設定一些測試值 (無符號 0-65535)
+            test_data = {
+                0: 100,     # 地址0 = 100
+                1: 200,     # 地址1 = 200
+                10: 1000,   # 地址10 = 1000
+                50: 5000,   # 地址50 = 5000
+                100: 12345, # 地址100 = 12345
+                200: 32768, # 地址200 = 32768 (超過有符號範圍但在無符號範圍內)
+                500: 65535, # 地址500 = 65535 (最大無符號值)
+                999: 40000  # 地址999 = 40000
+            }
+            
+            for addr, value in test_data.items():
+                self.write_register(addr, value)
+            
+            # 設定一些測試註解
+            test_comments = {
+                0: "溫度感測器",
+                1: "濕度感測器", 
+                10: "馬達轉速",
+                50: "壓力數值",
+                100: "測試數據",
+                200: "高數值測試",
+                500: "最大值測試",
+                999: "邊界測試"
+            }
+            
+            for addr, comment in test_comments.items():
+                self.register_comments[str(addr)] = comment
+            
+            self.save_comments()
+            print("✓ 測試數據和註解初始化完成")
         except Exception as e:
-            logging.error(f"初始化狀態失敗: {e}")
+            logging.error(f"初始化測試數據失敗: {e}")
     
     def shutdown(self):
         """優雅關閉伺服器"""
@@ -633,12 +661,12 @@ class ModbusTCPServerApp:
     def run(self):
         """主運行方法"""
         try:
-            print("=== Modbus TCP Server V1.1 啟動 ===")
+            print("=== Modbus TCP Server 啟動 (生產環境 + 定時日誌) ===")
             print(f"Python 版本: {sys.version}")
             print(f"基礎路徑: {self.base_path}")
             
-            # 初始化空白狀態 (不加載測試數據) - V1.1修改
-            self.initialize_empty_state()
+            # 初始化測試數據
+            self.initialize_test_data()
             
             # 啟動定時日誌
             self.timed_logger.start()
@@ -668,20 +696,14 @@ def main():
         
         # 打印啟動資訊
         print("=" * 60)
-        print("  Modbus TCP Server V1.1 - 修改版本")
+        print("  Modbus TCP Server - 生產環境版本 + 定時日誌")
         print("=" * 60)
-        print(f"  版本: 1.1.0")
+        print(f"  版本: 1.0.0")
         print(f"  數值範圍: 0-65535 (無符號 16 位)")
-        print(f"  暫存器範圍: 0-1999 (共2000個)")  # V1.1更新
         print(f"  Modbus TCP 埠: 502")
         print(f"  Web 管理埠: 8000")
         print(f"  Web 管理網址: http://localhost:8000")
         print(f"  狀態日誌: 每分鐘記錄，1小時清空")
-        print("=" * 60)
-        print(f"  修改內容:")
-        print(f"  - 保留註解功能")
-        print(f"  - 預設不加載測試數據與註解")
-        print(f"  - 暫存器範圍擴展至 0-1999")
         print("=" * 60)
         print("  按 Ctrl+C 可安全關閉伺服器")
         print("=" * 60)

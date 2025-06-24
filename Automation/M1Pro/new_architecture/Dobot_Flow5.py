@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 # 導入新架構基類
+# 導入新架構基類
 from flow_base import FlowExecutor, FlowResult, FlowStatus
 
 
@@ -24,34 +25,16 @@ class Flow5AssemblyExecutor(FlowExecutor):
         self.motion_steps = []
         self.build_flow_steps()
         
-        # 實際點位座標 (基於專案知識中的robot_points.json)
-        self.PREDEFINED_POINTS = {
-            'standby': {
-                'x': 120.59, 'y': -313.56, 'z': 244.65, 'r': 94.56
-            },
-            'Goal_CV_top': {
-                'x': 262.06, 'y': -108.36, 'z': 244.0, 'r': 94.56
-            },
-            'rotate_top': {
-                'x': 263.83, 'y': 16.73, 'z': 244.26, 'r': 112.52
-            },
-            'put_asm_pre': {
-                'x': 153.97, 'y': 212.03, 'z': 230.34, 'r': 149.29
-            },
-            'put_asm_top': {
-                'x': -78.18, 'y': 368.51, 'z': 244.26, 'r': 193.99
-            },
-            'put_asm_down': {
-                'x': -78.18, 'y': 368.51, 'z': 162.76, 'r': 193.99
-            }
-        }
-        
+        # 執行器組件
+        self.robot = None
+        self.state_machine = None
+        self.external_modules = {}
+        self.gripper = None  
         # 夾爪參數
         self.GRIPPER_POSITIONS = {
             'CLOSE': 0,
             'OPEN': 370
         }
-        
     def build_flow_steps(self):
         """建構Flow5步驟序列"""
         self.motion_steps = [
@@ -81,6 +64,37 @@ class Flow5AssemblyExecutor(FlowExecutor):
         ]
         
         self.total_steps = len(self.motion_steps)
+        print(f"Flow5流程步驟建構完成，共{self.total_steps}步")
+    
+    def initialize(self, robot, state_machine, external_modules):
+        """初始化Flow5執行器"""
+        try:
+            print(f"[Flow5] 開始初始化執行器...")
+            
+            # 設置核心組件
+            self.robot = robot
+            self.state_machine = state_machine
+            self.external_modules = external_modules
+            
+            # 初始化夾爪控制器
+            if 'gripper' in external_modules:
+                self.gripper = external_modules['gripper']
+                print(f"[Flow5] ✓ 夾爪控制器已連接")
+            else:
+                print(f"[Flow5] ⚠️ 夾爪控制器未找到")
+            
+            # 檢查機械臂連接
+            if robot and robot.is_connected:
+                print(f"[Flow5] ✓ 機械臂已連接: {robot.ip}")
+            else:
+                print(f"[Flow5] ⚠️ 機械臂未連接")
+            
+            print(f"[Flow5] ✓ 執行器初始化完成 - {self.flow_name}")
+            return True
+            
+        except Exception as e:
+            print(f"[Flow5] ✗ 執行器初始化失敗: {e}")
+            return False
     
     def execute(self) -> FlowResult:
         """執行Flow5主邏輯"""
@@ -136,10 +150,14 @@ class Flow5AssemblyExecutor(FlowExecutor):
                 
                 self.current_step += 1
                 
-                # 更新進度
-                if self.state_machine:
-                    progress = int((self.current_step / self.total_steps) * 100)
-                    self.state_machine.set_flow_progress(progress)
+                # 更新進度 - 修正：直接更新寄存器而非調用不存在的方法
+                if self.state_machine and self.state_machine.modbus_client:
+                    try:
+                        progress = int((self.current_step / self.total_steps) * 100)
+                        # 直接寫入進度寄存器 (403)
+                        self.state_machine.modbus_client.write_register(address=403, value=progress)
+                    except Exception as e:
+                        print(f"更新進度失敗: {e}")
             
             # 流程完成
             execution_time = time.time() - self.start_time
@@ -174,22 +192,28 @@ class Flow5AssemblyExecutor(FlowExecutor):
             point_name = params['point_name']
             move_type = params.get('move_type', 'J')
             
-            if point_name not in self.PREDEFINED_POINTS:
+            # 從載入的點位數據中獲取座標
+            if point_name not in self.loaded_points:
                 print(f"✗ 未找到點位: {point_name}")
                 return False
             
-            point = self.PREDEFINED_POINTS[point_name]
+            point = self.loaded_points[point_name]
             print(f"  → 移動到 {point_name}: ({point['x']:.2f}, {point['y']:.2f}, {point['z']:.2f}, {point['r']:.2f})")
+            
+            # 檢查機械臂連接
+            if not self.robot or not self.robot.is_connected:
+                print(f"  ✗ 機械臂未連接")
+                return False
             
             # 執行移動指令
             if move_type == 'J':
                 # 關節運動
-                success = self.robot.movj_to_point(
+                success = self.robot.move_j(
                     point['x'], point['y'], point['z'], point['r']
                 )
             else:
                 # 直線運動
-                success = self.robot.movl_to_point(
+                success = self.robot.move_l(
                     point['x'], point['y'], point['z'], point['r']
                 )
             
@@ -209,16 +233,25 @@ class Flow5AssemblyExecutor(FlowExecutor):
         try:
             print(f"  → 夾爪快速關閉到位置: {self.GRIPPER_POSITIONS['CLOSE']}")
             
-            if self.gripper:
-                success = self.gripper.quick_close()
-                if success:
-                    print("  ✓ 夾爪快速關閉成功")
-                    return True
-                else:
-                    print("  ✗ 夾爪快速關閉失敗")
-                    return False
-            else:
+            # 檢查夾爪控制器
+            if not self.gripper:
                 print("  ✗ 夾爪控制器未初始化")
+                return False
+            
+            # 執行快速關閉
+            if hasattr(self.gripper, 'quick_close'):
+                success = self.gripper.quick_close()
+            elif hasattr(self.gripper, 'close_gripper'):
+                success = self.gripper.close_gripper()
+            else:
+                print("  ✗ 夾爪控制器不支援快速關閉功能")
+                return False
+            
+            if success:
+                print("  ✓ 夾爪快速關閉成功")
+                return True
+            else:
+                print("  ✗ 夾爪快速關閉失敗")
                 return False
                 
         except Exception as e:
@@ -229,17 +262,27 @@ class Flow5AssemblyExecutor(FlowExecutor):
         """暫停流程"""
         self.status = FlowStatus.PAUSED
         print("Flow5 已暫停")
+        return True
     
     def resume(self):
         """恢復流程"""
         if self.status == FlowStatus.PAUSED:
             self.status = FlowStatus.RUNNING
             print("Flow5 已恢復")
+            return True
+        return False
     
     def stop(self):
         """停止流程"""
         self.status = FlowStatus.ERROR
         print("Flow5 已停止")
+        return True
+    
+    def get_progress(self) -> int:
+        """取得執行進度 (0-100)"""
+        if self.total_steps <= 0:
+            return 0
+        return int((self.current_step / self.total_steps) * 100)
     
     def get_status_info(self) -> Dict[str, Any]:
         """取得流程狀態資訊"""

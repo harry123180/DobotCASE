@@ -479,6 +479,20 @@
                 </div>
 
                 <div class="control-section">
+                    <h3 style="margin-bottom: 10px; color: #4a5568;">ROI配置管理</h3>
+                    <div class="input-group">
+                        <input type="number" id="roi-x" placeholder="ROI X" value="100">
+                        <input type="number" id="roi-y" placeholder="ROI Y" value="100">
+                        <input type="number" id="roi-width" placeholder="寬度" value="200">
+                        <input type="number" id="roi-height" placeholder="高度" value="200">
+                    </div>
+                    <div class="button-group">
+                        <button class="btn btn-warning" onclick="updateJSONROI()">更新JSON ROI</button>
+                        <button class="btn btn-primary" onclick="getParameters()">檢查配置</button>
+                    </div>
+                </div>
+
+                <div class="control-section">
                     <h3 style="margin-bottom: 10px; color: #4a5568;">分類控制</h3>
                     <div class="button-group">
                         <button class="btn btn-warning" onclick="captureAndClassify()">拍照+分類</button>
@@ -572,6 +586,12 @@
             updateStatus(status);
         });
 
+        socket.on('image_update', function(data) {
+            if (data.image_data) {
+                displayImage(data.image_data);
+            }
+        });
+
         // API 函數
         async function connectModbus() {
             const host = document.getElementById('modbus-host').value || '127.0.0.1';
@@ -635,10 +655,20 @@
                 if (result.success) {
                     showNotification('分類檢測完成', 'success');
                     displayClassificationResult(result);
+                    
+                    // 顯示圖像
+                    if (result.image_data) {
+                        displayImage(result.image_data);
+                    }
                 } else {
                     showNotification(`分類失敗: ${result.message}`, 'error');
                     if (result.features) {
                         displayClassificationResult(result);
+                    }
+                    
+                    // 即使失敗也嘗試顯示圖像
+                    if (result.image_data) {
+                        displayImage(result.image_data);
                     }
                 }
             } catch (error) {
@@ -666,6 +696,70 @@
             }
         }
 
+        async function updateJSONROI() {
+            const roiParams = {
+                enabled: true,
+                x: parseInt(document.getElementById('roi-x').value) || 100,
+                y: parseInt(document.getElementById('roi-y').value) || 100,
+                width: parseInt(document.getElementById('roi-width').value) || 200,
+                height: parseInt(document.getElementById('roi-height').value) || 200
+            };
+            
+            try {
+                showLoading('更新JSON配置中的ROI...');
+                const response = await fetch('/api/update_json_roi', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(roiParams)
+                });
+                
+                const result = await response.json();
+                hideLoading();
+                
+                if (result.success) {
+                    showNotification(`JSON ROI已更新: (${roiParams.x},${roiParams.y}) ${roiParams.width}×${roiParams.height}`, 'success');
+                } else {
+                    showNotification(`JSON ROI更新失敗: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showNotification(`JSON ROI更新錯誤: ${error.message}`, 'error');
+            }
+        }
+
+        async function getParameters() {
+            try {
+                showLoading('讀取JSON配置...');
+                const response = await fetch('/api/get_parameters');
+                const result = await response.json();
+                hideLoading();
+                
+                if (result.success) {
+                    const params = result.parameters;
+                    const categories = result.categories || [];
+                    
+                    let message = `處理參數來源: JSON配置檔案\n`;
+                    message += `ROI啟用: ${params.roi_enabled}\n`;
+                    if (params.roi_enabled) {
+                        message += `ROI: (${params.roi_x},${params.roi_y}) ${params.roi_width}×${params.roi_height}\n`;
+                    }
+                    message += `高斯核: ${params.gaussian_kernel}, OTSU: ${params.use_otsu}\n`;
+                    message += `分類類別數: ${categories.length}`;
+                    
+                    showNotification(message, 'info');
+                    console.log('JSON配置參數:', params);
+                    console.log('分類類別:', categories);
+                } else {
+                    showNotification(`配置讀取失敗: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                showNotification(`配置讀取錯誤: ${error.message}`, 'error');
+            }
+        }
+
         async function loadConfig() {
             try {
                 showLoading('載入配置中...');
@@ -687,17 +781,51 @@
             }
         }
 
+        async function loadLastImage() {
+            try {
+                const response = await fetch('/api/get_last_image');
+                const result = await response.json();
+                
+                if (result.success && result.image_data) {
+                    displayImage(result.image_data);
+                }
+            } catch (error) {
+                console.error('載入圖像失敗:', error);
+            }
+        }
+
         async function requestStatus() {
             try {
                 const response = await fetch('/api/status');
                 const status = await response.json();
                 updateStatus(status);
+                
+                // 如果有圖像但未顯示，嘗試載入
+                if (status.has_image && !document.querySelector('.captured-image')) {
+                    loadLastImage();
+                }
             } catch (error) {
                 console.error('獲取狀態失敗:', error);
             }
         }
 
         // UI 更新函數
+        function displayImage(imageData) {
+            const imageDisplay = document.getElementById('image-display');
+            
+            if (imageData) {
+                imageDisplay.innerHTML = `
+                    <img src="${imageData}" alt="分類結果圖像" class="captured-image">
+                    <div style="margin-top: 15px; color: #718096; font-size: 0.9rem;">
+                        圖像包含ROI框、特徵數值標註和分類結果顯示
+                    </div>
+                `;
+            } else {
+                imageDisplay.className = 'no-image';
+                imageDisplay.innerHTML = '圖像載入失敗或暫無圖像數據';
+            }
+        }
+
         function updateStatus(status) {
             // 更新連接狀態
             updateStatusItem('modbus-status', status.modbus_connected, 'Modbus TCP', 

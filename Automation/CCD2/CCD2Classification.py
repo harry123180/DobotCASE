@@ -254,6 +254,41 @@ class ImageProcessor:
         return image, actual_roi
     
     @staticmethod
+    def apply_roi_mask_to_image(image: np.ndarray, roi: Tuple[int, int, int, int]) -> np.ndarray:
+        """應用ROI遮罩到圖像，ROI外區域變暗"""
+        if roi is None:
+            return image
+        
+        x, y, w, h = roi
+        height, width = image.shape[:2]
+        
+        # 確保ROI範圍在圖像內
+        x = max(0, min(x, width - 1))
+        y = max(0, min(y, height - 1))
+        w = min(w, width - x)
+        h = min(h, height - y)
+        
+        if w <= 0 or h <= 0:
+            return image
+        
+        # 創建遮罩圖像
+        masked_image = image.copy()
+        
+        # 將ROI外的區域變暗（乘以0.3）
+        if len(masked_image.shape) == 3:
+            # 彩色圖像
+            mask = np.ones((height, width, 3), dtype=np.float32) * 0.3
+            mask[y:y+h, x:x+w] = 1.0
+        else:
+            # 灰階圖像
+            mask = np.ones((height, width), dtype=np.float32) * 0.3
+            mask[y:y+h, x:x+w] = 1.0
+        
+        masked_image = (masked_image.astype(np.float32) * mask).astype(np.uint8)
+        
+        return masked_image
+    
+    @staticmethod
     def analyze_brightness_distribution(image: np.ndarray) -> Dict[str, float]:
         """分析亮度分布"""
         if len(image.shape) == 3:
@@ -293,7 +328,8 @@ class ImageProcessor:
     @staticmethod
     def create_visualization_image(image: np.ndarray, features: Dict[str, Any], 
                                    roi: Optional[Tuple[int, int, int, int]] = None,
-                                   classification_result: Optional[ClassificationResult] = None) -> np.ndarray:
+                                   classification_result: Optional[ClassificationResult] = None,
+                                   roi_enabled: bool = False) -> np.ndarray:
         """創建可視化圖像"""
         vis_image = image.copy()
         
@@ -303,29 +339,44 @@ class ImageProcessor:
         
         height, width = vis_image.shape[:2]
         
-        # 繪製ROI框
-        if roi and roi != (0, 0, width, height):
+        # 如果啟用ROI，應用遮罩效果
+        if roi_enabled and roi and roi != (0, 0, width, height):
+            vis_image = ImageProcessor.apply_roi_mask_to_image(vis_image, roi)
+            
+            # 繪製ROI框
             x, y, w, h = roi
-            cv2.rectangle(vis_image, (x, y), (x + w, y + h), (0, 255, 255), 2)
-            cv2.putText(vis_image, "ROI", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+            cv2.rectangle(vis_image, (x, y), (x + w, y + h), (0, 255, 255), 3)
+            cv2.putText(vis_image, "ROI", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+        
+        # 創建半透明背景區域用於文字顯示
+        overlay = vis_image.copy()
+        
+        # 左上角特徵資訊背景
+        cv2.rectangle(overlay, (5, 5), (300, 130), (0, 0, 0), -1)
+        vis_image = cv2.addWeighted(overlay, 0.7, vis_image, 0.3, 0)
         
         # 繪製特徵資訊
         info_y = 30
         cv2.putText(vis_image, f"Mean: {features.get('mean', 0):.2f}", 
-                   (10, info_y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                   (10, info_y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         info_y += 25
         cv2.putText(vis_image, f"Std: {features.get('std', 0):.2f}", 
-                   (10, info_y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                   (10, info_y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         info_y += 25
         cv2.putText(vis_image, f"Skew: {features.get('skewness', 0):.3f}", 
-                   (10, info_y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                   (10, info_y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         info_y += 25
         cv2.putText(vis_image, f"Kurt: {features.get('kurtosis', 0):.3f}", 
-                   (10, info_y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                   (10, info_y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         
         # 繪製分類結果
         if classification_result:
-            result_y = height - 80
+            # 左下角分類結果背景
+            result_overlay = vis_image.copy()
+            cv2.rectangle(result_overlay, (5, height - 90), (350, height - 5), (0, 0, 0), -1)
+            vis_image = cv2.addWeighted(result_overlay, 0.7, vis_image, 0.3, 0)
+            
+            result_y = height - 70
             if classification_result.success:
                 color = (0, 255, 0)  # 綠色
                 result_text = f"Category: {classification_result.category_id}"
@@ -337,6 +388,12 @@ class ImageProcessor:
             
             cv2.putText(vis_image, result_text, (10, result_y), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
             cv2.putText(vis_image, confidence_text, (10, result_y + 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+        
+        # 右上角顯示ROI狀態
+        if roi_enabled and roi:
+            x, y, w, h = roi
+            roi_text = f"ROI: {x},{y} ({w}x{h})"
+            cv2.putText(vis_image, roi_text, (width - 300, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
         
         return vis_image
     
@@ -359,20 +416,28 @@ class ImageProcessor:
             # 套用ROI
             roi_enabled = params.get('roi_enabled', False)
             roi = None
+            roi_for_analysis = None
+            
             if roi_enabled:
                 roi = (params.get('roi_x', 0), params.get('roi_y', 0), 
                       params.get('roi_width', 100), params.get('roi_height', 100))
-                gray, actual_roi = ImageProcessor.apply_roi_to_image(gray, roi)
+                # 對分析用的灰階圖像套用ROI裁切
+                roi_for_analysis, actual_roi = ImageProcessor.apply_roi_to_image(gray, roi)
                 results['actual_roi'] = actual_roi
+                # 使用裁切後的圖像進行後續分析
+                gray_for_analysis = roi_for_analysis
+            else:
+                gray_for_analysis = gray
+                results['actual_roi'] = (0, 0, gray.shape[1], gray.shape[0])
             
             # 高斯模糊
             gaussian_kernel = params.get('gaussian_kernel', 5)
             if gaussian_kernel > 1:
                 if gaussian_kernel % 2 == 0:
                     gaussian_kernel += 1
-                gray_blurred = cv2.GaussianBlur(gray, (gaussian_kernel, gaussian_kernel), 0)
+                gray_blurred = cv2.GaussianBlur(gray_for_analysis, (gaussian_kernel, gaussian_kernel), 0)
             else:
-                gray_blurred = gray
+                gray_blurred = gray_for_analysis
             
             # 二值化處理
             use_otsu = params.get('use_otsu', True)
@@ -391,19 +456,21 @@ class ImageProcessor:
             if SKIMAGE_AVAILABLE:
                 lbp_radius = params.get('lbp_radius', 3)
                 lbp_points = params.get('lbp_points', 24)
-                lbp = local_binary_pattern(gray, lbp_points, lbp_radius, method='uniform')
+                lbp = local_binary_pattern(gray_for_analysis, lbp_points, lbp_radius, method='uniform')
                 results['lbp'] = lbp
             
-            # 亮度分布分析
-            brightness_stats = ImageProcessor.analyze_brightness_distribution(gray)
+            # 亮度分布分析 - 使用ROI處理後的圖像
+            brightness_stats = ImageProcessor.analyze_brightness_distribution(gray_for_analysis)
             
             results.update({
                 'original_image': original_image,
-                'gray': gray,
+                'gray': gray,  # 完整的灰階圖像
+                'gray_roi': gray_for_analysis,  # ROI處理後的分析圖像
                 'binary': binary,
                 'canny': canny,
                 'brightness_stats': brightness_stats,
-                'roi': roi
+                'roi': roi,
+                'roi_enabled': roi_enabled
             })
             
             return results
@@ -616,13 +683,20 @@ class CCD2ClassificationEnhanced:
             """執行拍照分類"""
             try:
                 result = self.capture_and_classify()
+                
+                # 轉換圖像為base64格式
+                image_data = None
+                if result.annotated_image is not None:
+                    image_data = self.image_to_base64(result.annotated_image)
+                
                 return jsonify({
                     'success': result.success,
                     'category_id': result.category_id,
                     'confidence': result.confidence,
                     'matched_conditions': result.matched_conditions,
                     'features': result.features,
-                    'processing_time': result.processing_time
+                    'processing_time': result.processing_time,
+                    'image_data': image_data
                 })
             except Exception as e:
                 return jsonify({'success': False, 'message': f'分類失敗: {str(e)}'})
@@ -635,6 +709,92 @@ class CCD2ClassificationEnhanced:
                 return jsonify({'success': True, 'files': files})
             except Exception as e:
                 return jsonify({'success': False, 'message': f'掃描失敗: {str(e)}'})
+        
+        @self.app.route('/api/get_parameters', methods=['GET'])
+        def get_parameters():
+            """獲取當前處理參數（從JSON配置讀取）"""
+            try:
+                params = self.read_processing_parameters()
+                
+                # 同時顯示JSON配置中的分類類別
+                categories_info = []
+                if self.classification_engine.categories:
+                    for cat in self.classification_engine.categories:
+                        categories_info.append({
+                            'id': cat.get('id', 0),
+                            'name': cat.get('name', ''),
+                            'enabled': cat.get('enabled', True),
+                            'conditions_count': len(cat.get('conditions', []))
+                        })
+                
+                return jsonify({
+                    'success': True,
+                    'parameters': params,
+                    'categories': categories_info,
+                    'config_loaded': len(categories_info) > 0
+                })
+            except Exception as e:
+                return jsonify({'success': False, 'message': f'獲取參數失敗: {str(e)}'})
+        
+        @self.app.route('/api/update_json_roi', methods=['POST'])
+        def update_json_roi():
+            """更新JSON配置中的ROI參數（測試用）"""
+            try:
+                data = request.get_json() or {}
+                
+                if not self.classification_engine.config:
+                    return jsonify({'success': False, 'message': 'JSON配置未載入'})
+                
+                # 更新JSON配置中的ROI參數
+                if 'processing_parameters' not in self.classification_engine.config:
+                    self.classification_engine.config['processing_parameters'] = {}
+                
+                if 'roi' not in self.classification_engine.config['processing_parameters']:
+                    self.classification_engine.config['processing_parameters']['roi'] = {}
+                
+                roi_config = self.classification_engine.config['processing_parameters']['roi']
+                roi_config['enabled'] = data.get('enabled', True)
+                roi_config['x'] = data.get('x', 100)
+                roi_config['y'] = data.get('y', 100)
+                roi_config['width'] = data.get('width', 200)
+                roi_config['height'] = data.get('height', 200)
+                
+                print(f"✅ 已更新JSON配置中的ROI參數: {roi_config}")
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'JSON配置中的ROI參數已更新',
+                    'roi_params': roi_config
+                })
+                
+            except Exception as e:
+                return jsonify({'success': False, 'message': f'更新ROI失敗: {str(e)}'})
+        
+        @self.app.route('/api/set_test_roi', methods=['POST'])
+        def set_test_roi():
+            """設置測試ROI參數（已棄用，請使用update_json_roi）"""
+            return jsonify({
+                'success': False, 
+                'message': '此功能已棄用，參數只能從JSON配置讀取'
+            })
+        @self.app.route('/api/get_last_image', methods=['GET'])
+        def get_last_image():
+            """獲取最後處理的圖像"""
+            try:
+                if self.last_processed_image is not None:
+                    image_data = self.image_to_base64(self.last_processed_image)
+                    return jsonify({
+                        'success': True,
+                        'image_data': image_data,
+                        'has_result': self.last_classification_result is not None
+                    })
+                else:
+                    return jsonify({
+                        'success': False,
+                        'message': '暫無圖像數據'
+                    })
+            except Exception as e:
+                return jsonify({'success': False, 'message': f'獲取圖像失敗: {str(e)}'})
         
         @self.app.route('/api/config/load', methods=['POST'])
         def load_config():
@@ -666,6 +826,24 @@ class CCD2ClassificationEnhanced:
         def on_get_status():
             emit('status_update', self.get_current_status())
     
+    def image_to_base64(self, image: np.ndarray) -> str:
+        """將OpenCV圖像轉換為base64字符串"""
+        try:
+            # 確保圖像是BGR格式
+            if len(image.shape) == 2:
+                image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+            
+            # 編碼為JPEG格式
+            _, buffer = cv2.imencode('.jpg', image, [cv2.IMWRITE_JPEG_QUALITY, 85])
+            
+            # 轉換為base64
+            import base64
+            image_base64 = base64.b64encode(buffer).decode('utf-8')
+            return f"data:image/jpeg;base64,{image_base64}"
+        except Exception as e:
+            self.logger.error(f"圖像轉換失敗: {e}")
+            return None
+    
     def get_current_status(self) -> Dict[str, Any]:
         """獲取當前系統狀態"""
         return {
@@ -686,7 +864,8 @@ class CCD2ClassificationEnhanced:
                 'category_id': self.last_classification_result.category_id if self.last_classification_result else 0,
                 'confidence': self.last_classification_result.confidence if self.last_classification_result else 0.0,
                 'features': self.last_classification_result.features if self.last_classification_result else {}
-            } if self.last_classification_result else None
+            } if self.last_classification_result else None,
+            'has_image': self.last_processed_image is not None
         }
     
     def connect_modbus_server(self) -> Dict[str, Any]:
@@ -880,53 +1059,40 @@ class CCD2ClassificationEnhanced:
             print(f"創建預設配置失敗: {e}")
     
     def read_processing_parameters(self) -> Dict[str, Any]:
-        """從寄存器讀取處理參數"""
+        """從JSON配置檔案讀取處理參數（不從Modbus寄存器讀取）"""
+        # 直接使用JSON配置中的預設參數
         params = self.config['classification']['default_params'].copy()
         
-        try:
-            if not self.modbus_client:
-                return params
-            
-            # 讀取處理參數寄存器 (base+10 到 base+19)
-            response = self.modbus_client.read_holding_registers(
-                address=self.base_address + 10,
-                count=10,
-                slave=self.config['tcp_server']['unit_id']
-            )
-            
-            if response.isError():
-                return params
-            
-            registers = response.registers
-            
-            params['gaussian_kernel'] = registers[0]
-            params['use_otsu'] = bool(registers[1])
-            params['manual_threshold'] = registers[2]
-            params['canny_low'] = registers[3]
-            params['canny_high'] = registers[4]
-            params['lbp_radius'] = registers[5]
-            params['lbp_points'] = registers[6]
-            params['roi_enabled'] = bool(registers[7])
-            
-            # ROI參數
-            if len(registers) > 8:
-                params['roi_x'] = registers[8] if len(registers) > 8 else 0
-                params['roi_y'] = registers[9] if len(registers) > 9 else 0
-            
-            # 讀取更多ROI設定
-            roi_response = self.modbus_client.read_holding_registers(
-                address=self.base_address + 20,
-                count=4,
-                slave=self.config['tcp_server']['unit_id']
-            )
-            
-            if not roi_response.isError():
-                roi_registers = roi_response.registers
-                params['roi_width'] = roi_registers[0]
-                params['roi_height'] = roi_registers[1]
-            
-        except Exception as e:
-            self.logger.error(f"讀取處理參數失敗: {e}")
+        # 如果分類引擎已載入配置，嘗試從JSON配置獲取處理參數
+        if self.classification_engine.config:
+            json_params = self.classification_engine.config.get('processing_parameters', {})
+            if json_params:
+                # 更新參數，優先使用JSON配置中的值
+                for key, value in json_params.items():
+                    if key in params:
+                        params[key] = value
+                print(f"📊 從JSON配置讀取處理參數:")
+                print(f"   ROI啟用: {params.get('roi_enabled', False)}")
+                roi_config = json_params.get('roi', {})
+                if roi_config:
+                    params['roi_enabled'] = roi_config.get('enabled', False)
+                    params['roi_x'] = roi_config.get('x', 0)
+                    params['roi_y'] = roi_config.get('y', 0)
+                    params['roi_width'] = roi_config.get('width', 100)
+                    params['roi_height'] = roi_config.get('height', 100)
+                    print(f"   ROI座標: ({params['roi_x']}, {params['roi_y']})")
+                    print(f"   ROI尺寸: {params['roi_width']} × {params['roi_height']}")
+            else:
+                print(f"📊 使用預設處理參數 (JSON中無processing_parameters)")
+        else:
+            print(f"📊 使用預設處理參數 (分類配置未載入)")
+        
+        print(f"🔍 最終處理參數:")
+        print(f"   高斯核: {params['gaussian_kernel']}")
+        print(f"   OTSU: {params['use_otsu']}")
+        print(f"   ROI啟用: {params['roi_enabled']}")
+        if params['roi_enabled']:
+            print(f"   ROI: ({params['roi_x']}, {params['roi_y']}) {params['roi_width']}×{params['roi_height']}")
         
         return params
     
@@ -958,11 +1124,13 @@ class CCD2ClassificationEnhanced:
             
             # 創建可視化圖像
             roi = processed_results.get('actual_roi') or processed_results.get('roi')
+            roi_enabled = processed_results.get('roi_enabled', False)
             result.annotated_image = ImageProcessor.create_visualization_image(
                 processed_results.get('original_image', image),
                 brightness_stats,
                 roi,
-                result
+                result,
+                roi_enabled
             )
             
             # 保存結果用於Web顯示
@@ -1128,7 +1296,17 @@ class CCD2ClassificationEnhanced:
                 
                 # 更新Web介面狀態
                 if hasattr(self, 'socketio'):
-                    self.socketio.emit('status_update', self.get_current_status())
+                    status_data = self.get_current_status()
+                    self.socketio.emit('status_update', status_data)
+                    
+                    # 如果有新的處理結果，發送圖像更新
+                    if hasattr(self, 'last_processed_image') and self.last_processed_image is not None:
+                        try:
+                            image_data = self.image_to_base64(self.last_processed_image)
+                            if image_data:
+                                self.socketio.emit('image_update', {'image_data': image_data})
+                        except Exception as img_error:
+                            self.logger.error(f"圖像推送失敗: {img_error}")
                 
             except Exception as e:
                 self.logger.error(f"握手服務異常: {e}")

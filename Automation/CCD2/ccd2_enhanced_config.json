@@ -1,0 +1,39 @@
+{
+  "module_id": "CCD2圖像分類增強模組",
+  "camera": {
+    "ip": "192.168.1.9",
+    "timeout": 5.0
+  },
+  "tcp_server": {
+    "host": "127.0.0.1",
+    "port": 502,
+    "unit_id": 1,
+    "timeout": 1.0
+  },
+  "modbus_mapping": {
+    "base_address": 1100
+  },
+  "web_server": {
+    "host": "localhost",
+    "port": 5052,
+    "debug": false
+  },
+  "classification": {
+    "condition_folder": "condition",
+    "auto_scan": true,
+    "default_params": {
+      "gaussian_kernel": 5,
+      "use_otsu": true,
+      "manual_threshold": 127,
+      "canny_low": 50,
+      "canny_high": 150,
+      "lbp_radius": 3,
+      "lbp_points": 24,
+      "roi_enabled": false,
+      "roi_x": 0,
+      "roi_y": 0,
+      "roi_width": 100,
+      "roi_height": 100
+    }
+  }
+}

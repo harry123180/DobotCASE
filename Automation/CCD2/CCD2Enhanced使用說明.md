@@ -57,9 +57,15 @@ CCD2/
 }
 ```
 
-### 分類配置檔案 (condition/*.json)
+### 分類配置檔案 (condition/*.json) - 完整版本
 ```json
 {
+  "module_info": {
+    "module_name": "CCD2分類模組",
+    "version": "2.0",
+    "created_date": "2024-06-24",
+    "description": "圖像分類配置"
+  },
   "categories": [
     {
       "id": 1,
@@ -75,37 +81,75 @@ CCD2/
         }
       ]
     }
-  ]
+  ],
+  "processing_parameters": {
+    "gaussian_kernel": 5,
+    "use_otsu": true,
+    "manual_threshold": 127,
+    "canny_low": 50,
+    "canny_high": 150,
+    "lbp_radius": 3,
+    "lbp_points": 24,
+    "roi": {
+      "enabled": true,
+      "x": 100,
+      "y": 100,
+      "width": 200,
+      "height": 200
+    }
+  }
 }
 ```
 
-## 寄存器映射 (基地址1100)
+## 參數配置說明
 
-### 控制寄存器
-| 地址 | 功能 | 說明 |
-|------|------|------|
-| 1100 | 控制指令 | 0=清空, 8=拍照, 16=拍照+分類, 32=初始化, 64=重載配置 |
-| 1101 | 狀態寄存器 | bit0=Ready, bit1=Running, bit2=Alarm, bit3=Initialized, bit4=ConfigLoaded |
+### **重要**: 參數來源
+- ✅ **圖像處理參數**: 僅從JSON配置檔案讀取
+- ✅ **ROI設定**: 僅從JSON配置檔案讀取  
+- ✅ **分類條件**: 僅從JSON配置檔案讀取
+- ❌ **不從Modbus寄存器讀取參數**
 
-### 處理參數寄存器 (1110-1119)
-| 地址 | 參數 | 說明 |
-|------|------|------|
-| 1110 | gaussian_kernel | 高斯核大小 |
-| 1111 | use_otsu | OTSU閾值(0/1) |
-| 1112 | manual_threshold | 手動閾值 |
-| 1113 | canny_low | Canny低閾值 |
-| 1114 | canny_high | Canny高閾值 |
-| 1115 | lbp_radius | LBP半徑 |
-| 1116 | lbp_points | LBP點數 |
-| 1117 | roi_enabled | ROI啟用(0/1) |
+### JSON配置結構
 
-### ROI參數寄存器 (1120-1123)
-| 地址 | 參數 | 說明 |
-|------|------|------|
-| 1120 | roi_x | ROI起始X |
-| 1121 | roi_y | ROI起始Y |
-| 1122 | roi_width | ROI寬度 |
-| 1123 | roi_height | ROI高度 |
+#### 1. **圖像處理參數**
+```json
+"processing_parameters": {
+  "gaussian_kernel": 5,        // 高斯模糊核大小
+  "use_otsu": true,           // 是否使用OTSU閾值
+  "manual_threshold": 127,    // 手動閾值
+  "canny_low": 50,           // Canny低閾值
+  "canny_high": 150,         // Canny高閾值
+  "lbp_radius": 3,           // LBP半徑
+  "lbp_points": 24,          // LBP點數
+  "roi": {
+    "enabled": true,         // ROI啟用
+    "x": 100,               // ROI起始X座標
+    "y": 100,               // ROI起始Y座標  
+    "width": 200,           // ROI寬度
+    "height": 200           // ROI高度
+  }
+}
+```
+
+#### 2. **分類條件配置**
+```json
+"categories": [
+  {
+    "id": 1,
+    "name": "類型A", 
+    "enabled": true,
+    "logic": "AND",           // 條件邏輯: AND/OR
+    "conditions": [
+      {
+        "feature": "平均值",   // 特徵: 平均值/標準差/偏度/峰度
+        "operator": ">",      // 運算子: >/>=/</<=/==
+        "threshold": 100.0,   // 閾值
+        "enabled": true
+      }
+    ]
+  }
+]
+```
 
 ### 分類結果寄存器 (1140-1159)
 | 地址 | 功能 | 說明 |
