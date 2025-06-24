@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Dobot_main.py - 機械臂主控制器 (修正指令觸發穩定性版)
-修正Flow3/4指令佇列競爭問題，使用專用佇列確保指令穩定執行
+Dobot_main.py - 機械臂主控制器 (修正指令觸發穩定性版 + Flow5支援)
+修正Flow3/4/5指令佇列競爭問題，使用專用佇列確保指令穩定執行
+新增Flow5機械臂運轉流程支援，使用449寄存器觸發
 """
 
 import json
@@ -21,6 +22,7 @@ from Dobot_Flow1 import Flow1VisionPickExecutor
 from Dobot_Flow2 import Flow2UnloadExecutor  
 from Dobot_Flow3 import FlowFlipStationExecutor
 from Dobot_Flow4 import Flow4VibrationFeedExecutor
+from Dobot_Flow5 import Flow5AssemblyExecutor
 
 # 導入高階API模組
 from CCD1HighLevel import CCD1HighLevelAPI
@@ -41,6 +43,7 @@ class CommandType(Enum):
     MOTION = "motion"
     DIO_FLIP = "dio_flip"
     DIO_VIBRATION = "dio_vibration"
+    MOTION_FLOW5 = "motion_flow5"
     EXTERNAL = "external"
     EMERGENCY = "emergency"
 
@@ -48,6 +51,7 @@ class CommandPriority(IntEnum):
     """指令優先權 (數值越小優先權越高)"""
     EMERGENCY = 0
     MOTION = 1
+    MOTION_FLOW5 = 1
     DIO_FLIP = 2
     DIO_VIBRATION = 2
     EXTERNAL = 3
@@ -209,7 +213,6 @@ class DobotStateMachine:
             print(f"設置Flow1完成狀態失敗: {e}")
 
 # ==================== 真實機械臂控制器 ====================
-
 
 class RealRobotController:
     """真實機械臂控制器 - 修正運動完成檢查版本"""
@@ -874,6 +877,102 @@ class Flow4VibrationFeedThread(BaseFlowThread):
             print(f"[Flow4] 震動投料控制執行異常: {e}")
             traceback.print_exc()
 
+# ==================== Flow5機械臂運轉專用執行緒 ====================
+
+class Flow5AssemblyThread(BaseFlowThread):
+    """Flow5機械臂運轉控制專用執行緒"""
+    
+    def __init__(self, robot: RealRobotController, command_queue: DedicatedCommandQueue, 
+                 state_machine: DobotStateMachine, external_modules: Dict):
+        super().__init__("Flow5Assembly", command_queue)
+        self.robot = robot
+        self.state_machine = state_machine
+        self.external_modules = external_modules
+        self.flow5_executor = None
+        
+    def initialize_flows(self):
+        """初始化Flow5執行器"""
+        try:
+            flow5 = Flow5AssemblyExecutor()
+            flow5.initialize(self.robot, self.state_machine, self.external_modules)
+            self.flow5_executor = flow5
+            print("✓ Flow5機械臂運轉執行器初始化完成")
+        except Exception as e:
+            print(f"Flow5執行器初始化失敗: {e}")
+            self.last_error = str(e)
+    
+    def run(self):
+        """Flow5執行緒主循環"""
+        self.status = "運行中"
+        print(f"[{self.name}] 執行緒啟動，專用佇列接收MOTION_FLOW5指令")
+        
+        while self.running:
+            try:
+                command = self.command_queue.get_command(timeout=0.2)
+                
+                if command:
+                    print(f"[Flow5] 收到指令 - ID:{command.command_id}, 類型:{command.command_type.value}")
+                    
+                    if command.command_type == CommandType.MOTION_FLOW5:
+                        cmd_type = command.command_data.get('type', '')
+                        if cmd_type == 'flow_assembly':
+                            print(f"[Flow5] 開始處理機械臂運轉指令，ID: {command.command_id}")
+                            self._execute_assembly_flow()
+                        else:
+                            print(f"[Flow5] 未知指令子類型: {cmd_type}")
+                    else:
+                        print(f"[Flow5] 收到非MOTION_FLOW5指令，忽略: {command.command_type}")
+                        
+            except Exception as e:
+                self.last_error = f"Flow5執行緒錯誤: {e}"
+                print(f"[Flow5] {self.last_error}")
+                traceback.print_exc()
+                time.sleep(0.1)
+                
+        self.status = "已停止"
+        print(f"[{self.name}] 執行緒結束")
+    
+    def _execute_assembly_flow(self):
+        """執行機械臂運轉流程"""
+        try:
+            print("[Flow5] === 開始執行機械臂運轉流程 ===")
+            self.state_machine.set_running(True)
+            self.state_machine.set_current_flow(5)
+            start_time = time.time()
+            
+            if not self.flow5_executor:
+                print("[Flow5] ✗ Flow5執行器未初始化")
+                self.state_machine.set_alarm(True)
+                self.state_machine.set_running(False)
+                self.state_machine.set_current_flow(0)
+                return
+            
+            result = self.flow5_executor.execute()
+            execution_time = time.time() - start_time
+            
+            if result.success:
+                print(f"[Flow5] ✓ 機械臂運轉流程執行成功，耗時: {execution_time:.2f}秒")
+                print(f"[Flow5] 完成步驟: {result.steps_completed}/{result.total_steps}")
+                self.state_machine.set_running(False)
+                self.state_machine.set_current_flow(0)
+                self.state_machine.set_ready(True)
+            else:
+                print(f"[Flow5] ✗ 機械臂運轉流程執行失敗: {result.error_message}")
+                print(f"[Flow5] 完成步驟: {result.steps_completed}/{result.total_steps}")
+                self.state_machine.set_alarm(True)
+                self.state_machine.set_running(False)
+                self.state_machine.set_current_flow(0)
+                
+            self.operation_count += 1
+            print("[Flow5] === 機械臂運轉流程執行完成 ===")
+                
+        except Exception as e:
+            print(f"[Flow5] 機械臂運轉流程執行異常: {e}")
+            traceback.print_exc()
+            self.state_machine.set_alarm(True)
+            self.state_machine.set_running(False)
+            self.state_machine.set_current_flow(0)
+
 # ==================== 外部模組執行緒 ====================
 
 class ExternalModuleThread(BaseFlowThread):
@@ -945,7 +1044,7 @@ class ExternalModuleThread(BaseFlowThread):
 # ==================== 主控制器 ====================
 
 class DobotConcurrentController:
-    """Dobot併行控制器 - 專用佇列版本"""
+    """Dobot併行控制器 - 專用佇列版本 + Flow5支援"""
     
     def __init__(self, config_file: str = CONFIG_FILE):
         self.config_file = config_file
@@ -955,6 +1054,7 @@ class DobotConcurrentController:
         self.motion_queue = DedicatedCommandQueue("Motion")
         self.flow3_queue = DedicatedCommandQueue("Flow3")
         self.flow4_queue = DedicatedCommandQueue("Flow4")
+        self.flow5_queue = DedicatedCommandQueue("Flow5")
         self.external_queue = DedicatedCommandQueue("External")
         
         # 核心組件
@@ -966,6 +1066,7 @@ class DobotConcurrentController:
         self.motion_thread = None
         self.flow3_thread = None
         self.flow4_thread = None
+        self.flow5_thread = None
         self.external_thread = None
         self.handshake_thread = None
         
@@ -978,6 +1079,7 @@ class DobotConcurrentController:
         self.last_unload_control = 0
         self.last_flip_control = 0
         self.last_vibration_feed_control = 0
+        self.last_flow5_control = 0
         
     def _load_config(self) -> Dict[str, Any]:
         """載入配置"""
@@ -1018,7 +1120,8 @@ class DobotConcurrentController:
                 "flow1_enabled": True,
                 "flow2_enabled": True,
                 "flow3_enabled": True,
-                "flow4_enabled": True
+                "flow4_enabled": True,
+                "flow5_enabled": True
             },
             "safety": {
                 "enable_emergency_stop": True,
@@ -1054,7 +1157,7 @@ class DobotConcurrentController:
     
     def start(self) -> bool:
         """啟動控制器"""
-        print("=== 啟動Dobot併行控制器 (專用佇列版) ===")
+        print("=== 啟動Dobot併行控制器 (專用佇列版 + Flow5) ===")
         
         if not self._initialize_robot():
             return False
@@ -1071,7 +1174,7 @@ class DobotConcurrentController:
         self.running = True
         self._start_handshake_loop()
         
-        print("✓ Dobot併行控制器啟動成功 (專用佇列)")
+        print("✓ Dobot併行控制器啟動成功 (專用佇列 + Flow5)")
         return True
     
     def _initialize_robot(self) -> bool:
@@ -1175,7 +1278,7 @@ class DobotConcurrentController:
             print(f"外部模組初始化異常: {e}")
     
     def _initialize_threads(self) -> bool:
-        """初始化執行緒 - 使用專用佇列"""
+        """初始化執行緒 - 使用專用佇列 + Flow5"""
         try:
             # 運動控制執行緒
             self.motion_thread = MotionFlowThread(
@@ -1191,6 +1294,12 @@ class DobotConcurrentController:
             self.flow4_thread = Flow4VibrationFeedThread(self.robot, self.flow4_queue)
             self.flow4_thread.initialize_flows()
             
+            # Flow5專用執行緒
+            self.flow5_thread = Flow5AssemblyThread(
+                self.robot, self.flow5_queue, self.state_machine, self.external_modules
+            )
+            self.flow5_thread.initialize_flows()
+            
             # 外部模組執行緒
             self.external_thread = ExternalModuleThread(self.external_queue, self.external_modules)
             
@@ -1198,9 +1307,10 @@ class DobotConcurrentController:
             self.motion_thread.start_thread()
             self.flow3_thread.start_thread()
             self.flow4_thread.start_thread()
+            self.flow5_thread.start_thread()
             self.external_thread.start_thread()
             
-            print("✓ 執行緒初始化完成 - 專用佇列架構")
+            print("✓ 執行緒初始化完成 - 專用佇列架構 (含Flow5)")
             return True
             
         except Exception as e:
@@ -1226,7 +1336,7 @@ class DobotConcurrentController:
                 time.sleep(1.0)
     
     def _process_control_registers(self):
-        """處理控制寄存器 - 修正指令分派到專用佇列"""
+        """處理控制寄存器 - 修正指令分派到專用佇列 + Flow5支援"""
         try:
             result = self.modbus_client.read_holding_registers(address=DOBOT_BASE_ADDR + 40, count=10)
             
@@ -1239,6 +1349,7 @@ class DobotConcurrentController:
             unload_control = registers[1]
             flip_control = registers[7] if len(registers) > 7 else 0
             vibration_feed_control = registers[8] if len(registers) > 8 else 0
+            flow5_control = registers[9] if len(registers) > 9 else 0
             
             # 處理VP視覺取料控制 (Flow1 - 運動)
             if vp_control == 1 and self.last_vp_control == 0:
@@ -1311,6 +1422,24 @@ class DobotConcurrentController:
             elif vibration_feed_control == 0 and self.last_vibration_feed_control == 1:
                 print("震動投料控制指令已清零")
                 self.last_vibration_feed_control = 0
+            
+            # 處理Flow5機械臂運轉控制 (449寄存器 - 專用佇列)
+            if flow5_control == 1 and self.last_flow5_control == 0:
+                print("收到Flow5機械臂運轉指令，分派到Flow5專用佇列")
+                command = Command(
+                    command_type=CommandType.MOTION_FLOW5,
+                    command_data={'type': 'flow_assembly'},
+                    priority=CommandPriority.MOTION_FLOW5
+                )
+                if self.flow5_queue.put_command(command):
+                    self.last_flow5_control = 1
+                    print("Flow5機械臂運轉指令已加入Flow5佇列")
+                else:
+                    print("Flow5機械臂運轉指令加入Flow5佇列失敗")
+                
+            elif flow5_control == 0 and self.last_flow5_control == 1:
+                print("Flow5機械臂運轉控制指令已清零")
+                self.last_flow5_control = 0
                 
         except Exception as e:
             print(f"處理控制寄存器失敗: {e}")
@@ -1327,6 +1456,8 @@ class DobotConcurrentController:
             self.flow3_thread.stop_thread()
         if self.flow4_thread:
             self.flow4_thread.stop_thread()
+        if self.flow5_thread:
+            self.flow5_thread.stop_thread()
         if self.external_thread:
             self.external_thread.stop_thread()
             
@@ -1351,6 +1482,7 @@ class DobotConcurrentController:
             'motion_thread': self.motion_thread.get_status() if self.motion_thread else None,
             'flow3_thread': self.flow3_thread.get_status() if self.flow3_thread else None,
             'flow4_thread': self.flow4_thread.get_status() if self.flow4_thread else None,
+            'flow5_thread': self.flow5_thread.get_status() if self.flow5_thread else None,
             'external_thread': self.external_thread.get_status() if self.external_thread else None
         }
 
@@ -1360,8 +1492,8 @@ def main():
     """主程序"""
     print("="*60)
     print("Dobot M1Pro 併行控制器啟動")
-    print("專用佇列架構：四執行緒併行 + 專用指令佇列")
-    print("修正指令觸發穩定性，確保Flow3/4可靠執行")
+    print("專用佇列架構：五執行緒併行 + 專用指令佇列")
+    print("修正指令觸發穩定性，確保Flow3/4/5可靠執行")
     print("="*60)
     
     controller = DobotConcurrentController()
@@ -1379,6 +1511,7 @@ def main():
                     print(f"Motion: {status['motion_thread']['status'] if status['motion_thread'] else 'None'}")
                     print(f"Flow3: {status['flow3_thread']['status'] if status['flow3_thread'] else 'None'}")
                     print(f"Flow4: {status['flow4_thread']['status'] if status['flow4_thread'] else 'None'}")
+                    print(f"Flow5: {status['flow5_thread']['status'] if status['flow5_thread'] else 'None'}")
                     
         else:
             print("控制器啟動失敗")

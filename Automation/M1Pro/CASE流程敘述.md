@@ -2,7 +2,7 @@
 
 ### Flow1流程點位序列
 ```
-standby → vp_topside → CCD1檢測物件座標 → vp_topside → standby 
+standby → (JointMovJ)vp_topside → (MovL)CCD1檢測物件座標 → (JointMovJ)vp_topside → standby 
 → flip_pre → flip_top → flip_down → flip_top → flip_pre → standby
 ```
 
