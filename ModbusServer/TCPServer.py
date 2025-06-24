@@ -666,7 +666,7 @@ class ModbusTCPServerApp:
             print(f"基礎路徑: {self.base_path}")
             
             # 初始化測試數據
-            self.initialize_test_data()
+            #self.initialize_test_data()
             
             # 啟動定時日誌
             self.timed_logger.start()
