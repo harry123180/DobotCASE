@@ -182,7 +182,7 @@ class Flow2UnloadExecutor(FlowExecutor):
         self.motion_steps = [
             # 1. 到standby點
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
-            
+            {'type': 'move_to_point', 'params': {'point_name': 'flip_pre', 'move_type': 'J'}},
             # 2. 到Goal_CV_top
             {'type': 'move_to_point', 'params': {'point_name': 'Goal_CV_top', 'move_type': 'J'}},
             
@@ -190,7 +190,7 @@ class Flow2UnloadExecutor(FlowExecutor):
             {'type': 'move_to_point', 'params': {'point_name': 'Goal_CV_down', 'move_type': 'J'}},
             
             # 4. 夾爪智慧撐開
-            {'type': 'gripper_smart_release', 'params': {'position': 370}},
+            {'type': 'gripper_smart_release', 'params': {'position': 470}},
             
             # 5. 到Goal_CV_top
             {'type': 'move_to_point', 'params': {'point_name': 'Goal_CV_top', 'move_type': 'J'}},
@@ -207,10 +207,22 @@ class Flow2UnloadExecutor(FlowExecutor):
             # 9. 到rotate_top
             {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
             
-            # 10. 到Goal_CV_top
-            {'type': 'move_to_point', 'params': {'point_name': 'Goal_CV_top', 'move_type': 'J'}},
+            # 10. 到rotate_down
+            {'type': 'move_to_point', 'params': {'point_name': 'rotate_down', 'move_type': 'J'}},
             
-            # 11. 到standby
+            # 11. 夾爪智慧撐開470
+            {'type': 'gripper_smart_release', 'params': {'position': 470}},
+            
+            # 12. 夾爪快速關閉
+            {'type': 'gripper_close', 'params': {}},
+            
+            # 13. 到rotate_top
+            {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
+            
+            # 14. 到Goal_CV_top
+            {'type': 'move_to_point', 'params': {'point_name': 'Goal_CV_top', 'move_type': 'J'}},
+            {'type': 'move_to_point', 'params': {'point_name': 'flip_pre', 'move_type': 'J'}},
+            # 15. 到standby
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}}
         ]
         

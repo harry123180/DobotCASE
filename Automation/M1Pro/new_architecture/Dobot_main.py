@@ -407,7 +407,7 @@ class RealRobotController:
         self.is_connected = False
         self.dashboard_api = None
         self.move_api = None
-        self.global_speed = 50
+        self.global_speed = 100
         
     def _parse_api_response(self, response: str) -> bool:
         """解析API響應"""
@@ -1163,7 +1163,7 @@ class DobotNewArchController:
                 "ip": "192.168.1.6",
                 "dashboard_port": 29999,
                 "move_port": 30003,
-                "default_speed": 50
+                "default_speed": 40
             },
             "modbus": {
                 "server_ip": "127.0.0.1", 

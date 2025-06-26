@@ -20,27 +20,28 @@ class AngleOperationResult(Enum):
     NOT_READY = "NOT_READY"
     CONNECTION_ERROR = "CONNECTION_ERROR"
     SYSTEM_ERROR = "SYSTEM_ERROR"
+    NO_VALID_CONTOUR = "NO_VALID_CONTOUR"
 
 @dataclass
-class AngleCorrectionResult:
-    """角度校正結果數據類"""
+class AngleDetectionResult:
+    """角度檢測結果數據類"""
     result: AngleOperationResult
     message: str
-    original_angle: Optional[float] = None
-    angle_diff: Optional[float] = None  
-    motor_position: Optional[int] = None
+    target_angle: Optional[float] = None
+    detected_center: Optional[tuple] = None
+    contour_area: Optional[float] = None
     execution_time: Optional[float] = None
     error_details: Optional[str] = None
 
 class AngleHighLevel:
-    """角度調整系統高階API
+    """角度檢測系統高階API
     
-    提供簡潔的方法供Flow流程調用，隱藏底層Modbus通訊細節
-    專注於執行90度角度校正功能
+    提供簡潔的方法供Flow流程調用，專注與CCD3模組交握獲取角度檢測結果
+    移除旋轉馬達控制功能，保留角度檢測交握邏輯
     """
     
     def __init__(self, host: str = "127.0.0.1", port: int = 502):
-        """初始化角度調整高階API
+        """初始化角度檢測高階API
         
         Args:
             host: Modbus服務器IP
@@ -48,24 +49,24 @@ class AngleHighLevel:
         """
         self.host = host
         self.port = port
-        self.base_address = 700
+        self.ccd3_base_address = 800  # CCD3模組基地址
         self.modbus_client = None
         self.timeout = 3.0
         
         # 操作超時設定
-        self.correction_timeout = 15.0  # 角度校正總超時15秒
-        self.status_check_interval = 0.5  # 狀態檢查間隔500ms
+        self.detection_timeout = 10.0  # 角度檢測總超時10秒
+        self.status_check_interval = 0.2  # 狀態檢查間隔200ms
         
-        logger.info(f"AngleHighLevel初始化: {host}:{port}, 基地址:{self.base_address}")
+        logger.info(f"AngleHighLevel初始化: {host}:{port}, CCD3基地址:{self.ccd3_base_address}")
     
     def connect(self) -> bool:
-        """連接到角度調整模組
+        """連接到Modbus服務器
         
         Returns:
             bool: 連接成功返回True
         """
         try:
-            logger.info("正在連接角度調整模組...")
+            logger.info("正在連接Modbus服務器...")
             
             if self.modbus_client:
                 self.modbus_client.close()
@@ -77,20 +78,20 @@ class AngleHighLevel:
             )
             
             if self.modbus_client.connect():
-                # 驗證模組回應
-                status = self._read_system_status()
-                if status:
-                    logger.info(f"角度調整模組連接成功 - Ready:{status.get('ready')}, Initialized:{status.get('initialized')}")
+                # 驗證CCD3模組回應
+                ccd3_status = self._read_ccd3_status()
+                if ccd3_status:
+                    logger.info(f"CCD3模組連接成功 - Ready:{ccd3_status.get('ready')}, Initialized:{ccd3_status.get('initialized')}")
                     return True
                 else:
-                    logger.error("角度調整模組無回應")
+                    logger.error("CCD3模組無回應")
                     return False
             else:
-                logger.error(f"無法連接到角度調整模組: {self.host}:{self.port}")
+                logger.error(f"無法連接到Modbus服務器: {self.host}:{self.port}")
                 return False
                 
         except Exception as e:
-            logger.error(f"連接角度調整模組失敗: {e}")
+            logger.error(f"連接Modbus服務器失敗: {e}")
             return False
     
     def disconnect(self):
@@ -98,15 +99,15 @@ class AngleHighLevel:
         if self.modbus_client:
             self.modbus_client.close()
             self.modbus_client = None
-            logger.info("角度調整模組連接已斷開")
+            logger.info("Modbus連接已斷開")
     
-    def is_system_ready(self) -> bool:
-        """檢查系統是否準備就緒
+    def is_ccd3_ready(self) -> bool:
+        """檢查CCD3系統是否準備就緒
         
         Returns:
-            bool: 系統Ready且無Alarm時返回True
+            bool: CCD3系統Ready且無Alarm時返回True
         """
-        status = self._read_system_status()
+        status = self._read_ccd3_status()
         if not status:
             return False
         
@@ -114,107 +115,115 @@ class AngleHighLevel:
         alarm = status.get('alarm', False)
         initialized = status.get('initialized', False)
         
-        logger.debug(f"系統狀態檢查: Ready={ready}, Alarm={alarm}, Initialized={initialized}")
+        logger.debug(f"CCD3系統狀態檢查: Ready={ready}, Alarm={alarm}, Initialized={initialized}")
         
         return ready and not alarm and initialized
     
-    def adjust_to_90_degrees(self) -> AngleCorrectionResult:
-        """執行角度校正到90度
+    def detect_angle(self, detection_mode: int = 0) -> AngleDetectionResult:
+        """執行角度檢測
         
         這是主要的公開方法，供Flow流程調用
-        執行完整的CCD3檢測 → 角度計算 → 馬達移動流程
+        與CCD3模組交握，獲取角度檢測結果
         
+        Args:
+            detection_mode: 檢測模式 (0=CASE橢圓擬合, 1=DR最小外接矩形)
+            
         Returns:
-            AngleCorrectionResult: 包含執行結果的完整資訊
+            AngleDetectionResult: 包含檢測結果的完整資訊
         """
         start_time = time.time()
         
         try:
-            logger.info("=== 開始執行角度校正到90度 ===")
+            logger.info(f"=== 開始執行角度檢測 (模式:{detection_mode}) ===")
             
             # 步驟1: 檢查連接狀態
             if not self.modbus_client or not self.modbus_client.connected:
-                return AngleCorrectionResult(
+                return AngleDetectionResult(
                     result=AngleOperationResult.CONNECTION_ERROR,
                     message="Modbus連接未建立，請先調用connect()"
                 )
             
-            # 步驟2: 檢查系統狀態
-            if not self.is_system_ready():
-                return AngleCorrectionResult(
+            # 步驟2: 檢查CCD3系統狀態
+            if not self.is_ccd3_ready():
+                return AngleDetectionResult(
                     result=AngleOperationResult.NOT_READY,
-                    message="角度調整系統未準備就緒，請檢查系統狀態"
+                    message="CCD3角度檢測系統未準備就緒，請檢查系統狀態"
                 )
             
-            # 步驟3: 發送角度校正指令
-            logger.info("發送角度校正指令...")
-            if not self._send_angle_correction_command():
-                return AngleCorrectionResult(
+            # 步驟3: 設置檢測模式
+            logger.info(f"設置檢測模式: {detection_mode}")
+            if not self._set_detection_mode(detection_mode):
+                return AngleDetectionResult(
                     result=AngleOperationResult.FAILED,
-                    message="發送角度校正指令失敗"
+                    message="設置檢測模式失敗"
                 )
             
-            # 步驟4: 等待執行完成
-            logger.info("等待角度校正執行完成...")
-            execution_result = self._wait_for_completion()
+            # 步驟4: 發送角度檢測指令
+            logger.info("發送角度檢測指令...")
+            if not self._send_detection_command():
+                return AngleDetectionResult(
+                    result=AngleOperationResult.FAILED,
+                    message="發送角度檢測指令失敗"
+                )
+            
+            # 步驟5: 等待檢測完成
+            logger.info("等待角度檢測執行完成...")
+            execution_result = self._wait_for_detection_completion()
             
             if execution_result.result != AngleOperationResult.SUCCESS:
                 return execution_result
             
-            # 步驟5: 讀取執行結果
-            result_data = self._read_correction_results()
+            # 步驟6: 讀取檢測結果
+            result_data = self._read_detection_results()
             execution_time = time.time() - start_time
             
             if result_data and result_data.get('success', False):
-                logger.info(f"角度校正成功完成，耗時: {execution_time:.2f}秒")
-                logger.info(f"檢測角度: {result_data.get('original_angle'):.2f}度")
-                logger.info(f"角度差: {result_data.get('angle_diff'):.2f}度")
-                logger.info(f"馬達位置: {result_data.get('motor_position')}")
+                logger.info(f"角度檢測成功完成，耗時: {execution_time:.2f}秒")
+                logger.info(f"檢測中心: {result_data.get('center')}")
+                logger.info(f"檢測角度: {result_data.get('angle'):.2f}度")
+                logger.info(f"輪廓面積: {result_data.get('contour_area')}")
                 
-                return AngleCorrectionResult(
+                return AngleDetectionResult(
                     result=AngleOperationResult.SUCCESS,
-                    message="角度校正完成",
-                    original_angle=result_data.get('original_angle'),
-                    angle_diff=result_data.get('angle_diff'),
-                    motor_position=result_data.get('motor_position'),
+                    message="角度檢測完成",
+                    target_angle=result_data.get('angle'),
+                    detected_center=result_data.get('center'),
+                    contour_area=result_data.get('contour_area'),
                     execution_time=execution_time
                 )
             else:
-                return AngleCorrectionResult(
-                    result=AngleOperationResult.FAILED,
-                    message="角度校正執行失敗，無有效結果",
+                return AngleDetectionResult(
+                    result=AngleOperationResult.NO_VALID_CONTOUR,
+                    message="角度檢測失敗，無有效輪廓",
                     execution_time=execution_time
                 )
             
         except Exception as e:
             execution_time = time.time() - start_time
-            logger.error(f"角度校正過程發生異常: {e}")
-            return AngleCorrectionResult(
+            logger.error(f"角度檢測過程發生異常: {e}")
+            return AngleDetectionResult(
                 result=AngleOperationResult.SYSTEM_ERROR,
-                message="角度校正系統異常",
+                message="角度檢測系統異常",
                 execution_time=execution_time,
                 error_details=str(e)
             )
     
-    def reset_motor(self) -> AngleOperationResult:
-        """馬達重置
+    def reset_ccd3_errors(self) -> AngleOperationResult:
+        """重置CCD3錯誤狀態
         
         Returns:
             AngleOperationResult: 重置結果
         """
         try:
-            logger.info("執行馬達重置...")
+            logger.info("執行CCD3錯誤重置...")
             
-            if not self.is_system_ready():
-                return AngleOperationResult.NOT_READY
-            
-            # 發送馬達重置指令
+            # 發送重新初始化指令 (32)
             result = self.modbus_client.write_register(
-                address=self.base_address + 40, value=2, slave=1
+                address=self.ccd3_base_address, value=32, slave=1
             )
             
             if result.isError():
-                logger.error("馬達重置指令發送失敗")
+                logger.error("CCD3錯誤重置指令發送失敗")
                 return AngleOperationResult.FAILED
             
             # 等待指令處理
@@ -222,83 +231,63 @@ class AngleHighLevel:
             
             # 清除指令
             self.modbus_client.write_register(
-                address=self.base_address + 40, value=0, slave=1
+                address=self.ccd3_base_address, value=0, slave=1
             )
             
-            logger.info("馬達重置完成")
+            logger.info("CCD3錯誤重置完成")
             return AngleOperationResult.SUCCESS
             
         except Exception as e:
-            logger.error(f"馬達重置異常: {e}")
+            logger.error(f"CCD3錯誤重置異常: {e}")
             return AngleOperationResult.SYSTEM_ERROR
     
-    def reset_errors(self) -> AngleOperationResult:
-        """錯誤重置
+    def get_ccd3_status(self) -> Optional[Dict[str, Any]]:
+        """獲取CCD3系統狀態資訊
         
         Returns:
-            AngleOperationResult: 重置結果
+            Dict: CCD3系統狀態字典，包含詳細狀態資訊
         """
+        return self._read_ccd3_status()
+    
+    def get_last_detection_result(self) -> Optional[Dict[str, Any]]:
+        """獲取最後一次角度檢測結果
+        
+        Returns:
+            Dict: 檢測結果字典
+        """
+        return self._read_detection_results()
+    
+    def _set_detection_mode(self, mode: int) -> bool:
+        """設置檢測模式 (私有方法)"""
         try:
-            logger.info("執行錯誤重置...")
-            
-            # 發送錯誤重置指令
+            # 寫入檢測模式到寄存器810
             result = self.modbus_client.write_register(
-                address=self.base_address + 40, value=7, slave=1
-            )
-            
-            if result.isError():
-                logger.error("錯誤重置指令發送失敗")
-                return AngleOperationResult.FAILED
-            
-            # 等待指令處理
-            time.sleep(1.0)
-            
-            # 清除指令
-            self.modbus_client.write_register(
-                address=self.base_address + 40, value=0, slave=1
-            )
-            
-            logger.info("錯誤重置完成")
-            return AngleOperationResult.SUCCESS
-            
-        except Exception as e:
-            logger.error(f"錯誤重置異常: {e}")
-            return AngleOperationResult.SYSTEM_ERROR
-    
-    def get_system_status(self) -> Optional[Dict[str, Any]]:
-        """獲取系統狀態資訊
-        
-        Returns:
-            Dict: 系統狀態字典，包含詳細狀態資訊
-        """
-        return self._read_system_status()
-    
-    def get_last_result(self) -> Optional[Dict[str, Any]]:
-        """獲取最後一次角度校正結果
-        
-        Returns:
-            Dict: 校正結果字典
-        """
-        return self._read_correction_results()
-    
-    def _send_angle_correction_command(self) -> bool:
-        """發送角度校正指令 (私有方法)"""
-        try:
-            result = self.modbus_client.write_register(
-                address=self.base_address + 40, value=1, slave=1
+                address=self.ccd3_base_address + 10, value=mode, slave=1
             )
             return not result.isError()
         except Exception as e:
-            logger.error(f"發送角度校正指令異常: {e}")
+            logger.error(f"設置檢測模式異常: {e}")
             return False
     
-    def _wait_for_completion(self) -> AngleCorrectionResult:
-        """等待角度校正完成 (私有方法)"""
+    def _send_detection_command(self) -> bool:
+        """發送角度檢測指令 (私有方法)"""
+        try:
+            # 發送拍照+角度檢測指令 (16) 到寄存器800
+            result = self.modbus_client.write_register(
+                address=self.ccd3_base_address, value=16, slave=1
+            )
+            return not result.isError()
+        except Exception as e:
+            logger.error(f"發送角度檢測指令異常: {e}")
+            return False
+    
+    def _wait_for_detection_completion(self) -> AngleDetectionResult:
+        """等待角度檢測完成 (私有方法)"""
         start_time = time.time()
         
-        while time.time() - start_time < self.correction_timeout:
+        while time.time() - start_time < self.detection_timeout:
             try:
-                status = self._read_system_status()
+                status = self._read_ccd3_status()
                 if not status:
                     time.sleep(self.status_check_interval)
                     continue
@@ -307,72 +296,66 @@ class AngleHighLevel:
                 running = status.get('running', False)
                 alarm = status.get('alarm', False)
                 
-                logger.debug(f"執行狀態: Ready={ready}, Running={running}, Alarm={alarm}")
+                logger.debug(f"CCD3執行狀態: Ready={ready}, Running={running}, Alarm={alarm}")
                 
                 # 檢查是否有錯誤
                 if alarm:
-                    return AngleCorrectionResult(
+                    return AngleDetectionResult(
                         result=AngleOperationResult.FAILED,
-                        message="角度校正過程發生錯誤，系統進入Alarm狀態"
+                        message="CCD3檢測過程發生錯誤，系統進入Alarm狀態"
                     )
                 
                 # 檢查是否完成 (Ready=True且Running=False)
                 if ready and not running:
-                    logger.info("角度校正執行完成")
-                    return AngleCorrectionResult(
+                    logger.info("CCD3角度檢測執行完成")
+                    return AngleDetectionResult(
                         result=AngleOperationResult.SUCCESS,
-                        message="角度校正執行完成"
+                        message="CCD3角度檢測執行完成"
                     )
                 
                 time.sleep(self.status_check_interval)
                 
             except Exception as e:
-                logger.error(f"狀態檢查異常: {e}")
+                logger.error(f"CCD3狀態檢查異常: {e}")
                 time.sleep(self.status_check_interval)
         
-        logger.error(f"角度校正執行超時 ({self.correction_timeout}秒)")
-        return AngleCorrectionResult(
+        logger.error(f"CCD3角度檢測執行超時 ({self.detection_timeout}秒)")
+        return AngleDetectionResult(
             result=AngleOperationResult.TIMEOUT,
-            message=f"角度校正執行超時 ({self.correction_timeout}秒)"
+            message=f"CCD3角度檢測執行超時 ({self.detection_timeout}秒)"
         )
     
-    def _read_system_status(self) -> Optional[Dict[str, Any]]:
-        """讀取系統狀態 (私有方法)"""
+    def _read_ccd3_status(self) -> Optional[Dict[str, Any]]:
+        """讀取CCD3系統狀態 (私有方法)"""
         try:
+            # 讀取CCD3狀態寄存器 (801)
             result = self.modbus_client.read_holding_registers(
-                address=self.base_address, count=15, slave=1
+                address=self.ccd3_base_address + 1, count=1, slave=1
             )
             
             if result.isError():
                 return None
             
-            registers = result.registers
-            status_register = registers[0]
+            status_register = result.registers[0]
             
             return {
                 'status_register': status_register,
                 'ready': bool(status_register & (1 << 0)),
                 'running': bool(status_register & (1 << 1)),
                 'alarm': bool(status_register & (1 << 2)),
-                'initialized': bool(status_register & (1 << 3)),
-                'ccd_detecting': bool(status_register & (1 << 4)),
-                'motor_moving': bool(status_register & (1 << 5)),
-                'modbus_connected': bool(registers[1]),
-                'motor_connected': bool(registers[2]),
-                'error_code': registers[3],
-                'operation_count': (registers[5] << 16) | registers[4],
-                'error_count': registers[6]
+                'initialized': bool(status_register & (1 << 3))
             }
             
         except Exception as e:
-            logger.error(f"讀取系統狀態異常: {e}")
+            logger.error(f"讀取CCD3系統狀態異常: {e}")
             return None
     
-    def _read_correction_results(self) -> Optional[Dict[str, Any]]:
-        """讀取角度校正結果 (私有方法)"""
+    def _read_detection_results(self) -> Optional[Dict[str, Any]]:
+        """讀取CCD3角度檢測結果 (私有方法)"""
         try:
+            # 讀取CCD3檢測結果寄存器 (840-849)
             result = self.modbus_client.read_holding_registers(
-                address=self.base_address + 20, count=20, slave=1
+                address=self.ccd3_base_address + 40, count=10, slave=1
             )
             
             if result.isError():
@@ -384,107 +367,60 @@ class AngleHighLevel:
             if not success:
                 return {'success': False}
             
-            # 原始角度 (32位，保留2位小數)
-            angle_int = (registers[1] << 16) | registers[2]
+            # 解析檢測結果
+            center_x = registers[1]
+            center_y = registers[2]
+            
+            # 角度32位解析 (寄存器843-844)
+            angle_high = registers[3]
+            angle_low = registers[4]
+            angle_int = (angle_high << 16) | angle_low
             if angle_int >= 2**31:
                 angle_int -= 2**32
-            original_angle = angle_int / 100.0
+            angle = angle_int / 100.0
             
-            # 角度差 (32位，保留2位小數)
-            diff_int = (registers[3] << 16) | registers[4]
-            if diff_int >= 2**31:
-                diff_int -= 2**32
-            angle_diff = diff_int / 100.0
-            
-            # 馬達位置 (32位)
-            pos_int = (registers[5] << 16) | registers[6]
-            if pos_int >= 2**31:
-                pos_int -= 2**32
-            motor_position = pos_int
+            # 其他檢測資訊
+            contour_area = registers[9] if len(registers) > 9 else None
             
             return {
                 'success': True,
-                'original_angle': original_angle,
-                'angle_diff': angle_diff,
-                'motor_position': motor_position,
-                'operation_count': (registers[11] << 16) | registers[10],
-                'error_count': registers[12],
-                'runtime': registers[13]
+                'center': (center_x, center_y),
+                'angle': angle,
+                'major_axis': registers[5] if len(registers) > 5 else None,
+                'minor_axis': registers[6] if len(registers) > 6 else None,
+                'rect_width': registers[7] if len(registers) > 7 else None,
+                'rect_height': registers[8] if len(registers) > 8 else None,
+                'contour_area': contour_area
             }
             
         except Exception as e:
-            logger.error(f"讀取校正結果異常: {e}")
+            logger.error(f"讀取CCD3檢測結果異常: {e}")
             return None
 
-# 便利函數，供快速調用
-def correct_angle_to_90_degrees(host: str = "127.0.0.1", port: int = 502) -> AngleCorrectionResult:
-    """便利函數：一鍵執行角度校正到90度
+# 便利函數，供快速調用 - 修正參數傳遞
+def detect_angle_with_ccd3(host: str = "127.0.0.1", port: int = 502, detection_mode: int = 0) -> AngleDetectionResult:
+    """便利函數：一鍵執行CCD3角度檢測
     
     自動處理連接/斷開，適合簡單的一次性調用
     
     Args:
         host: Modbus服務器IP
         port: Modbus服務器端口
+        detection_mode: 檢測模式 (0=CASE, 1=DR)
         
     Returns:
-        AngleCorrectionResult: 校正結果
+        AngleDetectionResult: 檢測結果
     """
-    angle_controller = AngleHighLevel(host, port)
+    angle_detector = AngleHighLevel(host, port)
     
-    if not angle_controller.connect():
-        return AngleCorrectionResult(
+    if not angle_detector.connect():
+        return AngleDetectionResult(
             result=AngleOperationResult.CONNECTION_ERROR,
-            message="無法連接到角度調整模組"
+            message="無法連接到Modbus服務器"
         )
     
     try:
-        result = angle_controller.adjust_to_90_degrees()
+        result = angle_detector.detect_angle(detection_mode)
         return result
     finally:
-        angle_controller.disconnect()
-
-# 使用範例
-if __name__ == '__main__':
-    # 範例1: 使用便利函數 (一次性調用)
-    print("=== 範例1: 便利函數調用 ===")
-    result = correct_angle_to_90_degrees()
-    print(f"結果: {result.result.value}")
-    print(f"訊息: {result.message}")
-    if result.original_angle:
-        print(f"檢測角度: {result.original_angle:.2f}度")
-        print(f"角度差: {result.angle_diff:.2f}度")
-    
-    print("\n" + "="*50 + "\n")
-    
-    # 範例2: 使用類別實例 (持續性操作)
-    print("=== 範例2: 類別實例調用 ===")
-    angle_api = AngleHighLevel()
-    
-    if angle_api.connect():
-        print("✓ 連接成功")
-        
-        # 檢查系統狀態
-        if angle_api.is_system_ready():
-            print("✓ 系統準備就緒")
-            
-            # 執行角度校正
-            correction_result = angle_api.adjust_to_90_degrees()
-            print(f"校正結果: {correction_result.result.value}")
-            print(f"訊息: {correction_result.message}")
-            
-            if correction_result.result == AngleOperationResult.SUCCESS:
-                print(f"執行時間: {correction_result.execution_time:.2f}秒")
-                print(f"檢測角度: {correction_result.original_angle:.2f}度")
-                print(f"角度差: {correction_result.angle_diff:.2f}度")
-                print(f"馬達位置: {correction_result.motor_position}")
-        else:
-            print("✗ 系統未準備就緒")
-            
-            # 嘗試重置錯誤
-            reset_result = angle_api.reset_errors()
-            if reset_result == AngleOperationResult.SUCCESS:
-                print("✓ 錯誤重置成功")
-        
-        angle_api.disconnect()
-    else:
-        print("✗ 連接失敗")
+        angle_detector.disconnect()

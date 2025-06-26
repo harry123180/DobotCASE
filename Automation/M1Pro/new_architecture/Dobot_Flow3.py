@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Dobot_Flow3.py - Flow3 翻轉站控制流程 (立即感測器檢測版)
+Dobot_Flow3.py - Flow3 翻轉站控制流程 (PGE夾爪實際控制版)
 基於統一Flow架構的DIO控制執行器
 控制翻轉站的升降缸、夾爪、翻轉缸、輸送帶
-優化感測器檢測速度，立即檢測立即關閉輸送帶
+修正PGE夾爪控制，使用GripperHighLevelAPI實際控制
 """
 
 import time
@@ -16,9 +16,17 @@ from enum import Enum
 # 導入新架構基類
 from flow_base import FlowExecutor, FlowResult, FlowStatus
 
+# 導入PGE夾爪高層API
+try:
+    from GripperHighLevel import GripperHighLevelAPI, GripperType
+    PGE_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ PGE夾爪API導入失敗: {e}")
+    PGE_AVAILABLE = False
+
 
 class FlowFlipStationExecutor(FlowExecutor):
-    """Flow3: 翻轉站控制流程執行器 (DIO控制)"""
+    """Flow3: 翻轉站控制流程執行器 (PGE實際控制版)"""
     
     def __init__(self):
         super().__init__(flow_id=3, flow_name="翻轉站控制")
@@ -56,23 +64,61 @@ class FlowFlipStationExecutor(FlowExecutor):
         
         # PGE夾爪位置定義
         self.GRIPPER_POSITIONS = {
-            'GRIP': 500,            # 夾住位置
+            'GRIP': 370,            # 夾住位置
             'RELEASE': 1000         # 放開位置
         }
         
+        # 初始化PGE夾爪API
+        self.pge_gripper = None
+        self._init_pge_gripper()
+        
         # 建構流程步驟
         self.build_flow_steps()
+        
+    def _init_pge_gripper(self):
+        """初始化PGE夾爪API"""
+        if not PGE_AVAILABLE:
+            print("[Flow3] ⚠️ PGE夾爪API不可用，將使用模擬模式")
+            return
+            
+        try:
+            print("[Flow3] 正在初始化PGE夾爪API...")
+            self.pge_gripper = GripperHighLevelAPI(
+                gripper_type=GripperType.PGE,
+                modbus_host="127.0.0.1",
+                modbus_port=502
+            )
+            
+            if self.pge_gripper.connected:
+                print("[Flow3] ✓ PGE夾爪API初始化成功")
+                
+                # 檢查夾爪是否已初始化
+                if not self.pge_gripper.is_initialized():
+                    print("[Flow3] 正在初始化PGE夾爪...")
+                    if self.pge_gripper.initialize():
+                        print("[Flow3] ✓ PGE夾爪初始化完成")
+                    else:
+                        print("[Flow3] ⚠️ PGE夾爪初始化失敗")
+                else:
+                    print("[Flow3] ✓ PGE夾爪已初始化")
+            else:
+                print("[Flow3] ⚠️ PGE夾爪連接失敗，將使用模擬模式")
+                self.pge_gripper = None
+                
+        except Exception as e:
+            print(f"[Flow3] ✗ PGE夾爪初始化異常: {e}")
+            self.pge_gripper = None
         
     def build_flow_steps(self):
         """建構Flow3步驟"""
         self.dio_steps = [
             # 1. 升降缸回原點
-            {'type': 'lift_home', 'params': {}},
+            #{'type': 'lift_home', 'params': {}},
             
             # 2. 下降
             {'type': 'lift_down', 'params': {}},
             
-            # 3. 夾持 (智慧夾持)
+            # 3. 夾持 (PGE智慧夾持)
             {'type': 'pge_smart_grip', 'params': {'position': self.GRIPPER_POSITIONS['GRIP']}},
             
             # 4. 上升
@@ -84,7 +130,7 @@ class FlowFlipStationExecutor(FlowExecutor):
             # 6. 下降
             {'type': 'lift_down', 'params': {}},
             
-            # 7. 開爪 (快速開爪)
+            # 7. 開爪 (PGE快速開爪)
             {'type': 'pge_quick_release', 'params': {'position': self.GRIPPER_POSITIONS['RELEASE']}},
             
             # 8. 上升
@@ -92,11 +138,13 @@ class FlowFlipStationExecutor(FlowExecutor):
             
             # 9. 翻轉回0度
             {'type': 'flip_0', 'params': {}},
+            # 2. 下降
+            {'type': 'lift_down', 'params': {}},
             
             # 10. 立即感測器檢測輸送帶控制
             {'type': 'conveyor_instant_sensor', 'params': {
                 'sensor_pin': self.DIO_PINS['SENSOR_DI13'], 
-                'timeout': 10.0  # 減少超時時間
+                'timeout': 10.0
             }},
         ]
         
@@ -110,6 +158,7 @@ class FlowFlipStationExecutor(FlowExecutor):
         
         print(f"\n[Flow3] === 開始執行Flow3翻轉站控制流程 ===")
         print(f"[Flow3] 總步驟數: {self.total_steps}")
+        print(f"[Flow3] PGE夾爪狀態: {'已連接' if self.pge_gripper else '模擬模式'}")
         
         # 檢查初始化
         if not self.robot:
@@ -227,15 +276,13 @@ class FlowFlipStationExecutor(FlowExecutor):
     # ==================== DIO操作方法 ====================
     
     def _set_do(self, pin: int, value: int) -> bool:
-        """設定數位輸出 - 添加具體API調用打印"""
+        """設定數位輸出"""
         try:
             print(f"[Flow3]     正在執行: dashboard_api.DOExecute({pin}, {value})")
             
-            # 使用DOExecute進行立即執行
             result = self.robot.dashboard_api.DOExecute(pin, value)
             print(f"[Flow3]     API返回結果: {result}")
             
-            # 解析API返回值 (格式: "ErrorID,{},DOExecute(pin,value);")
             if result and isinstance(result, str):
                 parts = result.split(',')
                 if len(parts) > 0:
@@ -256,11 +303,10 @@ class FlowFlipStationExecutor(FlowExecutor):
             return False
 
     def _get_di(self, pin: int) -> int:
-        """讀取數位輸入 - 快速讀取，減少打印"""
+        """讀取數位輸入"""
         try:
             result = self.robot.dashboard_api.DI(pin)
             
-            # 解析DI返回值 (格式: "ErrorID,{DI_pin},{DI_value},")
             if result and isinstance(result, str):
                 parts = result.split(',')
                 if len(parts) >= 3:
@@ -286,14 +332,12 @@ class FlowFlipStationExecutor(FlowExecutor):
         try:
             print("[Flow3]   升降缸回原點")
             
-            # DO14=HIGH -> 回原點脈衝
             if not self._set_do(self.DIO_PINS['LIFT_HOME'], 1):
                 return False
                 
             print(f"[Flow3]   等待回原點完成 ({self.TIMING_CONFIG['LIFT_HOME_TIME']}秒)")
             time.sleep(self.TIMING_CONFIG['LIFT_HOME_TIME'])
             
-            # DO14=LOW -> 結束脈衝
             if not self._set_do(self.DIO_PINS['LIFT_HOME'], 0):
                 return False
                 
@@ -309,7 +353,6 @@ class FlowFlipStationExecutor(FlowExecutor):
         try:
             print("[Flow3]   升降缸下降")
             
-            # 設定方向為下降 (DIR1=LOW, DIR2=HIGH)
             if not self._set_do(self.DIO_PINS['LIFT_DIR1'], 0):
                 return False
             if not self._set_do(self.DIO_PINS['LIFT_DIR2'], 1):
@@ -317,14 +360,12 @@ class FlowFlipStationExecutor(FlowExecutor):
                 
             time.sleep(self.TIMING_CONFIG['DIRECTION_SETUP_DELAY'])
             
-            # 啟動脈衝 DO11=HIGH
             if not self._set_do(self.DIO_PINS['LIFT_TRIGGER'], 1):
                 return False
                 
             print(f"[Flow3]   等待下降完成 ({self.TIMING_CONFIG['LIFT_MOTION_TIME']}秒)")
             time.sleep(self.TIMING_CONFIG['LIFT_MOTION_TIME'])
             
-            # 停止脈衝 DO11=LOW
             if not self._set_do(self.DIO_PINS['LIFT_TRIGGER'], 0):
                 return False
                 
@@ -340,7 +381,6 @@ class FlowFlipStationExecutor(FlowExecutor):
         try:
             print("[Flow3]   升降缸上升")
             
-            # 設定方向為上升 (DIR1=HIGH, DIR2=LOW)
             if not self._set_do(self.DIO_PINS['LIFT_DIR1'], 1):
                 return False
             if not self._set_do(self.DIO_PINS['LIFT_DIR2'], 0):
@@ -348,14 +388,12 @@ class FlowFlipStationExecutor(FlowExecutor):
                 
             time.sleep(self.TIMING_CONFIG['DIRECTION_SETUP_DELAY'])
             
-            # 啟動脈衝 DO11=HIGH
             if not self._set_do(self.DIO_PINS['LIFT_TRIGGER'], 1):
                 return False
                 
             print(f"[Flow3]   等待上升完成 ({self.TIMING_CONFIG['LIFT_MOTION_TIME']}秒)")
             time.sleep(self.TIMING_CONFIG['LIFT_MOTION_TIME'])
             
-            # 停止脈衝 DO11=LOW
             if not self._set_do(self.DIO_PINS['LIFT_TRIGGER'], 0):
                 return False
                 
@@ -367,37 +405,63 @@ class FlowFlipStationExecutor(FlowExecutor):
             return False
     
     def _pge_smart_grip(self, params: Dict[str, Any]) -> bool:
-        """PGE智慧夾持"""
+        """PGE智慧夾持 - 實際控制版"""
         try:
             position = params.get('position', self.GRIPPER_POSITIONS['GRIP'])
             print(f"[Flow3]   PGE智慧夾持 (位置: {position})")
             
-            # 這裡應該調用PGE夾爪API，暫時用模擬
-            print(f"[Flow3]   正在執行: PGE.MoveTo({position})")
-            time.sleep(self.TIMING_CONFIG['GRIPPER_TIME'])
-            print("[Flow3]   ✓ PGE智慧夾持完成")
+            # 檢查PGE夾爪是否可用
+            if not self.pge_gripper:
+                print("[Flow3]   ⚠️ PGE夾爪不可用，使用模擬模式")
+                time.sleep(self.TIMING_CONFIG['GRIPPER_TIME'])
+                print("[Flow3]   ✓ PGE智慧夾持完成 (模擬)")
+                return True
             
-            return True
+            # 使用PGE夾爪API進行智慧夾取
+            print(f"[Flow3]   正在執行: PGE.smart_grip({position})")
+            
+            success = self.pge_gripper.pge_smart_grip(target_position=position)
+            
+            if success:
+                print("[Flow3]   ✓ PGE智慧夾持成功")
+                return True
+            else:
+                print("[Flow3]   ✗ PGE智慧夾持失敗")
+                return False
                 
         except Exception as e:
-            print(f"[Flow3]   ✗ PGE智慧夾持失敗: {e}")
+            print(f"[Flow3]   ✗ PGE智慧夾持異常: {e}")
+            traceback.print_exc()
             return False
             
     def _pge_quick_release(self, params: Dict[str, Any]) -> bool:
-        """PGE快速開爪"""
+        """PGE快速開爪 - 實際控制版"""
         try:
             position = params.get('position', self.GRIPPER_POSITIONS['RELEASE'])
             print(f"[Flow3]   PGE快速開爪 (位置: {position})")
             
-            # 這裡應該調用PGE夾爪API，暫時用模擬
-            print(f"[Flow3]   正在執行: PGE.QuickRelease({position})")
-            time.sleep(self.TIMING_CONFIG['GRIPPER_TIME'])
-            print("[Flow3]   ✓ PGE快速開爪完成")
+            # 檢查PGE夾爪是否可用
+            if not self.pge_gripper:
+                print("[Flow3]   ⚠️ PGE夾爪不可用，使用模擬模式")
+                time.sleep(self.TIMING_CONFIG['GRIPPER_TIME'])
+                print("[Flow3]   ✓ PGE快速開爪完成 (模擬)")
+                return True
             
-            return True
+            # 使用PGE夾爪API進行快速開啟
+            print(f"[Flow3]   正在執行: PGE.quick_open({position})")
+            
+            success = self.pge_gripper.pge_quick_open(release_position=position)
+            
+            if success:
+                print("[Flow3]   ✓ PGE快速開爪成功")
+                return True
+            else:
+                print("[Flow3]   ✗ PGE快速開爪失敗")
+                return False
                 
         except Exception as e:
-            print(f"[Flow3]   ✗ PGE快速開爪失敗: {e}")
+            print(f"[Flow3]   ✗ PGE快速開爪異常: {e}")
+            traceback.print_exc()
             return False
             
     def _flip_180(self) -> bool:
@@ -405,7 +469,6 @@ class FlowFlipStationExecutor(FlowExecutor):
         try:
             print("[Flow3]   翻轉缸180度翻轉")
             
-            # DO5=HIGH -> 180度
             if not self._set_do(self.DIO_PINS['FLIP_CYLINDER'], 1):
                 return False
                 
@@ -424,7 +487,6 @@ class FlowFlipStationExecutor(FlowExecutor):
         try:
             print("[Flow3]   翻轉缸回0度")
             
-            # DO5=LOW -> 0度
             if not self._set_do(self.DIO_PINS['FLIP_CYLINDER'], 0):
                 return False
                 
@@ -439,35 +501,29 @@ class FlowFlipStationExecutor(FlowExecutor):
             return False
             
     def _conveyor_instant_sensor(self, params: Dict[str, Any]) -> bool:
-        """立即感測器檢測輸送帶控制 - 優化版"""
+        """立即感測器檢測輸送帶控制"""
         try:
             sensor_pin = params['sensor_pin']
             timeout = params.get('timeout', 10.0)
             print(f"[Flow3]   啟動輸送帶，立即感測器檢測模式 (DI{sensor_pin}=0表示到位)")
             
-            # 啟動輸送帶 DO2=HIGH
             if not self._set_do(self.DIO_PINS['CONVEYOR'], 1):
                 return False
                 
             print("[Flow3]   ✓ 輸送帶已啟動，開始高速感測器檢測...")
             
-            # 立即檢測模式
             start_time = time.time()
             check_count = 0
             sensor_triggered = False
             
-            # 高速檢測循環
             while time.time() - start_time < timeout:
-                # 檢查Flow狀態
                 if self.status != FlowStatus.RUNNING:
                     print(f"[Flow3]   Flow狀態變更，停止檢測")
                     break
                 
-                # 立即檢測感測器
                 current_sensor = self._get_di(sensor_pin)
                 check_count += 1
                 
-                # DI13=0表示到位，立即觸發
                 if current_sensor == 0:
                     elapsed = time.time() - start_time
                     print(f"[Flow3]   ✓ 感測器立即觸發！DI{sensor_pin}=0，物件已到位")
@@ -475,15 +531,12 @@ class FlowFlipStationExecutor(FlowExecutor):
                     sensor_triggered = True
                     break
                 
-                # 最小檢測間隔 (20ms高速檢測)
                 time.sleep(self.TIMING_CONFIG['SENSOR_CHECK_INTERVAL'])
                 
-                # 定期狀態報告 (每秒報告一次)
-                if check_count % 50 == 0:  # 50次*20ms = 1秒
+                if check_count % 50 == 0:
                     elapsed = time.time() - start_time
                     print(f"[Flow3]   高速檢測中... {elapsed:.1f}秒，檢查{check_count}次，當前值: {current_sensor}")
             
-            # 立即停止輸送帶 (無論是否觸發)
             print(f"[Flow3]   立即停止輸送帶...")
             stop_success = self._set_do(self.DIO_PINS['CONVEYOR'], 0)
             
@@ -492,26 +545,22 @@ class FlowFlipStationExecutor(FlowExecutor):
             else:
                 print("[Flow3]   ⚠️ 停止輸送帶失敗")
             
-            # 結果分析
             elapsed = time.time() - start_time
             
             if sensor_triggered:
                 print(f"[Flow3]   ✓ 感測器檢測成功完成")
                 print(f"[Flow3]   總耗時: {elapsed:.3f}秒，檢查次數: {check_count}")
                 
-                # 防彈跳等待 (確保信號穩定)
                 if self.TIMING_CONFIG['SENSOR_DEBOUNCE_TIME'] > 0:
                     print(f"[Flow3]   防彈跳等待 {self.TIMING_CONFIG['SENSOR_DEBOUNCE_TIME']*1000:.0f}ms...")
                     time.sleep(self.TIMING_CONFIG['SENSOR_DEBOUNCE_TIME'])
                     
-                    # 再次確認感測器狀態
                     final_sensor = self._get_di(sensor_pin)
                     print(f"[Flow3]   最終感測器狀態確認: DI{sensor_pin} = {final_sensor}")
                 
             else:
                 print(f"[Flow3]   ⚠️ 感測器檢測超時")
                 print(f"[Flow3]   超時時間: {elapsed:.1f}秒，總檢查次數: {check_count}")
-                # 超時也返回True，避免阻塞流程
             
             return True
             
@@ -519,7 +568,6 @@ class FlowFlipStationExecutor(FlowExecutor):
             print(f"[Flow3]   ✗ 立即感測器檢測失敗: {e}")
             traceback.print_exc()
             
-            # 確保輸送帶停止
             try:
                 self._set_do(self.DIO_PINS['CONVEYOR'], 0)
                 print(f"[Flow3]   ✓ 異常處理：輸送帶已停止")
@@ -550,12 +598,11 @@ class FlowFlipStationExecutor(FlowExecutor):
         """停止Flow (緊急停止)"""
         self.status = FlowStatus.ERROR
         
-        # 緊急停止：關閉所有輸出
         try:
             print("[Flow3] 緊急停止，關閉所有輸出")
-            self._set_do(self.DIO_PINS['CONVEYOR'], 0)      # 停止輸送帶
-            self._set_do(self.DIO_PINS['FLIP_CYLINDER'], 0) # 翻轉缸回0度
-            self._set_do(self.DIO_PINS['LIFT_TRIGGER'], 0)  # 停止升降缸
+            self._set_do(self.DIO_PINS['CONVEYOR'], 0)
+            self._set_do(self.DIO_PINS['FLIP_CYLINDER'], 0)
+            self._set_do(self.DIO_PINS['LIFT_TRIGGER'], 0)
             print("[Flow3] 翻轉站控制已緊急停止")
         except:
             pass
@@ -567,3 +614,12 @@ class FlowFlipStationExecutor(FlowExecutor):
         if self.total_steps == 0:
             return 0
         return int((self.current_step / self.total_steps) * 100)
+    
+    def cleanup(self):
+        """清理資源"""
+        if self.pge_gripper:
+            try:
+                self.pge_gripper.disconnect()
+                print("[Flow3] ✓ PGE夾爪連接已清理")
+            except:
+                pass
