@@ -4,6 +4,7 @@
 Dobot_Flow5.py - Flow5 機械臂運轉流程執行器  
 基於Flow3組裝作業流程，整合角度檢測與第四軸旋轉控制
 參考Flow1/Flow2點位載入方式，禁止使用內建點位
+修改版：優化角度控制邏輯
 """
 
 import time
@@ -174,7 +175,7 @@ class Flow5AssemblyExecutor:
             return False
     
     def build_flow_steps(self):
-        """建構Flow5步驟 - 完整流程序列 (14步)"""
+        """建構Flow5步驟 - 完整流程序列 (14步) - 修改版角度控制"""
         self.motion_steps = [
             # 1. 移動到standby (起點)
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
@@ -184,37 +185,37 @@ class Flow5AssemblyExecutor:
 
             {'type': 'move_to_point', 'params': {'point_name': 'flip_pre', 'move_type': 'J'}},
             
-            # 3. 移動到rotate_top (帶commandAngle)
-            {'type': 'move_to_point_with_angle', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
+            # 3. 移動到rotate_top (不帶角度，使用原始角度)
+            {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
             
-            # 4. 移動到rotate_down (帶commandAngle)
-            {'type': 'move_to_point_with_angle', 'params': {'point_name': 'rotate_down', 'move_type': 'J'}},
+            # 4. 移動到rotate_down (不帶角度，使用原始角度)
+            {'type': 'move_to_point', 'params': {'point_name': 'rotate_down', 'move_type': 'J'}},
             
             # 5. 夾爪撐開到470 (智慧撐開)
             {'type': 'gripper_smart_release', 'params': {'position': 470}},
             
-            # 6. 移動到rotate_top (帶commandAngle)
-            {'type': 'move_to_point_with_angle', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
+            # 6. 移動到rotate_top (不帶角度，使用原始角度)
+            {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
             
-            # 7. 移動到put_asm_pre
+            # 7. 移動到put_asm_pre (不帶角度)
             {'type': 'move_to_point', 'params': {'point_name': 'put_asm_pre', 'move_type': 'J'}},
             
-            # 8. 移動到put_asm_top
-            {'type': 'move_to_point', 'params': {'point_name': 'put_asm_top', 'move_type': 'J'}},
+            # 8. 移動到put_asm_top (帶commandAngle)
+            {'type': 'move_to_point_with_angle', 'params': {'point_name': 'put_asm_top', 'move_type': 'J'}},
             
-            # 9. 移動到put_asm_down
-            {'type': 'move_to_point', 'params': {'point_name': 'put_asm_down', 'move_type': 'J'}},
+            # 9. 移動到put_asm_down (帶commandAngle)
+            {'type': 'move_to_point_with_angle', 'params': {'point_name': 'put_asm_down', 'move_type': 'J'}},
             
             # 10. 夾爪快速關閉
             {'type': 'gripper_quick_close', 'params': {}},
             
-            # 11. 移動到put_asm_top (新增)
-            {'type': 'move_to_point', 'params': {'point_name': 'put_asm_top', 'move_type': 'J'}},
+            # 11. 移動到put_asm_top (帶commandAngle)
+            {'type': 'move_to_point_with_angle', 'params': {'point_name': 'put_asm_top', 'move_type': 'J'}},
             
-            # 12. 移動到put_asm_pre
+            # 12. 移動到put_asm_pre (不帶角度)
             {'type': 'move_to_point', 'params': {'point_name': 'put_asm_pre', 'move_type': 'J'}},
             
-            # 13. 移動到rotate_top (不帶commandAngle)
+            # 13. 移動到rotate_top (不帶角度)
             {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'flip_pre', 'move_type': 'J'}},
             # 14. 移動到standby (完成)
@@ -223,12 +224,13 @@ class Flow5AssemblyExecutor:
         
         self.total_steps = len(self.motion_steps)
         print(f"Flow5流程步驟建構完成，共{self.total_steps}步")
+        print("角度控制策略：rotate相關點位使用原始角度，put_asm_top/put_asm_down使用commandAngle")
     
     def execute(self) -> FlowResult:
         """執行Flow5主邏輯"""
         print("\n" + "="*60)
-        print("開始執行Flow5 - 機械臂運轉流程 (含角度檢測)")
-        print("流程序列: standby->角度檢測->rotate_top->rotate_down->夾爪撐開->rotate_top->put_asm_pre->put_asm_top->put_asm_down->夾爪關閉->put_asm_top->put_asm_pre->rotate_top->standby")
+        print("開始執行Flow5 - 機械臂運轉流程 (修改版角度控制)")
+        print("流程序列: standby->角度檢測->rotate_top->rotate_down->夾爪撐開->rotate_top->put_asm_pre->put_asm_top(角度)->put_asm_down(角度)->夾爪關閉->put_asm_top(角度)->put_asm_pre->rotate_top->standby")
         print(f"第四軸原始角度: {self.J4_ORIGINAL_DEGREE}度")
         print("="*60)
         
@@ -356,16 +358,16 @@ class Flow5AssemblyExecutor:
             # 獲取target_angle
             self.target_angle = detection_result.target_angle
             print(f"  ✓ 檢測到目標角度: {self.target_angle:.2f}度")
-            
+            self.command_angle =self.target_angle-3.14
             # 計算commandAngle
-
-                # target_angle > 45度
-            if self.target_angle >45:
-                self.command_angle =  225-self.target_angle-8
-                print(f"  commandAngle = {self.command_angle:.2f}度")
-            elif self.target_angle <=45:
-                self.command_angle =  135-self.target_angle-8
-                print(f"  commandAngle = {self.command_angle:.2f}度")
+            """
+            if self.target_angle > 45:
+                self.command_angle = 225 - self.target_angle 
+                print(f"  commandAngle = 225 - {self.target_angle:.2f} - 7.23 = {self.command_angle:.2f}度")
+            elif self.target_angle <= 45:
+                self.command_angle = 225 - self.target_angle #135
+                print(f"  commandAngle = 135 - {self.target_angle:.2f} - 7.23 = {self.command_angle:.2f}度")
+            """
             return True
             
         except Exception as e:
@@ -374,7 +376,7 @@ class Flow5AssemblyExecutor:
             return False
     
     def _execute_move_to_point_with_angle(self, params: Dict[str, Any]) -> bool:
-        """執行移動到指定點位並使用commandAngle作為第四軸角度"""
+        """執行移動到指定點位並使用commandAngle作為第四軸角度 (僅用於put_asm_top/put_asm_down)"""
         try:
             point_name = params['point_name']
             move_type = params.get('move_type', 'J')
@@ -451,7 +453,7 @@ class Flow5AssemblyExecutor:
             return False
     
     def _execute_move_to_point(self, params: Dict[str, Any]) -> bool:
-        """執行移動到指定點位 - 參考Flow1/Flow2實現"""
+        """執行移動到指定點位 - 使用原始記錄的角度"""
         try:
             point_name = params['point_name']
             move_type = params.get('move_type', 'J')
@@ -467,7 +469,6 @@ class Flow5AssemblyExecutor:
             
             # 根據JSON格式提取座標數據
             if 'cartesian' in point_item:
-                # 使用cartesian座標
                 cartesian_data = point_item['cartesian']
             else:
                 self.last_error = f"點位{point_name}缺少cartesian數據"
@@ -476,33 +477,32 @@ class Flow5AssemblyExecutor:
             
             # 根據JSON格式提取關節數據
             if 'joint' in point_item:
-                # 使用joint座標
                 joint_data = point_item['joint']
             else:
                 self.last_error = f"點位{point_name}缺少joint數據"
                 print(f"  ✗ 移動操作失敗: {self.last_error}")
                 return False
             
-            print(f"移動到點位 {point_name}")
+            print(f"移動到點位 {point_name} (使用原始記錄角度)")
             print(f"  關節角度: (j1:{joint_data['j1']:.1f}, j2:{joint_data['j2']:.1f}, j3:{joint_data['j3']:.1f}, j4:{joint_data['j4']:.1f})")
             print(f"  笛卡爾座標: ({cartesian_data['x']:.2f}, {cartesian_data['y']:.2f}, {cartesian_data['z']:.2f}, {cartesian_data['r']:.2f})")
             
-            # 執行移動 - 參考Flow1/Flow2的實現
+            # 執行移動 - 使用原始記錄的角度
             if move_type == 'J':
-                # 使用關節角度運動 - 參考Flow1/Flow2的joint_move_j方法
+                # 使用關節角度運動 - 使用原始記錄的第四軸角度
                 success = self.robot.joint_move_j(
                     joint_data['j1'], 
                     joint_data['j2'], 
                     joint_data['j3'], 
-                    joint_data['j4']
+                    joint_data['j4']  # 使用原始記錄的角度
                 )
             elif move_type == 'L':
-                # 直線運動使用笛卡爾座標 - 參考Flow1的move_l方法
+                # 直線運動使用笛卡爾座標 - 使用原始記錄的r值
                 success = self.robot.move_l(
                     cartesian_data['x'], 
                     cartesian_data['y'], 
                     cartesian_data['z'], 
-                    cartesian_data['r']
+                    cartesian_data['r']  # 使用原始記錄的角度
                 )
             else:
                 self.last_error = f"未知移動類型: {move_type}"
@@ -510,7 +510,7 @@ class Flow5AssemblyExecutor:
                 return False
             
             if success:
-                print(f"  ✓ 移動到 {point_name} 成功 ({move_type})")
+                print(f"  ✓ 移動到 {point_name} 成功 ({move_type}) - 使用原始角度")
                 return True
             else:
                 self.last_error = f"移動到 {point_name} 失敗"
@@ -523,7 +523,7 @@ class Flow5AssemblyExecutor:
             return False
     
     def _execute_gripper_quick_close(self) -> bool:
-        """執行夾爪快速關閉 - 參考Flow1/Flow2實現"""
+        """執行夾爪快速關閉"""
         try:
             if not self.gripper:
                 self.last_error = "夾爪控制器未初始化"
@@ -560,7 +560,7 @@ class Flow5AssemblyExecutor:
             return False
     
     def _execute_gripper_smart_release(self, params: Dict[str, Any]) -> bool:
-        """執行夾爪智慧撐開 - 參考Flow1/Flow2實現"""
+        """執行夾爪智慧撐開"""
         try:
             if not self.gripper:
                 self.last_error = "夾爪控制器未初始化"

@@ -113,7 +113,7 @@ class FlowFlipStationExecutor(FlowExecutor):
         """建構Flow3步驟"""
         self.dio_steps = [
             # 1. 升降缸回原點
-            #{'type': 'lift_home', 'params': {}},
+            {'type': 'lift_home', 'params': {}},
             
             # 2. 下降
             {'type': 'lift_down', 'params': {}},
