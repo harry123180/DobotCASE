@@ -56,6 +56,7 @@ class AngleHighLevel:
         # 操作超時設定
         self.detection_timeout = 10.0  # 角度檢測總超時10秒
         self.status_check_interval = 0.2  # 狀態檢查間隔200ms
+        self.command_confirm_timeout = 3.0  # 指令確認超時3秒
         
         logger.info(f"AngleHighLevel初始化: {host}:{port}, CCD3基地址:{self.ccd3_base_address}")
     
@@ -158,22 +159,25 @@ class AngleHighLevel:
                     message="設置檢測模式失敗"
                 )
             
-            # 步驟4: 發送角度檢測指令
-            logger.info("發送角度檢測指令...")
-            if not self._send_detection_command():
-                return AngleDetectionResult(
-                    result=AngleOperationResult.FAILED,
-                    message="發送角度檢測指令失敗"
-                )
-            
-            # 步驟5: 等待檢測完成
-            logger.info("等待角度檢測執行完成...")
-            execution_result = self._wait_for_detection_completion()
-            
+            # 步驟4: 發送角度檢測指令並確認系統開始執行
+            logger.info("發送角度檢測指令並確認執行...")
+            execution_result = self._send_detection_command_with_confirm()
             if execution_result.result != AngleOperationResult.SUCCESS:
                 return execution_result
             
-            # 步驟6: 讀取檢測結果
+            # 步驟5: 等待檢測完成
+            logger.info("等待角度檢測執行完成...")
+            completion_result = self._wait_for_detection_completion()
+            if completion_result.result != AngleOperationResult.SUCCESS:
+                return completion_result
+            
+            # 步驟6: 清除指令並確認系統回到Ready狀態
+            logger.info("清除指令並確認系統回到Ready狀態...")
+            clear_result = self._clear_command_and_confirm_ready()
+            if clear_result.result != AngleOperationResult.SUCCESS:
+                return clear_result
+            
+            # 步驟7: 讀取檢測結果
             result_data = self._read_detection_results()
             execution_time = time.time() - start_time
             
@@ -269,17 +273,87 @@ class AngleHighLevel:
             logger.error(f"設置檢測模式異常: {e}")
             return False
     
-    def _send_detection_command(self) -> bool:
-        """發送角度檢測指令 (私有方法)"""
+    def _send_detection_command_with_confirm(self) -> AngleDetectionResult:
+        """發送角度檢測指令並確認系統開始執行 (私有方法)"""
         try:
-            # 發送拍照+角度檢測指令 (16) 到寄存器800
+            # 步驟1: 確保控制指令寄存器已清零
+            logger.debug("確保CCD3控制指令寄存器已清零...")
+            clear_result = self.modbus_client.write_register(
+                address=self.ccd3_base_address, value=0, slave=1
+            )
+            if clear_result.isError():
+                return AngleDetectionResult(
+                    result=AngleOperationResult.FAILED,
+                    message="清零CCD3控制指令失敗"
+                )
+            
+            # 步驟2: 等待系統回到Ready狀態
+            logger.debug("等待CCD3系統回到Ready狀態...")
+            start_time = time.time()
+            while time.time() - start_time < self.command_confirm_timeout:
+                status = self._read_ccd3_status()
+                if status:
+                    ready = status.get('ready', False)
+                    running = status.get('running', False)
+                    if ready and not running:
+                        logger.debug("CCD3系統已回到Ready狀態")
+                        break
+                time.sleep(0.1)
+            else:
+                return AngleDetectionResult(
+                    result=AngleOperationResult.TIMEOUT,
+                    message="等待CCD3系統Ready狀態超時"
+                )
+            
+            # 步驟3: 發送拍照+角度檢測指令 (16)
+            logger.debug("發送CCD3拍照+角度檢測指令 (16)...")
             result = self.modbus_client.write_register(
                 address=self.ccd3_base_address, value=16, slave=1
             )
-            return not result.isError()
+            if result.isError():
+                return AngleDetectionResult(
+                    result=AngleOperationResult.FAILED,
+                    message="發送角度檢測指令失敗"
+                )
+            
+            # 步驟4: 確認系統開始執行 (Ready=False, Running=True)
+            logger.debug("確認CCD3系統開始執行...")
+            start_time = time.time()
+            while time.time() - start_time < self.command_confirm_timeout:
+                status = self._read_ccd3_status()
+                if status:
+                    ready = status.get('ready', False)
+                    running = status.get('running', False)
+                    alarm = status.get('alarm', False)
+                    
+                    logger.debug(f"CCD3執行確認: Ready={ready}, Running={running}, Alarm={alarm}")
+                    
+                    if alarm:
+                        return AngleDetectionResult(
+                            result=AngleOperationResult.FAILED,
+                            message="CCD3系統發生錯誤，進入Alarm狀態"
+                        )
+                    
+                    if not ready and running:
+                        logger.debug("CCD3系統已開始執行檢測")
+                        return AngleDetectionResult(
+                            result=AngleOperationResult.SUCCESS,
+                            message="CCD3系統已開始執行檢測"
+                        )
+                
+                time.sleep(0.1)
+            
+            return AngleDetectionResult(
+                result=AngleOperationResult.TIMEOUT,
+                message="確認CCD3系統開始執行超時"
+            )
+            
         except Exception as e:
-            logger.error(f"發送角度檢測指令異常: {e}")
-            return False
+            logger.error(f"發送檢測指令異常: {e}")
+            return AngleDetectionResult(
+                result=AngleOperationResult.SYSTEM_ERROR,
+                message=f"發送檢測指令異常: {e}"
+            )
     
     def _wait_for_detection_completion(self) -> AngleDetectionResult:
         """等待角度檢測完成 (私有方法)"""
@@ -305,9 +379,9 @@ class AngleHighLevel:
                         message="CCD3檢測過程發生錯誤，系統進入Alarm狀態"
                     )
                 
-                # 檢查是否完成 (Ready=True且Running=False)
-                if ready and not running:
-                    logger.info("CCD3角度檢測執行完成")
+                # 檢查是否完成 (Running=False，但此時Ready可能仍為False)
+                if not running:
+                    logger.info("CCD3角度檢測執行完成 (Running=False)")
                     return AngleDetectionResult(
                         result=AngleOperationResult.SUCCESS,
                         message="CCD3角度檢測執行完成"
@@ -324,6 +398,59 @@ class AngleHighLevel:
             result=AngleOperationResult.TIMEOUT,
             message=f"CCD3角度檢測執行超時 ({self.detection_timeout}秒)"
         )
+    
+    def _clear_command_and_confirm_ready(self) -> AngleDetectionResult:
+        """清除控制指令並確認系統回到Ready狀態 (私有方法)"""
+        try:
+            # 步驟1: 清除控制指令 (寫入0到寄存器800)
+            logger.debug("清除CCD3控制指令...")
+            result = self.modbus_client.write_register(
+                address=self.ccd3_base_address, value=0, slave=1
+            )
+            if result.isError():
+                return AngleDetectionResult(
+                    result=AngleOperationResult.FAILED,
+                    message="清除CCD3控制指令失敗"
+                )
+            
+            # 步驟2: 確認系統回到Ready狀態 (Ready=True, Running=False)
+            logger.debug("確認CCD3系統回到Ready狀態...")
+            start_time = time.time()
+            while time.time() - start_time < self.command_confirm_timeout:
+                status = self._read_ccd3_status()
+                if status:
+                    ready = status.get('ready', False)
+                    running = status.get('running', False)
+                    alarm = status.get('alarm', False)
+                    
+                    logger.debug(f"CCD3準備狀態確認: Ready={ready}, Running={running}, Alarm={alarm}")
+                    
+                    if alarm:
+                        return AngleDetectionResult(
+                            result=AngleOperationResult.FAILED,
+                            message="CCD3系統回到Ready狀態時發生錯誤"
+                        )
+                    
+                    if ready and not running:
+                        logger.debug("CCD3系統已回到Ready狀態，交握完成")
+                        return AngleDetectionResult(
+                            result=AngleOperationResult.SUCCESS,
+                            message="CCD3系統交握完成"
+                        )
+                
+                time.sleep(0.1)
+            
+            return AngleDetectionResult(
+                result=AngleOperationResult.TIMEOUT,
+                message="確認CCD3系統回到Ready狀態超時"
+            )
+            
+        except Exception as e:
+            logger.error(f"清除指令並確認Ready狀態異常: {e}")
+            return AngleDetectionResult(
+                result=AngleOperationResult.SYSTEM_ERROR,
+                message=f"清除指令並確認Ready狀態異常: {e}"
+            )
     
     def _read_ccd3_status(self) -> Optional[Dict[str, Any]]:
         """讀取CCD3系統狀態 (私有方法)"""
