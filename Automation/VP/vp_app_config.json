@@ -10,7 +10,7 @@
     "base_address": 300
   },
   "web_server": {
-    "host": "localhost",
+    "host": "0.0.0.0",
     "port": 5053,
     "debug": false
   },

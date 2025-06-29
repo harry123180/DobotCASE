@@ -20,7 +20,7 @@
   "detection_params": {
     "min_area_rate": 50,
     "sequence_mode": 0,
-    "gaussian_kernel": 3,
+    "gaussian_kernel": 101,
     "threshold_mode": 0,
     "manual_threshold": 250
   }
