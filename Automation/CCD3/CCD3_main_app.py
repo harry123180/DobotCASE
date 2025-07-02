@@ -11,13 +11,13 @@ from enum import Enum
 import cv2
 import numpy as np
 import math
-
+import datetime
 # PyModbus imports
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ModbusException
 
 # Flask imports
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory ,send_file
 from flask_socketio import SocketIO, emit
 
 # Import camera manager
@@ -418,9 +418,10 @@ class CCD3AngleDetectionService:
         
         # 調試圖像儲存
         self.debug_enabled = True
+        # 修改調試圖像儲存目錄
         self.debug_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'debug_images')
         self._ensure_debug_dir()
-        
+        self.socketio_instance = None  # 將在main中設置
         # 控制變量
         self.last_control_command = 0
         self.command_processing = False
@@ -449,285 +450,453 @@ class CCD3AngleDetectionService:
         
         # 預設參數已寫入標誌
         self.default_params_written = False
-    
+
+    def initialize_camera(self, ip_address: str = "192.168.1.10") -> bool:
+        """初始化相機 - 適配新版camera_manager API"""
+        try:
+            print(f"正在初始化相機，IP地址: {ip_address}")
+            
+            if self.camera:
+                print("關閉現有相機連接...")
+                self.camera.disconnect()
+                self.camera = None
+            
+            # 使用新版CameraConfig，增加頻寬控制參數
+            config = CameraConfig(
+                name="ccd3_camera",
+                ip=ip_address,
+                exposure_time=20000.0,
+                gain=200.0,
+                frame_rate=30.0,
+                width=2592,
+                height=1944,
+                bandwidth_limit_mbps=200,  # 新增：200 MB/s頻寬限制
+                enable_bandwidth_control=True,  # 新增：啟用頻寬控制
+                packet_size=1500,  # 新增：設置包大小
+                packet_delay=5000,  # 新增：包間延遲
+                buffer_count=1,    # 新增：最小緩存
+                use_latest_frame_only=True  # 新增：只保留最新幀
+            )
+            
+            self.camera = OptimizedCamera(config, logger)
+            
+            if self.camera.connect():
+                print(f"CCD3相機已成功連接: {ip_address}")
+                print(f"頻寬限制已設置為: {config.bandwidth_limit_mbps} MB/s")
+                
+                if self.camera.start_streaming():
+                    print("相機串流啟動成功")
+                    
+                    try:
+                        # 使用新版API方法名稱
+                        test_image = self.camera.capture_latest_frame()
+                        if test_image is not None:
+                            print(f"相機測試成功，圖像尺寸: {test_image.data.shape}")
+                            self.state_machine.set_initialized(True)
+                            self.state_machine.set_alarm(False)
+                            return True
+                        else:
+                            print("相機測試失敗: 無法捕獲圖像")
+                            self.state_machine.set_alarm(True)
+                            return False
+                    except Exception as e:
+                        print(f"相機測試異常: {e}")
+                        self.state_machine.set_alarm(True)
+                        return False
+                else:
+                    print("相機串流啟動失敗")
+                    self.state_machine.set_alarm(True)
+                    return False
+            else:
+                print(f"相機連接失敗: {ip_address}")
+                self.state_machine.set_alarm(True)
+                return False
+                
+        except Exception as e:
+            print(f"相機初始化錯誤: {e}")
+            self.state_machine.set_alarm(True)
+            return False
+
+    def capture_and_detect_angle(self, mode: int = 0) -> AngleResult:
+        """修改版拍照並檢測角度 - 適配新版camera_manager API"""
+        if not self.camera:
+            return AngleResult(
+                success=False, center=None, angle=None,
+                major_axis=None, minor_axis=None, rect_width=None, rect_height=None,
+                contour_area=None, processing_time=0, capture_time=0, total_time=0,
+                error_message="Camera not initialized"
+            )
+        
+        if not getattr(self.camera, 'is_streaming', False):
+            return AngleResult(
+                success=False, center=None, angle=None,
+                major_axis=None, minor_axis=None, rect_width=None, rect_height=None,
+                contour_area=None, processing_time=0, capture_time=0, total_time=0,
+                error_message="Camera streaming not started"
+            )
+        
+        capture_start = time.perf_counter()
+        
+        try:
+            # 使用新版API方法名稱
+            frame_data = self.camera.capture_latest_frame()
+            
+            if frame_data is None:
+                raise Exception("Image capture failed")
+            
+            image = frame_data.data
+            capture_time = (time.perf_counter() - capture_start) * 1000
+            
+            # 參數快取機制
+            detection_params = self.read_detection_parameters_cached()
+            if detection_params and self._params_changed:
+                self.angle_detector.update_params(**detection_params)
+                self._params_changed = False
+            
+            # 執行角度檢測
+            result = self.angle_detector.detect_angle(image, mode)
+            
+            # 準備檢測數據用於調試圖像
+            detection_data = {
+                'mode': mode,
+                'contour': None,
+                'rect': None
+            }
+            
+            # 重新獲取輪廓數據用於調試顯示
+            if result.success:
+                try:
+                    pt_img = self.angle_detector.get_pre_treatment_image_optimized(image)
+                    
+                    if mode == 0:
+                        # CASE模式
+                        rst_contours = self.angle_detector.get_main_contours(pt_img)
+                        if rst_contours:
+                            rst_contours.sort(key=cv2.contourArea, reverse=True)
+                            detection_data['contour'] = rst_contours[0]
+                    else:
+                        # DR模式
+                        rst_contours = self.angle_detector.get_main_contours(pt_img)
+                        if rst_contours:
+                            detection_data['contour'] = rst_contours[0]
+                    
+                    # 計算矩形數據
+                    if detection_data['contour'] is not None:
+                        detection_data['rect'] = cv2.minAreaRect(detection_data['contour'])
+                        print(f"檢測數據準備完成: 輪廓面積={cv2.contourArea(detection_data['contour']):.0f}")
+                
+                except Exception as contour_e:
+                    print(f"檢測數據準備失敗: {contour_e}")
+            
+            # 使用新的連續儲存方法
+            self.save_continuous_debug_images(image, result, detection_data)
+            
+            result.capture_time = capture_time
+            result.total_time = (time.perf_counter() - capture_start) * 1000
+            
+            # 性能監控
+            self.perf_monitor.add_result(result)
+            
+            if result.success:
+                self.operation_count += 1
+                print(f"角度檢測成功: 中心{result.center}, 角度{result.angle:.2f}度")
+            else:
+                self.error_count += 1
+                print(f"角度檢測失敗: {result.error_message}")
+            
+            return result
+            
+        except Exception as e:
+            self.error_count += 1
+            return AngleResult(
+                success=False, center=None, angle=None,
+                major_axis=None, minor_axis=None, rect_width=None, rect_height=None,
+                contour_area=None, processing_time=0,
+                capture_time=(time.perf_counter() - capture_start) * 1000,
+                total_time=(time.perf_counter() - capture_start) * 1000,
+                error_message=str(e)
+            )
+
+    def _execute_command_async(self, command: int):
+        """異步執行指令 - 適配新版camera_manager API"""
+        try:
+            print(f"開始執行指令: {command}")
+            
+            if command == 8:
+                print("執行拍照指令...")
+                if self.camera and getattr(self.camera, 'is_streaming', False):
+                    # 使用新版API方法名稱
+                    frame_data = self.camera.capture_latest_frame()
+                    if frame_data is not None:
+                        print(f"拍照完成，圖像尺寸: {frame_data.data.shape}")
+                    else:
+                        print("拍照失敗")
+                        self.error_count += 1
+                else:
+                    print("拍照失敗: 相機未初始化")
+                    self.error_count += 1
+                        
+            elif command == 16:
+                print("執行拍照+增強調試版角度檢測指令...")
+                
+                # 讀取檢測模式
+                mode_result = self.modbus_client.read_holding_registers(
+                    address=self.base_address + 10, count=1, slave=1
+                )
+                detection_mode = 0
+                if not mode_result.isError():
+                    detection_mode = mode_result.registers[0]
+                
+                print(f"使用檢測模式: {detection_mode} ({'增強調試CASE' if detection_mode == 0 else 'DR'})")
+                
+                result = self.capture_and_detect_angle(detection_mode)
+                self.write_detection_result(result)
+                
+                if result.success:
+                    print(f"增強調試版角度檢測完成: 中心{result.center}, 角度{result.angle:.2f}度")
+                    print(f"調試圖像已保存，包含完整的可視化效果")
+                else:
+                    print(f"增強調試版角度檢測失敗: {result.error_message}")
+                    
+            elif command == 32:
+                print("執行重新初始化指令...")
+                success = self.initialize_camera()
+                if success:
+                    print("重新初始化成功")
+                    self.default_params_written = False
+                else:
+                    print("重新初始化失敗")
+            else:
+                print(f"未知指令: {command}")
+                
+        except Exception as e:
+            print(f"指令執行異常: {e}")
+            self.error_count += 1
+            self.state_machine.set_alarm(True)
+        
+        finally:
+            print(f"控制指令 {command} 執行完成")
+            self.command_processing = False
+            self.state_machine.set_running(False)
+            if not self.state_machine.is_alarm():
+                self.state_machine.set_ready(True)
+
+    # 其他方法保持不變，繼續沿用原來的實現
+    def set_socketio_instance(self, socketio_instance):
+        """設置SocketIO實例用於圖像更新通知"""
+        self.socketio_instance = socketio_instance
+
+    def create_simplified_result_image(self, original_image, detection_result, detection_data=None):
+        """創建簡化的結果圖像 - 只顯示角度指針和格線"""
+        result_image = original_image.copy()
+        
+        if not (detection_result and detection_result.success and detection_data):
+            # 檢測失敗時顯示失敗訊息
+            img_height, img_width = result_image.shape[:2]
+            font_scale = max(1.0, min(img_width, img_height) / 1000)
+            cv2.putText(result_image, "DETECTION FAILED", (50, 100), 
+                       cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 0, 255), 3)
+            return result_image
+        
+        center = detection_result.center
+        angle = detection_result.angle
+        contour = detection_data.get('contour')
+        
+        print(f"創建簡化結果圖像: 中心={center}, 角度={angle:.2f}°")
+        
+        # 計算輪廓的等效半徑（用於格線繪製）
+        if contour is not None:
+            contour_area = cv2.contourArea(contour)
+            equivalent_radius = math.sqrt(contour_area / math.pi)
+        else:
+            # 使用預設半徑
+            equivalent_radius = 100
+        
+        print(f"等效半徑: {equivalent_radius:.1f} 像素")
+        
+        # 1. 繪製X軸基準線（0度基準線）
+        x_line_length = int(equivalent_radius * 1.5)
+        x_start = (center[0] - x_line_length, center[1])
+        x_end = (center[0] + x_line_length, center[1])
+        cv2.line(result_image, x_start, x_end, (128, 128, 128), 2)
+        
+        # 2. 繪製格線指針（每隔15度，半徑0.8-1.3倍）
+        inner_radius = equivalent_radius * 0.8
+        outer_radius = equivalent_radius * 1.3
+        
+        for degree in range(0, 360, 15):
+            angle_rad = math.radians(degree)
+            
+            # 計算內圓和外圓上的點
+            inner_x = int(center[0] + inner_radius * math.cos(angle_rad))
+            inner_y = int(center[1] + inner_radius * math.sin(angle_rad))
+            outer_x = int(center[0] + outer_radius * math.cos(angle_rad))
+            outer_y = int(center[1] + outer_radius * math.sin(angle_rad))
+            
+            # 繪製格線（灰色）
+            cv2.line(result_image, (inner_x, inner_y), (outer_x, outer_y), (100, 100, 100), 1)
+        
+        # 3. 繪製圓心標記（小白圓）
+        cv2.circle(result_image, center, 3, (255, 255, 255), -1)
+        cv2.circle(result_image, center, 5, (0, 0, 0), 1)
+        
+        # 4. 繪製角度指示線（紅色，長度為1.3倍半徑）
+        angle_rad = math.radians(angle)
+        indicator_length = outer_radius
+        indicator_x = int(center[0] + indicator_length * math.cos(angle_rad))
+        indicator_y = int(center[1] + indicator_length * math.sin(angle_rad))
+        
+        # 繪製角度指示線（粗紅線）
+        cv2.line(result_image, center, (indicator_x, indicator_y), (0, 0, 255), 4)
+        
+        # 在指示線末端繪製箭頭
+        arrow_length = 15
+        arrow_angle = 20  # 箭頭角度
+        
+        # 計算箭頭的兩個端點
+        arrow_angle1 = angle + 180 - arrow_angle
+        arrow_angle2 = angle + 180 + arrow_angle
+        
+        arrow_rad1 = math.radians(arrow_angle1)
+        arrow_rad2 = math.radians(arrow_angle2)
+        
+        arrow_x1 = int(indicator_x + arrow_length * math.cos(arrow_rad1))
+        arrow_y1 = int(indicator_y + arrow_length * math.sin(arrow_rad1))
+        arrow_x2 = int(indicator_x + arrow_length * math.cos(arrow_rad2))
+        arrow_y2 = int(indicator_y + arrow_length * math.sin(arrow_rad2))
+        
+        cv2.line(result_image, (indicator_x, indicator_y), (arrow_x1, arrow_y1), (0, 0, 255), 3)
+        cv2.line(result_image, (indicator_x, indicator_y), (arrow_x2, arrow_y2), (0, 0, 255), 3)
+        
+        # 5. 只顯示角度值（右上角）- 優化文字清晰度
+        img_height, img_width = result_image.shape[:2]
+        
+        # 動態調整字體大小，確保清晰度
+        base_font_scale = min(img_width, img_height) / 1000.0
+        font_scale = max(1.5, base_font_scale * 2.0)  # 增大字體
+        text_thickness = max(3, int(font_scale * 2.5))  # 增加厚度
+        
+        angle_text = f"Angle: {angle:.2f}"
+        
+        # 使用更清晰的字體
+        font = cv2.FONT_HERSHEY_DUPLEX  # 改用更清晰的字體
+        text_size = cv2.getTextSize(angle_text, font, font_scale, text_thickness)[0]
+        
+        # 文字位置（右上角）
+        text_x = img_width - text_size[0] - 30
+        text_y = 280
+
+        # 繪製角度文字（明亮的黃色，增加對比度）
+        cv2.putText(result_image, angle_text, (text_x, text_y), 
+                   font, font_scale, (0, 255, 255), text_thickness, cv2.LINE_AA)
+        
+        # 在圖像左上角添加更大的角度顯示（備用位置）
+        large_font_scale = font_scale * 1.5
+        large_text_thickness = max(4, int(large_font_scale * 2))
+        large_angle_text = f"{angle:.1f}"
+        
+        large_text_size = cv2.getTextSize(large_angle_text, font, large_font_scale, large_text_thickness)[0]
+        large_text_x = 30
+        large_text_y = 280
+        
+        # 大號角度文字（亮綠色）
+        cv2.putText(result_image, large_angle_text, (large_text_x, large_text_y), 
+                   font, large_font_scale, (0, 255, 0), large_text_thickness, cv2.LINE_AA)
+        
+        print(f"簡化結果圖像創建完成，格線數量: {360//15}, 指示角度: {angle:.2f}°")
+        return result_image
+
     def _ensure_debug_dir(self):
         """確保調試圖像目錄存在"""
         if not os.path.exists(self.debug_dir):
             os.makedirs(self.debug_dir)
             print(f"已創建調試圖像目錄: {self.debug_dir}")
+
+    def get_latest_debug_image_filename(self):
+        """獲取最新的Debug圖像檔名"""
+        try:
+            if not os.path.exists(self.debug_dir):
+                return None
+            
+            files = os.listdir(self.debug_dir)
+            result_files = [f for f in files if f.endswith('_result.jpg')]
+            
+            if not result_files:
+                return None
+            
+            # 按時間戳排序，返回最新的
+            result_files.sort(reverse=True)
+            return result_files[0]
+            
+        except Exception as e:
+            print(f"獲取最新圖像檔名失敗: {e}")
+            return None
     
-    def create_enhanced_result_image(self, original_image, detection_result, mode, binary_image=None, detection_data=None):
-        """創建增強版結果圖像 - 類似paste-2.txt的可視化效果"""
-        result_image = original_image.copy()
-        
-        # 根據圖像尺寸動態調整參數
-        img_height, img_width = result_image.shape[:2]
-        
-        # 動態計算字體大小和線條粗細
-        font_scale_large = max(1.0, min(img_width, img_height) / 1000)
-        font_scale_medium = max(0.8, min(img_width, img_height) / 1200)
-        font_scale_small = max(0.6, min(img_width, img_height) / 1500)
-        
-        contour_thickness = max(2, int(min(img_width, img_height) / 300))
-        rect_thickness = max(3, int(min(img_width, img_height) / 200))
-        center_radius = max(5, int(min(img_width, img_height) / 200))
-        
-        text_thickness_large = max(2, int(font_scale_large * 2))
-        text_thickness_medium = max(2, int(font_scale_medium * 2))
-        text_thickness_small = max(1, int(font_scale_small * 2))
-        
-        print(f"=== CCD3 Enhanced Result Image Debug ===")
-        print(f"Image size: {img_width}x{img_height}")
-        print(f"Font scales: large={font_scale_large:.2f}, medium={font_scale_medium:.2f}, small={font_scale_small:.2f}")
-        
-        if detection_result and detection_result.success and detection_data:
-            center = detection_result.center
-            angle = detection_result.angle
+    def get_debug_images_list(self):
+        """獲取Debug圖像列表"""
+        try:
+            if not os.path.exists(self.debug_dir):
+                return []
             
-            # 獲取檢測數據
-            contour = detection_data.get('contour')
-            rect = detection_data.get('rect')
+            files = os.listdir(self.debug_dir)
+            image_files = [f for f in files if f.endswith(('.jpg', '.png', '.bmp'))]
             
-            print(f"檢測成功: center={center}, angle={angle:.2f}°")
+            # 按時間戳排序
+            image_files.sort(reverse=True)
+            return image_files
             
-            # 1. 繪製原始輪廓 (綠色)
-            if contour is not None:
-                cv2.drawContours(result_image, [contour], -1, (0, 255, 0), contour_thickness)
-                print(f"繪製原始輪廓，面積: {cv2.contourArea(contour):.0f}")
-            
-            # 2. 繪製外接矩形 (藍色)
-            if rect is not None:
-                box = cv2.boxPoints(rect)
-                box = np.int_(box)
-                cv2.drawContours(result_image, [box], 0, (255, 0, 0), rect_thickness)
-                print(f"繪製外接矩形")
-            
-            # 3. 繪製中心點 (紅色)
-            cv2.circle(result_image, center, center_radius, (0, 0, 255), -1)
-            cv2.circle(result_image, center, center_radius + 3, (255, 255, 255), 2)
-            
-            # 4. 繪製角度方向線 (第一個箭頭 - 紅色)
-            line_length = max(100, int(min(img_width, img_height) / 15))
-            angle_rad = math.radians(angle)
-            end_x = int(center[0] + line_length * math.cos(angle_rad))
-            end_y = int(center[1] + line_length * math.sin(angle_rad))
-            
-            cv2.arrowedLine(result_image, center, (end_x, end_y), (0, 0, 255), rect_thickness, tipLength=0.2)
-            
-            # 5. 繪製第二個箭頭 (+45度角度方向線 - 紅色，延伸到外接矩形邊界)
-            angle_45_rad = math.radians(angle + 45)
-            
-            # 計算延伸到外接矩形邊界的長度
-            if rect is not None:
-                # 獲取外接矩形的邊界
-                box = cv2.boxPoints(rect)
-                min_x = int(np.min(box[:, 0]))
-                max_x = int(np.max(box[:, 0]))
-                min_y = int(np.min(box[:, 1]))
-                max_y = int(np.max(box[:, 1]))
-                
-                # 計算從中心點到矩形邊界的距離
-                dx = math.cos(angle_45_rad)
-                dy = math.sin(angle_45_rad)
-                
-                # 計算與矩形四個邊的交點距離
-                distances = []
-                
-                if dx != 0:  # 與左右邊界的交點
-                    if dx > 0:  # 向右
-                        t = (max_x - center[0]) / dx
-                    else:  # 向左
-                        t = (min_x - center[0]) / dx
-                    if t > 0:
-                        distances.append(t)
-                
-                if dy != 0:  # 與上下邊界的交點
-                    if dy > 0:  # 向下
-                        t = (max_y - center[1]) / dy
-                    else:  # 向上
-                        t = (min_y - center[1]) / dy
-                    if t > 0:
-                        distances.append(t)
-                
-                # 選擇最短的有效距離
-                if distances:
-                    boundary_distance = min(distances)
-                    # 稍微縮短一點以確保在邊界內
-                    boundary_distance = max(0, boundary_distance * 0.95)
-                else:
-                    boundary_distance = line_length
-            else:
-                boundary_distance = line_length
-            
-            end_x_45 = int(center[0] + boundary_distance * math.cos(angle_45_rad))
-            end_y_45 = int(center[1] + boundary_distance * math.sin(angle_45_rad))
-            
-            # 繪製第二個箭頭線條
-            cv2.arrowedLine(result_image, center, (end_x_45, end_y_45), (0, 0, 255), rect_thickness, tipLength=0.2)
-            
-            # 在第二個箭頭末端繪製圓點
-            circle_radius = max(8, int(min(img_width, img_height) / 150))
-            cv2.circle(result_image, (end_x_45, end_y_45), circle_radius, (0, 0, 255), -1)
-            cv2.circle(result_image, (end_x_45, end_y_45), circle_radius + 2, (255, 255, 255), 2)
-            
-            print(f"繪製雙箭頭: 原角度={angle:.2f}°, +45度角度={angle+45:.2f}°, 延伸距離={boundary_distance:.1f}px")
-            
-            # 6. 主要角度文字 (黃色大字)
-            angle_text = f"Angle: {angle:.2f}°"
-            text_size = cv2.getTextSize(angle_text, cv2.FONT_HERSHEY_SIMPLEX, font_scale_large, text_thickness_large)[0]
-            text_x = center[0] - text_size[0] // 2
-            text_y = center[1] - 50
-            
-            # 文字背景
-            padding = 10
-            cv2.rectangle(result_image, 
-                        (text_x - padding, text_y - text_size[1] - padding), 
-                        (text_x + text_size[0] + padding, text_y + padding), 
-                        (0, 0, 0), -1)
-            cv2.putText(result_image, angle_text, (text_x, text_y), 
-                    cv2.FONT_HERSHEY_SIMPLEX, font_scale_large, (0, 255, 255), text_thickness_large)
-            
-            # 7. 面積資訊
-            if detection_result.contour_area:
-                area_text = f"Area: {detection_result.contour_area:.0f}"
-                cv2.putText(result_image, area_text, (center[0] - 50, center[1] + 30), 
-                        cv2.FONT_HERSHEY_SIMPLEX, font_scale_medium, (0, 255, 255), text_thickness_medium)
-            
-            # 8. 模式資訊 (右下角)
-            mode_text = f"Mode: {'CASE' if mode == 0 else 'DR'}"
-            cv2.putText(result_image, mode_text, (50, img_height - 30), 
-                    cv2.FONT_HERSHEY_SIMPLEX, font_scale_medium, (255, 255, 255), text_thickness_medium)
-            
-            # 9. 詳細資訊 (左上角)
-            info_texts = [
-                f"Center: ({center[0]}, {center[1]})",
-                f"Angle: {angle:.2f}°",
-                f"Angle+45: {angle+45:.2f}°"
-            ]
-            
-            if detection_result.rect_width and detection_result.rect_height:
-                info_texts.append(f"Size: {detection_result.rect_width:.1f} x {detection_result.rect_height:.1f}")
-            
-            if detection_result.contour_area:
-                info_texts.append(f"Area: {detection_result.contour_area:.0f} px²")
-            
-            if detection_result.major_axis and detection_result.minor_axis:
-                info_texts.extend([
-                    f"Major: {detection_result.major_axis:.1f}",
-                    f"Minor: {detection_result.minor_axis:.1f}"
-                ])
-            
-            info_texts.extend([
-                f"Process: {detection_result.processing_time:.1f} ms",
-                f"Total: {detection_result.total_time:.1f} ms"
-            ])
-            
-            # 繪製資訊文字
-            y_offset = 30
-            line_spacing = int(25 * font_scale_small)
-            for i, text in enumerate(info_texts):
-                y_pos = y_offset + (i * line_spacing)
-                text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale_small, text_thickness_small)[0]
-                # 文字背景
-                cv2.rectangle(result_image, 
-                            (15, y_pos - text_size[1] - 3), 
-                            (20 + text_size[0], y_pos + 5), 
-                            (0, 0, 0), -1)
-                # 文字內容
-                cv2.putText(result_image, text, (20, y_pos), 
-                        cv2.FONT_HERSHEY_SIMPLEX, font_scale_small, (255, 255, 255), text_thickness_small)
-            
-            # 10. 如果有橢圓擬合資訊，繪製橢圓 (紫色)
-            if detection_result.major_axis and detection_result.minor_axis and contour is not None:
-                try:
-                    ellipse = cv2.fitEllipse(contour)
-                    cv2.ellipse(result_image, ellipse, (255, 0, 255), 2)
-                    print(f"繪製橢圓擬合結果")
-                except:
-                    pass
-            
-            # 11. 圖例 (右下角) - 更新為雙箭頭說明
-            legend_x, legend_y = img_width - 250, img_height - 180
-            legend_texts = [
-                ("Contour", (0, 255, 0)),
-                ("Rectangle", (255, 0, 0)),
-                ("Center", (0, 0, 255)),
-                ("Direction", (0, 0, 255)),
-                ("Direction+45", (0, 0, 255))
-            ]
-            
-            for i, (text, color) in enumerate(legend_texts):
-                y_pos = legend_y + (i * 20)
-                if i == 4:  # Direction+45 特殊標記
-                    cv2.line(result_image, (legend_x - 30, y_pos), (legend_x - 10, y_pos), color, 3)
-                    cv2.circle(result_image, (legend_x - 10, y_pos), 4, color, -1)
-                else:
-                    cv2.line(result_image, (legend_x - 30, y_pos), (legend_x - 10, y_pos), color, 3)
-                cv2.putText(result_image, text, (legend_x, y_pos + 5), 
-                        cv2.FONT_HERSHEY_SIMPLEX, font_scale_small * 0.8, (255, 255, 255), 1)
-        
-        else:
-            # 檢測失敗
-            cv2.putText(result_image, "DETECTION FAILED", (50, 100), 
-                    cv2.FONT_HERSHEY_SIMPLEX, font_scale_large, (0, 0, 255), text_thickness_large)
-            if detection_result and hasattr(detection_result, 'error_message') and detection_result.error_message:
-                cv2.putText(result_image, f"Error: {detection_result.error_message[:50]}", 
-                        (50, 150), cv2.FONT_HERSHEY_SIMPLEX, font_scale_medium, (0, 0, 255), text_thickness_medium)
-        
-        # 版本資訊
-        cv2.putText(result_image, f"CCD3 Enhanced Debug v1.0 - Extended Arrow", (30, img_height - 10), 
-                cv2.FONT_HERSHEY_SIMPLEX, font_scale_small * 0.8, (128, 128, 128), 1)
-        
-        print(f"=== Enhanced Result Image Created with Dual Arrows ===")
-        return result_image
-    
-    def save_debug_images(self, original_image, binary_image, result_image, detection_success, detection_result=None, detection_data=None):
-        """保存增強版調試圖像 - 包含完整的結果可視化"""
+        except Exception as e:
+            print(f"獲取圖像列表失敗: {e}")
+            return []
+
+    def save_continuous_debug_images(self, original_image, detection_result, detection_data=None):
+        """連續儲存調試圖像 - 使用時間戳格式"""
         if not self.debug_enabled:
             return
         
         try:
-            # 固定檔名，每次覆蓋
-            original_path = os.path.join(self.debug_dir, '1_original.jpg')
-            binary_path = os.path.join(self.debug_dir, '2_binary.jpg')
-            result_path = os.path.join(self.debug_dir, '3_result.jpg')
+            # 生成時間戳檔名
+            import datetime
+            timestamp = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+            result_filename = f"{timestamp}_result.jpg"
+            result_path = os.path.join(self.debug_dir, result_filename)
             
-            print(f"\n=== CCD3 Debug Images Save ===")
+            print(f"\n=== CCD3 連續Debug圖像儲存 ===")
+            print(f"時間戳: {timestamp}")
             
-            # 保存原始圖像
-            cv2.imwrite(original_path, original_image)
-            print(f"保存原始圖像: {original_path}")
-            
-            # 保存二值化圖像 (轉為3通道方便查看)
-            if binary_image is not None:
-                if len(binary_image.shape) == 2:
-                    binary_bgr = cv2.cvtColor(binary_image, cv2.COLOR_GRAY2BGR)
-                else:
-                    binary_bgr = binary_image
-                cv2.imwrite(binary_path, binary_bgr)
-                print(f"保存二值化圖像: {binary_path}")
-            
-            # 創建並保存增強版結果圖像
+            # 創建簡化的結果圖像
             if detection_result and detection_data:
-                enhanced_result_image = self.create_enhanced_result_image(
-                    original_image, detection_result, 
-                    detection_data.get('mode', 0), binary_image, detection_data
+                simplified_result_image = self.create_simplified_result_image(
+                    original_image, detection_result, detection_data
                 )
-                cv2.imwrite(result_path, enhanced_result_image)
-                print(f"保存增強版結果圖像: {result_path}")
             else:
-                cv2.imwrite(result_path, result_image)
-                print(f"保存基礎結果圖像: {result_path}")
+                # 檢測失敗時的簡化圖像
+                simplified_result_image = self.create_simplified_result_image(
+                    original_image, detection_result, None
+                )
             
-            status = "成功" if detection_success else "失敗"
-            print(f"調試圖像已保存 (檢測{status}): {self.debug_dir}")
-            print(f"=== Debug Images Save Complete ===\n")
+            # 保存結果圖像
+            cv2.imwrite(result_path, simplified_result_image)
+            print(f"簡化結果圖像已保存: {result_filename}")
+            
+            if detection_result and detection_result.success:
+                print(f"檢測成功 - 角度: {detection_result.angle:.2f}°")
+            else:
+                print(f"檢測失敗")
+            
+            print(f"圖像特色:")
+            print(f"  - X軸基準線（0度參考）")
+            print(f"  - 每15度格線指針")
+            print(f"  - 紅色角度指示箭頭") 
+            print(f"  - 僅顯示角度數值")
+            print(f"=== Debug圖像儲存完成 ===\n")
             
         except Exception as e:
-            print(f"保存調試圖像失敗: {e}")
+            print(f"連續調試圖像保存失敗: {e}")
             import traceback
             traceback.print_exc()
-    
+
+    # 其他所有方法保持原樣不變
     def load_config(self):
         """載入配置檔案"""
         default_config = {
@@ -774,7 +943,7 @@ class CCD3AngleDetectionService:
             
         except Exception as e:
             print(f"配置檔案載入錯誤: {e}")
-    
+
     def connect_modbus(self) -> bool:
         """連接Modbus TCP服務器"""
         try:
@@ -802,64 +971,7 @@ class CCD3AngleDetectionService:
             print(f"Modbus連接錯誤: {e}")
             self.state_machine.set_alarm(True)
             return False
-    
-    def initialize_camera(self, ip_address: str = "192.168.1.10") -> bool:
-        """初始化相機"""
-        try:
-            print(f"正在初始化相機，IP地址: {ip_address}")
-            
-            if self.camera:
-                print("關閉現有相機連接...")
-                self.camera.disconnect()
-                self.camera = None
-            
-            config = CameraConfig(
-                name="ccd3_camera",
-                ip=ip_address,
-                exposure_time=20000.0,
-                gain=200.0,
-                frame_rate=30.0,
-                width=2592,
-                height=1944
-            )
-            
-            self.camera = OptimizedCamera(config, logger)
-            
-            if self.camera.connect():
-                print(f"CCD3相機已成功連接: {ip_address}")
-                
-                if self.camera.start_streaming():
-                    print("相機串流啟動成功")
-                    
-                    try:
-                        test_image = self.camera.capture_frame()
-                        if test_image is not None:
-                            print(f"相機測試成功，圖像尺寸: {test_image.data.shape}")
-                            self.state_machine.set_initialized(True)
-                            self.state_machine.set_alarm(False)
-                            return True
-                        else:
-                            print("相機測試失敗: 無法捕獲圖像")
-                            self.state_machine.set_alarm(True)
-                            return False
-                    except Exception as e:
-                        print(f"相機測試異常: {e}")
-                        self.state_machine.set_alarm(True)
-                        return False
-                else:
-                    print("相機串流啟動失敗")
-                    self.state_machine.set_alarm(True)
-                    return False
-            else:
-                print(f"相機連接失敗: {ip_address}")
-                self.state_machine.set_alarm(True)
-                return False
-                
-        except Exception as e:
-            print(f"相機初始化錯誤: {e}")
-            self.state_machine.set_alarm(True)
-            return False
-    
+
     def write_default_detection_params(self) -> bool:
         """寫入簡化版CASE模式預設檢測參數"""
         try:
@@ -911,135 +1023,7 @@ class CCD3AngleDetectionService:
         except Exception as e:
             print(f"寫入預設參數發生異常: {e}")
             return False
-    
-    def capture_and_detect_angle(self, mode: int = 0) -> AngleResult:
-        """增強版拍照並檢測角度 - 產生詳細的調試圖像"""
-        if not self.camera:
-            return AngleResult(
-                success=False, center=None, angle=None,
-                major_axis=None, minor_axis=None, rect_width=None, rect_height=None,
-                contour_area=None, processing_time=0, capture_time=0, total_time=0,
-                error_message="Camera not initialized"
-            )
-        
-        if not getattr(self.camera, 'is_streaming', False):
-            return AngleResult(
-                success=False, center=None, angle=None,
-                major_axis=None, minor_axis=None, rect_width=None, rect_height=None,
-                contour_area=None, processing_time=0, capture_time=0, total_time=0,
-                error_message="Camera streaming not started"
-            )
-        
-        capture_start = time.perf_counter()
-        
-        try:
-            frame_data = self.camera.capture_frame()
-            
-            if frame_data is None:
-                raise Exception("Image capture failed")
-            
-            image = frame_data.data
-            capture_time = (time.perf_counter() - capture_start) * 1000
-            
-            # 參數快取機制
-            detection_params = self.read_detection_parameters_cached()
-            if detection_params and self._params_changed:
-                self.angle_detector.update_params(**detection_params)
-                self._params_changed = False
-            
-            # 執行角度檢測
-            result = self.angle_detector.detect_angle(image, mode)
-            
-            # 準備調試圖像數據
-            try:
-                print(f"\n{'='*70}")
-                print(f"CCD3 Enhanced Debug - Mode {mode}")
-                print(f"{'='*70}")
-                
-                # 產生二值化圖像
-                binary_image = self.angle_detector.get_pre_treatment_image_optimized(image)
-                
-                # 準備檢測數據用於調試圖像
-                detection_data = {
-                    'mode': mode,
-                    'contour': None,
-                    'rect': None
-                }
-                
-                # 重新獲取輪廓和矩形數據用於調試顯示
-                if result.success:
-                    try:
-                        pt_img = self.angle_detector.get_pre_treatment_image_optimized(image)
-                        
-                        if mode == 0:
-                            # CASE模式
-                            rst_contours = self.angle_detector.get_main_contours(pt_img)
-                            if rst_contours:
-                                rst_contours.sort(key=cv2.contourArea, reverse=True)
-                                detection_data['contour'] = rst_contours[0]
-                        else:
-                            # DR模式
-                            rst_contours = self.angle_detector.get_main_contours(pt_img)
-                            if rst_contours:
-                                detection_data['contour'] = rst_contours[0]
-                        
-                        # 計算矩形數據
-                        if detection_data['contour'] is not None:
-                            detection_data['rect'] = cv2.minAreaRect(detection_data['contour'])
-                            print(f"調試數據準備完成: 輪廓面積={cv2.contourArea(detection_data['contour']):.0f}")
-                    
-                    except Exception as contour_e:
-                        print(f"調試數據準備失敗: {contour_e}")
-                
-                # 創建基礎結果圖像
-                result_image = image.copy()
-                if result.success:
-                    cv2.putText(result_image, f"Detection Success - Mode {mode}", (50, 50),
-                               cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 2)
-                else:
-                    cv2.putText(result_image, f"Detection Failed - Mode {mode}", (50, 50),
-                               cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
-                
-                # 保存增強版調試圖像
-                self.save_debug_images(image, binary_image, result_image, result.success, result, detection_data)
-                
-                print(f"增強版調試圖像已保存")
-                print(f"- 原始圖像: 1_original.jpg")
-                print(f"- 二值化圖像: 2_binary.jpg") 
-                print(f"- 增強結果圖像: 3_result.jpg (包含輪廓、矩形、角度標註)")
-                print(f"{'='*70}\n")
-                
-            except Exception as debug_e:
-                print(f"調試圖像保存失敗: {debug_e}")
-                import traceback
-                traceback.print_exc()
-            
-            result.capture_time = capture_time
-            result.total_time = (time.perf_counter() - capture_start) * 1000
-            
-            # 性能監控
-            self.perf_monitor.add_result(result)
-            
-            if result.success:
-                self.operation_count += 1
-                print(f"角度檢測成功: 中心{result.center}, 角度{result.angle:.2f}度")
-            else:
-                self.error_count += 1
-                print(f"角度檢測失敗: {result.error_message}")
-            
-            return result
-            
-        except Exception as e:
-            self.error_count += 1
-            return AngleResult(
-                success=False, center=None, angle=None,
-                major_axis=None, minor_axis=None, rect_width=None, rect_height=None,
-                contour_area=None, processing_time=0,
-                capture_time=(time.perf_counter() - capture_start) * 1000,
-                total_time=(time.perf_counter() - capture_start) * 1000,
-                error_message=str(e)
-            )
-    
+
     def read_detection_parameters_cached(self) -> Dict[str, Any]:
         """讀取檢測參數 - 快取機制"""
         params = {}
@@ -1068,7 +1052,7 @@ class CCD3AngleDetectionService:
             print(f"讀取檢測參數錯誤: {e}")
         
         return params
-    
+
     def write_detection_result(self, result: AngleResult):
         """寫入檢測結果"""
         try:
@@ -1138,8 +1122,7 @@ class CCD3AngleDetectionService:
             
         except Exception as e:
             print(f"寫入檢測結果發生異常: {e}")
-    
-    # 握手同步等其他方法保持相同...
+
     def _handshake_sync_loop(self):
         """握手同步循環"""
         print("CCD3握手同步線程啟動 (增強調試版)")
@@ -1167,7 +1150,7 @@ class CCD3AngleDetectionService:
                 time.sleep(1)
         
         print("CCD3握手同步線程停止")
-    
+
     def _update_status_register(self):
         """更新狀態寄存器"""
         try:
@@ -1187,7 +1170,7 @@ class CCD3AngleDetectionService:
             
         except Exception as e:
             print(f"狀態寄存器更新錯誤: {e}")
-    
+
     def _process_control_commands(self):
         """處理控制指令"""
         try:
@@ -1212,7 +1195,7 @@ class CCD3AngleDetectionService:
                 
         except Exception as e:
             print(f"控制指令處理異常: {e}")
-    
+
     def _handle_control_command(self, command: int):
         """處理控制指令"""
         if not self.state_machine.is_ready():
@@ -1226,70 +1209,7 @@ class CCD3AngleDetectionService:
         self.state_machine.set_running(True)
         
         threading.Thread(target=self._execute_command_async, args=(command,), daemon=True).start()
-    
-    def _execute_command_async(self, command: int):
-        """異步執行指令"""
-        try:
-            print(f"開始執行指令: {command}")
-            
-            if command == 8:
-                print("執行拍照指令...")
-                if self.camera and getattr(self.camera, 'is_streaming', False):
-                    frame_data = self.camera.capture_frame()
-                    if frame_data is not None:
-                        print(f"拍照完成，圖像尺寸: {frame_data.data.shape}")
-                    else:
-                        print("拍照失敗")
-                        self.error_count += 1
-                else:
-                    print("拍照失敗: 相機未初始化")
-                    self.error_count += 1
-                        
-            elif command == 16:
-                print("執行拍照+增強調試版角度檢測指令...")
-                
-                # 讀取檢測模式
-                mode_result = self.modbus_client.read_holding_registers(
-                    address=self.base_address + 10, count=1, slave=1
-                )
-                detection_mode = 0
-                if not mode_result.isError():
-                    detection_mode = mode_result.registers[0]
-                
-                print(f"使用檢測模式: {detection_mode} ({'增強調試CASE' if detection_mode == 0 else 'DR'})")
-                
-                result = self.capture_and_detect_angle(detection_mode)
-                self.write_detection_result(result)
-                
-                if result.success:
-                    print(f"增強調試版角度檢測完成: 中心{result.center}, 角度{result.angle:.2f}度")
-                    print(f"調試圖像已保存，包含完整的可視化效果")
-                else:
-                    print(f"增強調試版角度檢測失敗: {result.error_message}")
-                    
-            elif command == 32:
-                print("執行重新初始化指令...")
-                success = self.initialize_camera()
-                if success:
-                    print("重新初始化成功")
-                    self.default_params_written = False
-                else:
-                    print("重新初始化失敗")
-            else:
-                print(f"未知指令: {command}")
-                
-        except Exception as e:
-            print(f"指令執行異常: {e}")
-            self.error_count += 1
-            self.state_machine.set_alarm(True)
-        
-        finally:
-            print(f"控制指令 {command} 執行完成")
-            self.command_processing = False
-            self.state_machine.set_running(False)
-            if not self.state_machine.is_alarm():
-                self.state_machine.set_ready(True)
-    
+
     def start_handshake_service(self):
         """啟動握手服務"""
         if not self.handshake_thread or not self.handshake_thread.is_alive():
@@ -1305,14 +1225,14 @@ class CCD3AngleDetectionService:
                     print("增強調試版參數自動寫入成功")
                 else:
                     print("增強調試版參數自動寫入失敗，將重試")
-    
+
     def stop_handshake_service(self):
         """停止握手服務"""
         print("正在停止握手服務...")
         self.stop_handshake = True
         if self.handshake_thread:
             self.handshake_thread.join(timeout=2)
-    
+
     def disconnect(self):
         """斷開連接"""
         print("正在斷開所有連接...")
@@ -1338,7 +1258,7 @@ app.config['SECRET_KEY'] = 'ccd3_angle_detection_enhanced_debug'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 ccd3_service = CCD3AngleDetectionService()
-
+ccd3_service.set_socketio_instance(socketio)
 @app.route('/')
 def index():
     return render_template('ccd3_angle_detection.html')
@@ -1427,7 +1347,22 @@ def get_debug_images():
             })
     except Exception as e:
         return jsonify({'images': [], 'error': str(e)})
-
+@app.route('/api/debug_images/latest', methods=['GET'])
+def get_latest_debug_image():
+    """獲取最新的調試圖像"""
+    try:
+        latest_filename = ccd3_service.get_latest_debug_image_filename()
+        
+        if latest_filename:
+            return jsonify({
+                'filename': latest_filename,
+                'url': f'/api/debug_images/{latest_filename}'
+            })
+        else:
+            return jsonify({'filename': None, 'message': '沒有找到調試圖像'})
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 @app.route('/api/toggle_debug', methods=['POST'])
 def toggle_debug():
     """切換調試模式"""
@@ -1459,7 +1394,23 @@ def get_status():
         'connection_count': ccd3_service.connection_count,
         'performance': perf_stats
     })
-
+@app.route('/api/debug_images/<filename>')
+def serve_debug_image(filename):
+    """提供調試圖像檔案"""
+    try:
+        # 安全檢查：只允許特定格式的檔案
+        if not filename.endswith(('.jpg', '.png', '.bmp')):
+            return jsonify({'error': '不支援的檔案格式'}), 400
+        
+        # 檢查檔案是否存在
+        file_path = os.path.join(ccd3_service.debug_dir, filename)
+        if not os.path.exists(file_path):
+            return jsonify({'error': '檔案不存在'}), 404
+        
+        return send_file(file_path, mimetype='image/jpeg')
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 @app.route('/api/modbus/registers', methods=['GET'])
 def get_registers():
     """讀取所有寄存器數值"""

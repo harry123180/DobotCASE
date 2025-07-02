@@ -4,7 +4,7 @@
 Dobot_Flow5.py - Flow5 機械臂運轉流程執行器  
 基於Flow3組裝作業流程，整合角度檢測與第四軸旋轉控制
 參考Flow1/Flow2點位載入方式，禁止使用內建點位
-修改版：優化角度控制邏輯
+修改版：優化角度控制邏輯 + 添加waitkey功能
 """
 
 import time
@@ -175,7 +175,7 @@ class Flow5AssemblyExecutor:
             return False
     
     def build_flow_steps(self):
-        """建構Flow5步驟 - 完整流程序列 (14步) - 修改版角度控制"""
+        """建構Flow5步驟 - 完整流程序列 (含waitkey) - 修改版角度控制"""
         self.motion_steps = [
             # 1. 移動到standby (起點)
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
@@ -203,34 +203,43 @@ class Flow5AssemblyExecutor:
             # 8. 移動到put_asm_top (帶commandAngle)
             {'type': 'move_to_point_with_angle', 'params': {'point_name': 'put_asm_top', 'move_type': 'J'}},
             
-            # 9. 移動到put_asm_down (帶commandAngle)
-            {'type': 'move_to_point_with_angle', 'params': {'point_name': 'put_asm_down', 'move_type': 'J'}},
+            # 9. 等待終端輸入 - 在put_asm_top之後
+            #{'type': 'waitkey', 'params': {'prompt': '請輸入 "go" 繼續到 put_asm_down 位置', 'expected_input': 'go'}},
             
-            # 10. 夾爪快速關閉
+            # 10. 設定機械臂速度
+            {'type': 'set_speed', 'params': {'speed_percent': 20}},
+            
+            # 11. 移動到put_asm_down (帶commandAngle)
+            {'type': 'move_to_point_with_angle', 'params': {'point_name': 'put_asm_down', 'move_type': 'J'}},
+            #{'type': 'waitkey', 'params': {'prompt': '請輸入 "go" 繼續到 put_asm_down 位置', 'expected_input': 'go'}},
+            
+            # 12. 夾爪快速關閉
             {'type': 'gripper_quick_close', 'params': {}},
             
-            # 11. 移動到put_asm_top (帶commandAngle)
+            # 13. 移動到put_asm_top (帶commandAngle)
             {'type': 'move_to_point_with_angle', 'params': {'point_name': 'put_asm_top', 'move_type': 'J'}},
-            # move_to_point_with_angle
-            # 12. 移動到put_asm_pre (不帶角度)
+            
+            # 14. 移動到put_asm_pre (不帶角度)
             {'type': 'move_to_point', 'params': {'point_name': 'put_asm_pre', 'move_type': 'J'}},
             
-            # 13. 移動到rotate_top (不帶角度)
+            # 15. 移動到rotate_top (不帶角度)
             {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'flip_pre', 'move_type': 'J'}},
-            # 14. 移動到standby (完成)
+            {'type': 'set_speed', 'params': {'speed_percent': 80}},
+            # 16. 移動到standby (完成)
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}}
         ]
         
         self.total_steps = len(self.motion_steps)
         print(f"Flow5流程步驟建構完成，共{self.total_steps}步")
         print("角度控制策略：rotate相關點位使用原始角度，put_asm_top/put_asm_down使用commandAngle")
+        print("waitkey步驟：在put_asm_top之後等待終端輸入")
     
     def execute(self) -> FlowResult:
         """執行Flow5主邏輯"""
         print("\n" + "="*60)
-        print("開始執行Flow5 - 機械臂運轉流程 (修改版角度控制)")
-        print("流程序列: standby->角度檢測->rotate_top->rotate_down->夾爪撐開->rotate_top->put_asm_pre->put_asm_top(角度)->put_asm_down(角度)->夾爪關閉->put_asm_top(角度)->put_asm_pre->rotate_top->standby")
+        print("開始執行Flow5 - 機械臂運轉流程 (修改版角度控制 + waitkey + set_speed)")
+        print("流程序列: standby->角度檢測->rotate_top->rotate_down->夾爪撐開->rotate_top->put_asm_pre->put_asm_top(角度)->【waitkey】->【set_speed】->put_asm_down(角度)->夾爪關閉->put_asm_top(角度)->put_asm_pre->rotate_top->standby")
         print(f"第四軸原始角度: {self.J4_ORIGINAL_DEGREE}度")
         print("="*60)
         
@@ -273,6 +282,10 @@ class Flow5AssemblyExecutor:
                     success = self._execute_gripper_quick_close()
                 elif step['type'] == 'gripper_smart_release':
                     success = self._execute_gripper_smart_release(step['params'])
+                elif step['type'] == 'waitkey':
+                    success = self._execute_waitkey(step['params'])
+                elif step['type'] == 'set_speed':
+                    success = self._execute_set_speed(step['params'])
                 else:
                     print(f"未知步驟類型: {step['type']}")
                     success = False
@@ -326,6 +339,103 @@ class Flow5AssemblyExecutor:
                 total_steps=self.total_steps
             )
     
+    def _execute_set_speed(self, params: Dict[str, Any]) -> bool:
+        """執行設定機械臂速度功能"""
+        try:
+            speed_percent = params.get('speed_percent', 100)
+            
+            # 檢查速度範圍
+            if not 1 <= speed_percent <= 100:
+                self.last_error = f"速度超出範圍 (1-100): {speed_percent}"
+                print(f"  ✗ 設定速度失敗: {self.last_error}")
+                return False
+            
+            print(f"設定機械臂全局速度: {speed_percent}%")
+            
+            # 檢查機械臂是否已初始化
+            if not self.robot:
+                self.last_error = "機械臂控制器未初始化"
+                print(f"  ✗ 設定速度失敗: {self.last_error}")
+                return False
+            
+            # 調用機械臂的設定速度方法
+            success = self.robot.set_global_speed(speed_percent)
+            
+            if success:
+                print(f"  ✓ 機械臂速度設定成功: {speed_percent}%")
+                return True
+            else:
+                self.last_error = f"機械臂速度設定失敗: {speed_percent}%"
+                print(f"  ✗ 設定速度失敗: {self.last_error}")
+                return False
+                
+        except Exception as e:
+            self.last_error = f"設定速度異常: {e}"
+            print(f"  ✗ 設定速度異常: {self.last_error}")
+            return False
+    
+    def _execute_waitkey(self, params: Dict[str, Any]) -> bool:
+        """執行等待終端輸入功能"""
+        try:
+            prompt = params.get('prompt', '請輸入 "go" 繼續')
+            expected_input = params.get('expected_input', 'go')
+            timeout_seconds = params.get('timeout', None)  # None表示無限等待
+            case_sensitive = params.get('case_sensitive', False)  # 預設不區分大小寫
+            
+            print(f"\n{'='*50}")
+            print(f"🔶 Flow5 等待輸入")
+            print(f"🔶 {prompt}")
+            print(f"🔶 預期輸入: '{expected_input}'")
+            if timeout_seconds:
+                print(f"🔶 等待時間限制: {timeout_seconds}秒")
+            else:
+                print(f"🔶 等待時間: 無限制")
+            print(f"{'='*50}")
+            
+            start_wait_time = time.time()
+            
+            while True:
+                try:
+                    # 顯示輸入提示
+                    user_input = input(">>> ").strip()
+                    
+                    # 處理大小寫
+                    if not case_sensitive:
+                        user_input = user_input.lower()
+                        expected_input = expected_input.lower()
+                    
+                    # 檢查輸入是否符合預期
+                    if user_input == expected_input:
+                        print(f"✓ 輸入正確，繼續執行Flow5...")
+                        print(f"{'='*50}\n")
+                        return True
+                    else:
+                        print(f"✗ 輸入不正確，預期: '{expected_input}', 實際: '{user_input}'")
+                        print(f"請重新輸入...")
+                        
+                        # 檢查超時
+                        if timeout_seconds:
+                            elapsed = time.time() - start_wait_time
+                            if elapsed >= timeout_seconds:
+                                self.last_error = f"等待輸入超時 ({timeout_seconds}秒)"
+                                print(f"✗ {self.last_error}")
+                                return False
+                        continue
+                        
+                except KeyboardInterrupt:
+                    print(f"\n✗ 用戶中斷輸入")
+                    self.last_error = "用戶中斷waitkey輸入"
+                    return False
+                except EOFError:
+                    print(f"\n✗ 輸入結束")
+                    self.last_error = "waitkey輸入結束"
+                    return False
+                    
+        except Exception as e:
+            self.last_error = f"waitkey執行異常: {e}"
+            print(f"✗ waitkey執行異常: {self.last_error}")
+            return False
+    
     def _execute_angle_detection(self) -> bool:
         """執行角度檢測並計算commandAngle"""
         try:
@@ -358,16 +468,8 @@ class Flow5AssemblyExecutor:
             # 獲取target_angle
             self.target_angle = detection_result.target_angle
             print(f"  ✓ 檢測到目標角度: {self.target_angle:.2f}度")
-            self.command_angle =self.target_angle-3.14
-            # 計算commandAngle
-            """
-            if self.target_angle > 45:
-                self.command_angle = 225 - self.target_angle 
-                print(f"  commandAngle = 225 - {self.target_angle:.2f} - 7.23 = {self.command_angle:.2f}度")
-            elif self.target_angle <= 45:
-                self.command_angle = 225 - self.target_angle #135
-                print(f"  commandAngle = 135 - {self.target_angle:.2f} - 7.23 = {self.command_angle:.2f}度")
-            """
+            self.command_angle = self.target_angle - 3.14
+            
             return True
             
         except Exception as e:
@@ -670,5 +772,6 @@ class Flow5AssemblyExecutor:
             'j4_original_degree': self.J4_ORIGINAL_DEGREE,
             'target_angle': self.target_angle,
             'command_angle': self.command_angle,
-            'angle_detection_enabled': True
+            'angle_detection_enabled': True,
+            'waitkey_enabled': True
         }
