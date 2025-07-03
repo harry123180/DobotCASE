@@ -1,0 +1,24 @@
+{
+  "module_id": "AutoProgram自動化管理器",
+  "modbus": {
+    "host": "127.0.0.1",
+    "port": 502,
+    "timeout": 1.0
+  },
+  "monitoring": {
+    "health_check_interval": 10.0,
+    "restart_delay": 5.0,
+    "max_restart_attempts": 3
+  },
+  "vp_flow": {
+    "check_interval": 1.0,
+    "vibration_duration": 1.0,
+    "vibration_strength": 40,
+    "vibration_frequency": 43,
+    "photo_timeout": 10.0
+  },
+  "logging": {
+    "level": "INFO",
+    "keep_days": 7
+  }
+}
