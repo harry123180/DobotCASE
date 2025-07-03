@@ -1899,6 +1899,8 @@ class CCD1VisionController:
                     print("🎯 系統完全就緒，進入Ready狀態")
                 else:
                     print("⚠️ 相機自動初始化失敗")
+                    if not component_status['modbus_connected']:
+                        print("💡 請透過Web介面手動連接Modbus服務器")
             except Exception as e:
                 print(f"⚠️ 相機自動初始化異常: {e}")
         else:
@@ -2045,23 +2047,24 @@ class CCD1VisionController:
         """連接Modbus TCP服務器"""
         try:
             if self.modbus_client.connect():
-                # 連接成功後啟動同步線程
-                self.modbus_client.start_sync()
+                # 🔥 修改：確保同步線程啟動
+                if not self.modbus_client.sync_running:
+                    self.modbus_client.start_sync()
+                    print("🔄 Modbus同步線程已啟動")
+                else:
+                    print("🔄 Modbus同步線程已在運行中")
                 
                 # 讀取並同步置信度閾值
                 confidence = self.modbus_client.read_confidence_threshold()
                 if self.yolo_detector:
                     self.yolo_detector.update_confidence_threshold(confidence)
+                    print(f"🎯 置信度閾值已同步: {confidence}")
                 
                 return {
                     'success': True,
                     'message': f'Modbus TCP連接成功: {self.server_ip}:{self.server_port}',
-                    'connection_status': self.modbus_client.get_connection_status()
-                }
-            else:
-                return {
-                    'success': False,
-                    'message': f'無法連接到Modbus服務器: {self.server_ip}:{self.server_port}'
+                    'connection_status': self.modbus_client.get_connection_status(),
+                    'sync_thread_running': self.modbus_client.sync_running  # 🔥 新增同步狀態
                 }
                 
         except Exception as e:
