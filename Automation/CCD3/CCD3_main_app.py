@@ -687,7 +687,7 @@ class CCD3AngleDetectionService:
         self.socketio_instance = socketio_instance
 
     def create_simplified_result_image(self, original_image, detection_result, detection_data=None):
-        """創建簡化的結果圖像 - 只顯示角度指針和格線"""
+        """創建簡化的結果圖像 - 只顯示角度指針和格線，並在左下角顯示圓心座標"""
         result_image = original_image.copy()
         
         if not (detection_result and detection_result.success and detection_data):
@@ -695,12 +695,15 @@ class CCD3AngleDetectionService:
             img_height, img_width = result_image.shape[:2]
             font_scale = max(1.0, min(img_width, img_height) / 1000)
             cv2.putText(result_image, "DETECTION FAILED", (50, 100), 
-                       cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 0, 255), 3)
+                    cv2.FONT_HERSHEY_SIMPLEX, font_scale, (0, 0, 255), 3)
             return result_image
         
         center = detection_result.center
         angle = detection_result.angle
         contour = detection_data.get('contour')
+        
+        # 圖像尺寸
+        img_height, img_width = result_image.shape[:2]
         
         print(f"創建簡化結果圖像: 中心={center}, 角度={angle:.2f}°")
         
@@ -768,9 +771,7 @@ class CCD3AngleDetectionService:
         cv2.line(result_image, (indicator_x, indicator_y), (arrow_x1, arrow_y1), (0, 0, 255), 3)
         cv2.line(result_image, (indicator_x, indicator_y), (arrow_x2, arrow_y2), (0, 0, 255), 3)
         
-        # 5. 只顯示角度值（右上角）- 優化文字清晰度
-        img_height, img_width = result_image.shape[:2]
-        
+        # 5. 角度值顯示（右上角）- 優化文字清晰度
         # 動態調整字體大小，確保清晰度
         base_font_scale = min(img_width, img_height) / 1000.0
         font_scale = max(1.5, base_font_scale * 2.0)  # 增大字體
@@ -788,7 +789,7 @@ class CCD3AngleDetectionService:
 
         # 繪製角度文字（明亮的黃色，增加對比度）
         cv2.putText(result_image, angle_text, (text_x, text_y), 
-                   font, font_scale, (0, 255, 255), text_thickness, cv2.LINE_AA)
+                font, font_scale, (0, 255, 255), text_thickness, cv2.LINE_AA)
         
         # 在圖像左上角添加更大的角度顯示（備用位置）
         large_font_scale = font_scale * 1.5
@@ -801,9 +802,26 @@ class CCD3AngleDetectionService:
         
         # 大號角度文字（亮綠色）
         cv2.putText(result_image, large_angle_text, (large_text_x, large_text_y), 
-                   font, large_font_scale, (0, 255, 0), large_text_thickness, cv2.LINE_AA)
+                font, large_font_scale, (0, 255, 0), large_text_thickness, cv2.LINE_AA)
+        
+        # 6. 【新增】在左下角顯示圓心座標
+        center_font_scale = max(1.0, base_font_scale * 1.5)
+        center_text_thickness = max(2, int(center_font_scale * 2))
+        center_text = f"Center: ({center[0]}, {center[1]})"
+        
+        # 計算文字尺寸
+        center_text_size = cv2.getTextSize(center_text, font, center_font_scale, center_text_thickness)[0]
+        
+        # 左下角位置（考慮文字高度，留出邊距）
+        center_text_x = 30
+        center_text_y = img_height - 30
+        
+        # 繪製圓心座標文字（亮藍色）
+        cv2.putText(result_image, center_text, (center_text_x, center_text_y), 
+                font, center_font_scale, (255, 255, 0), center_text_thickness, cv2.LINE_AA)
         
         print(f"簡化結果圖像創建完成，格線數量: {360//15}, 指示角度: {angle:.2f}°")
+        print(f"圓心座標: ({center[0]}, {center[1]}) 已顯示在左下角")
         return result_image
 
     def _ensure_debug_dir(self):

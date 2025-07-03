@@ -211,6 +211,7 @@ class Flow5AssemblyExecutor:
             
             # 11. 移動到put_asm_down (帶commandAngle)
             {'type': 'move_to_point_with_angle', 'params': {'point_name': 'put_asm_down', 'move_type': 'J'}},
+            #{'type': 'waittime', 'params': {'duration_ms': 1000}},
             #{'type': 'waitkey', 'params': {'prompt': '請輸入 "go" 繼續到 put_asm_down 位置', 'expected_input': 'go'}},
             
             # 12. 夾爪快速關閉
@@ -286,6 +287,8 @@ class Flow5AssemblyExecutor:
                     success = self._execute_waitkey(step['params'])
                 elif step['type'] == 'set_speed':
                     success = self._execute_set_speed(step['params'])
+                elif step['type'] == 'waittime':
+                    success = self._execute_waittime(step['params'])
                 else:
                     print(f"未知步驟類型: {step['type']}")
                     success = False
@@ -338,7 +341,32 @@ class Flow5AssemblyExecutor:
                 steps_completed=self.current_step,
                 total_steps=self.total_steps
             )
-    
+    def _execute_waittime(self, params: Dict[str, Any]) -> bool:
+        """執行等待時間功能"""
+        try:
+            duration_ms = params.get('duration_ms', 500)
+            
+            # 檢查時間範圍 (1ms - 60000ms)
+            if not 1 <= duration_ms <= 60000:
+                self.last_error = f"等待時間超出範圍 (1-60000ms): {duration_ms}"
+                print(f"  ✗ 等待時間失敗: {self.last_error}")
+                return False
+            
+            duration_seconds = duration_ms / 1000.0
+            
+            print(f"等待時間: {duration_ms}ms ({duration_seconds:.3f}秒)")
+            
+            start_time = time.time()
+            time.sleep(duration_seconds)
+            actual_duration = time.time() - start_time
+            
+            print(f"  ✓ 等待完成，實際耗時: {actual_duration*1000:.1f}ms")
+            return True
+            
+        except Exception as e:
+            self.last_error = f"等待時間異常: {e}"
+            print(f"  ✗ 等待時間異常: {self.last_error}")
+            return False
     def _execute_set_speed(self, params: Dict[str, Any]) -> bool:
         """執行設定機械臂速度功能"""
         try:

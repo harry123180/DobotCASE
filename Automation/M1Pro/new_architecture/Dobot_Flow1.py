@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Dobot_Flow1_new.py - Flow1 VP視覺抓取流程 (移除角度校正版)
+Dobot_Flow1_YOLOv11.py - Flow1 VP視覺抓取流程 (YOLOv11版本)
 基於統一Flow架構的運動控制執行器
-使用paste.txt中的API命名風格，支援外部點位檔案
+使用YOLOv11版本CCD1模組進行CASE_F物件檢測
 完全移除角度校正相關功能
 """
 
@@ -16,6 +16,14 @@ from enum import Enum
 
 # 導入新架構基類
 from flow_base import FlowExecutor, FlowResult, FlowStatus
+
+# 導入Modbus TCP Client (適配pymodbus 3.9.2)
+try:
+    from pymodbus.client import ModbusTcpClient
+    from pymodbus.exceptions import ModbusException, ConnectionException
+    MODBUS_AVAILABLE = True
+except ImportError:
+    MODBUS_AVAILABLE = False
 
 
 @dataclass
@@ -30,6 +38,301 @@ class RobotPoint:
     j2: float
     j3: float
     j4: float
+
+
+@dataclass
+class CCD1YOLOResult:
+    """CCD1 YOLOv11檢測結果數據結構"""
+    case_f_count: int = 0
+    case_b_count: int = 0
+    total_detections: int = 0
+    case_f_coords: List[Tuple[float, float]] = None
+    case_f_world_coords: List[Tuple[float, float]] = None
+    world_coord_valid: bool = False
+    success: bool = False
+    error_message: Optional[str] = None
+
+    def __post_init__(self):
+        if self.case_f_coords is None:
+            self.case_f_coords = []
+        if self.case_f_world_coords is None:
+            self.case_f_world_coords = []
+
+
+class CCD1YOLOInterface:
+    """CCD1 YOLOv11接口 - 基於paste.txt地址定義"""
+    
+    def __init__(self, modbus_host: str = "127.0.0.1", modbus_port: int = 502):
+        self.modbus_host = modbus_host
+        self.modbus_port = modbus_port
+        self.modbus_client: Optional[ModbusTcpClient] = None
+        self.connected = False
+        
+        # CCD1 YOLOv11寄存器映射 (基於paste.txt) - 基地址200
+        self.REGISTERS = {
+            # 控制寄存器 (200-201)
+            'CONTROL_COMMAND': 200,       # 控制指令
+            'STATUS_REGISTER': 201,       # 狀態寄存器
+            
+            # 完成標誌寄存器 (202-205)
+            'CAPTURE_COMPLETE': 202,      # 拍照完成標誌
+            'DETECT_COMPLETE': 203,       # 檢測完成標誌
+            'OPERATION_SUCCESS': 204,     # 操作成功標誌
+            'ERROR_CODE': 205,            # 錯誤代碼
+            
+            # YOLOv11檢測結果寄存器 (240-259)
+            'CASE_F_COUNT': 240,          # CASE_F檢測數量
+            'CASE_B_COUNT': 241,          # CASE_B檢測數量
+            'TOTAL_DETECTIONS': 242,      # 總檢測數量
+            'DETECTION_SUCCESS': 243,     # 檢測成功標誌
+            
+            # CASE_F座標寄存器 (244-253) - 最多5個
+            'CASE_F_1_X': 244,           # CASE_F 1號 X座標
+            'CASE_F_1_Y': 245,           # CASE_F 1號 Y座標
+            'CASE_F_2_X': 246,           # CASE_F 2號 X座標
+            'CASE_F_2_Y': 247,           # CASE_F 2號 Y座標
+            'CASE_F_3_X': 248,           # CASE_F 3號 X座標
+            'CASE_F_3_Y': 249,           # CASE_F 3號 Y座標
+            'CASE_F_4_X': 250,           # CASE_F 4號 X座標
+            'CASE_F_4_Y': 251,           # CASE_F 4號 Y座標
+            'CASE_F_5_X': 252,           # CASE_F 5號 X座標
+            'CASE_F_5_Y': 253,           # CASE_F 5號 Y座標
+            
+            # 世界座標寄存器 (260-279) - YOLOv11版本擴展
+            'WORLD_COORD_VALID': 260,     # 世界座標有效標誌
+            'CASE_F_1_WORLD_X_HIGH': 261, # CASE_F 1號世界X座標高位
+            'CASE_F_1_WORLD_X_LOW': 262,  # CASE_F 1號世界X座標低位
+            'CASE_F_1_WORLD_Y_HIGH': 263, # CASE_F 1號世界Y座標高位
+            'CASE_F_1_WORLD_Y_LOW': 264,  # CASE_F 1號世界Y座標低位
+            'CASE_F_2_WORLD_X_HIGH': 265, # CASE_F 2號世界X座標高位
+            'CASE_F_2_WORLD_X_LOW': 266,  # CASE_F 2號世界X座標低位
+            'CASE_F_2_WORLD_Y_HIGH': 267, # CASE_F 2號世界Y座標高位
+            'CASE_F_2_WORLD_Y_LOW': 268,  # CASE_F 2號世界Y座標低位
+            'CASE_F_3_WORLD_X_HIGH': 269, # CASE_F 3號世界X座標高位
+            'CASE_F_3_WORLD_X_LOW': 270,  # CASE_F 3號世界X座標低位
+            'CASE_F_3_WORLD_Y_HIGH': 271, # CASE_F 3號世界Y座標高位
+            'CASE_F_3_WORLD_Y_LOW': 272,  # CASE_F 3號世界Y座標低位
+            'CASE_F_4_WORLD_X_HIGH': 273, # CASE_F 4號世界X座標高位
+            'CASE_F_4_WORLD_X_LOW': 274,  # CASE_F 4號世界X座標低位
+            'CASE_F_4_WORLD_Y_HIGH': 275, # CASE_F 4號世界Y座標高位
+            'CASE_F_4_WORLD_Y_LOW': 276,  # CASE_F 4號世界Y座標低位
+            'CASE_F_5_WORLD_X_HIGH': 277, # CASE_F 5號世界X座標高位
+            'CASE_F_5_WORLD_X_LOW': 278,  # CASE_F 5號世界X座標低位
+            'CASE_F_5_WORLD_Y_HIGH': 279, # CASE_F 5號世界Y座標高位
+        }
+        
+        # 指令定義 (基於paste.txt)
+        self.COMMANDS = {
+            'CLEAR': 0,
+            'CAPTURE': 8,
+            'CAPTURE_DETECT': 16,
+            'INITIALIZE': 32
+        }
+        
+        # 狀態位定義
+        self.STATUS_BITS = {
+            'READY': 0,
+            'RUNNING': 1,
+            'ALARM': 2,
+            'INITIALIZED': 3
+        }
+        
+        self.operation_timeout = 10.0  # 操作超時時間(秒)
+    
+    def connect(self) -> bool:
+        """連接到CCD1 Modbus服務器"""
+        if not MODBUS_AVAILABLE:
+            print("錯誤: Modbus Client不可用")
+            return False
+        
+        try:
+            if self.modbus_client:
+                self.modbus_client.close()
+            
+            print(f"連接CCD1 YOLOv11系統: {self.modbus_host}:{self.modbus_port}")
+            
+            self.modbus_client = ModbusTcpClient(
+                host=self.modbus_host,
+                port=self.modbus_port,
+                timeout=3.0
+            )
+            
+            if self.modbus_client.connect():
+                self.connected = True
+                print("✓ CCD1 YOLOv11系統連接成功")
+                return True
+            else:
+                print("✗ CCD1 YOLOv11系統連接失敗")
+                return False
+                
+        except Exception as e:
+            print(f"CCD1連接異常: {e}")
+            return False
+    
+    def disconnect(self):
+        """斷開連接"""
+        if self.modbus_client and self.connected:
+            try:
+                self.modbus_client.close()
+                print("CCD1連接已斷開")
+            except:
+                pass
+        self.connected = False
+        self.modbus_client = None
+    
+    def read_register(self, register_name: str) -> Optional[int]:
+        """讀取寄存器"""
+        if not self.connected or register_name not in self.REGISTERS:
+            return None
+        
+        try:
+            address = self.REGISTERS[register_name]
+            result = self.modbus_client.read_holding_registers(address, count=1, slave=1)
+            
+            if not result.isError():
+                return result.registers[0]
+            else:
+                return None
+                
+        except Exception:
+            return None
+    
+    def write_register(self, register_name: str, value: int) -> bool:
+        """寫入寄存器"""
+        if not self.connected or register_name not in self.REGISTERS:
+            return False
+        
+        try:
+            address = self.REGISTERS[register_name]
+            result = self.modbus_client.write_register(address, value, slave=1)
+            return not result.isError()
+        except Exception:
+            return False
+    
+    def wait_for_ready(self, timeout: float = 10.0) -> bool:
+        """等待系統Ready狀態"""
+        start_time = time.time()
+        
+        while time.time() - start_time < timeout:
+            status = self.read_register('STATUS_REGISTER')
+            if status is not None:
+                ready = bool(status & (1 << self.STATUS_BITS['READY']))
+                alarm = bool(status & (1 << self.STATUS_BITS['ALARM']))
+                
+                if ready and not alarm:
+                    return True
+                elif alarm:
+                    print("CCD1系統處於Alarm狀態")
+                    return False
+            
+            time.sleep(0.1)
+        
+        print("等待CCD1 Ready狀態超時")
+        return False
+    
+    def wait_for_operation_complete(self, timeout: float = 10.0) -> bool:
+        """等待操作完成"""
+        start_time = time.time()
+        
+        while time.time() - start_time < timeout:
+            # 檢查是否不再Running
+            status = self.read_register('STATUS_REGISTER')
+            if status is not None:
+                running = bool(status & (1 << self.STATUS_BITS['RUNNING']))
+                if not running:
+                    # 檢查操作是否成功
+                    success = self.read_register('OPERATION_SUCCESS')
+                    return success == 1
+            
+            time.sleep(0.05)  # 50ms輪詢
+        
+        print("等待CCD1操作完成超時")
+        return False
+    
+    def capture_and_detect_yolo(self) -> CCD1YOLOResult:
+        """讀取YOLOv11檢測結果 - 被動讀取模式"""
+        result = CCD1YOLOResult()
+        
+        try:
+            if not self.connected:
+                result.error_message = "CCD1未連接"
+                return result
+            
+            print("讀取CCD1 YOLOv11檢測結果...")
+            
+            # 直接讀取檢測結果 (假設CCD1已自動完成檢測)
+            case_f_count = self.read_register('CASE_F_COUNT') or 0
+            case_b_count = self.read_register('CASE_B_COUNT') or 0
+            total_detections = self.read_register('TOTAL_DETECTIONS') or 0
+            detection_success = self.read_register('DETECTION_SUCCESS') or 0
+            world_coord_valid = self.read_register('WORLD_COORD_VALID') or 0
+            
+            result.case_f_count = case_f_count
+            result.case_b_count = case_b_count
+            result.total_detections = total_detections
+            result.success = detection_success == 1
+            result.world_coord_valid = world_coord_valid == 1
+            
+            print(f"YOLOv11檢測結果: CASE_F={case_f_count}, CASE_B={case_b_count}, 總計={total_detections}")
+            
+            # 讀取CASE_F像素座標
+            if case_f_count > 0:
+                for i in range(min(case_f_count, 5)):
+                    x_reg = f'CASE_F_{i+1}_X'
+                    y_reg = f'CASE_F_{i+1}_Y'
+                    
+                    x = self.read_register(x_reg)
+                    y = self.read_register(y_reg)
+                    
+                    if x is not None and y is not None:
+                        result.case_f_coords.append((float(x), float(y)))
+                        print(f"  CASE_F {i+1}: 像素座標({x}, {y})")
+            
+            # 讀取CASE_F世界座標 (如果有效)
+            if result.world_coord_valid and case_f_count > 0:
+                for i in range(min(case_f_count, 5)):
+                    x_high_reg = f'CASE_F_{i+1}_WORLD_X_HIGH'
+                    x_low_reg = f'CASE_F_{i+1}_WORLD_X_LOW'
+                    y_high_reg = f'CASE_F_{i+1}_WORLD_Y_HIGH'
+                    y_low_reg = f'CASE_F_{i+1}_WORLD_Y_LOW'
+                    
+                    x_high = self.read_register(x_high_reg) or 0
+                    x_low = self.read_register(x_low_reg) or 0
+                    y_high = self.read_register(y_high_reg) or 0
+                    y_low = self.read_register(y_low_reg) or 0
+                    
+                    # 32位合併並轉換精度
+                    world_x_int = (x_high << 16) | x_low
+                    world_y_int = (y_high << 16) | y_low
+                    
+                    # 處理負數 (補碼轉換)
+                    if world_x_int >= 2**31:
+                        world_x_int -= 2**32
+                    if world_y_int >= 2**31:
+                        world_y_int -= 2**32
+                    
+                    # 恢復精度 (÷100)
+                    world_x = world_x_int / 100.0
+                    world_y = world_y_int / 100.0
+                    
+                    result.case_f_world_coords.append((world_x, world_y))
+                    print(f"  CASE_F {i+1}: 世界座標({world_x:.2f}, {world_y:.2f}) mm")
+            
+            # 檢查是否有有效的檢測結果
+            if case_f_count > 0:
+                result.success = True
+                print(f"✓ 成功讀取到 {case_f_count} 個CASE_F物件")
+            else:
+                result.success = False
+                result.error_message = "未檢測到CASE_F物件"
+                print("⚠️ 未檢測到CASE_F物件")
+            
+            return result
+            
+        except Exception as e:
+            result.error_message = f"讀取YOLOv11檢測結果異常: {str(e)}"
+            print(f"❌ 讀取檢測結果異常: {e}")
+            return result
 
 
 class PointsManager:
@@ -122,27 +425,30 @@ class PointsManager:
 
 
 class Flow1VisionPickExecutor(FlowExecutor):
-    """Flow1: VP視覺抓取流程執行器 - 移除角度校正版本"""
+    """Flow1: VP視覺抓取流程執行器 - YOLOv11版本"""
     
     def __init__(self):
-        super().__init__(flow_id=1, flow_name="VP視覺抓取流程")
+        super().__init__(flow_id=1, flow_name="VP視覺抓取流程(YOLOv11)")
         self.motion_steps = []
         
-        # 流程高度參數（根據paste.txt風格）
+        # 流程高度參數
         self.VP_DETECT_HEIGHT = 244.65    # VP檢測高度（與vp_topside等高）
-        self.PICKUP_HEIGHT = 142.92       # VP夾取高度
+        self.PICKUP_HEIGHT = 150       # VP夾取高度
         
         # 初始化點位管理器
         self.points_manager = PointsManager()
         self.points_loaded = False
         
-        # Flow1需要的點位名稱 (對應paste.txt中的命名)
+        # 初始化CCD1 YOLOv11接口
+        self.ccd1_interface = CCD1YOLOInterface()
+        
+        # Flow1需要的點位名稱
         self.REQUIRED_POINTS = [
             "standby",      # 待機點
-            "vp_topside",   # VP震動盤上方點 (對應VP_TOPSIDE)
-            "flip_pre",     # 翻轉預備點 (對應Rotate_V2)
-            "flip_top",     # 翻轉頂部點 (對應Rotate_top)
-            "flip_down"     # 翻轉底部點 (對應Rotate_down)
+            "vp_topside",   # VP震動盤上方點
+            "flip_pre",     # 翻轉預備點
+            "flip_top",     # 翻轉頂部點
+            "flip_down"     # 翻轉底部點
         ]
         
         # CCD2 IO控制腳位
@@ -181,53 +487,73 @@ class Flow1VisionPickExecutor(FlowExecutor):
         self.points_loaded = True
         
     def build_flow_steps(self):
-        """建構Flow1步驟 - 移除角度校正版本"""
+        """建構Flow1步驟 - YOLOv11版本"""
         if not self.points_loaded:
             print("警告: 點位未載入，無法建構流程步驟")
             self.motion_steps = []
             self.total_steps = 0
             return
             
-        # 對應paste.txt中的流程步驟 - 移除角度校正
+        # Flow1流程步驟 - YOLOv11版本
         self.motion_steps = [
             # 1. 初始準備
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
             {'type': 'gripper_close', 'params': {}},
             
-            # 2. VP視覺檢測序列 (對應paste.txt步驟2-4)
+            # 2. VP視覺檢測序列 - YOLOv11版本
             {'type': 'move_to_point', 'params': {'point_name': 'vp_topside', 'move_type': 'J'}},
-            {'type': 'ccd1_smart_detection', 'params': {}},  # 使用paste.txt中的智能檢測
+            {'type': 'ccd1_yolo_detection', 'params': {}},  # 使用YOLOv11檢測
             
-            # 3. 移動到檢測位置 (等高) - 對應paste.txt的move_to_object_vp_height
+            # 3. 移動到檢測位置 (等高)
             {'type': 'move_to_detected_position_high', 'params': {}},
             
-            # 4. 下降夾取 - 對應paste.txt的descend_and_smart_grip
+            # 4. 下降夾取
             {'type': 'move_to_detected_position_low', 'params': {}},
-            {'type': 'gripper_smart_release', 'params': {'position': 400}},
+            {'type': 'gripper_smart_release', 'params': {'position': 470}},
             
-            # 5. 上升離開
+            # 5. 上升回到待機點
             {'type': 'move_to_point', 'params': {'point_name': 'vp_topside', 'move_type': 'L'}},
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
             
-            # 6. 翻轉檢測序列 (對應paste.txt步驟9-16)
+            # 6. 翻轉檢測序列
             {'type': 'move_to_point', 'params': {'point_name': 'flip_pre', 'move_type': 'J'}},
-            {'type': 'move_to_point', 'params': {'point_name': 'flip_top', 'move_type': 'J'}},
-            {'type': 'move_to_point', 'params': {'point_name': 'flip_down', 'move_type': 'J'}},
+            {'type': 'move_to_point', 'params': {'point_name': 'Goal_CV_top', 'move_type': 'J'}},
+            # 6. 到rotate_top
+            {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
+            
+            # 7. 到rotate_down
+            {'type': 'move_to_point', 'params': {'point_name': 'rotate_down', 'move_type': 'J'}},
+            
+            # 8. 夾爪快速關閉
             {'type': 'gripper_close', 'params': {}},
-            {'type': 'move_to_point', 'params': {'point_name': 'flip_top', 'move_type': 'J'}},
+            
+            # 9. 到rotate_top
+            {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
+            
+            # 10. 到rotate_down
+            {'type': 'move_to_point', 'params': {'point_name': 'rotate_down', 'move_type': 'J'}},
+            
+            # 11. 夾爪智慧撐開470
+            {'type': 'gripper_smart_release', 'params': {'position': 470}},
+            
+            # 12. 夾爪快速關閉
+            {'type': 'gripper_close', 'params': {}},
+            
+            # 13. 到rotate_top
+            {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
+            {'type': 'move_to_point', 'params': {'point_name': 'Goal_CV_top', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'flip_pre', 'move_type': 'J'}},
+            
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
             
-            # 7. 觸發CCD2檢測 (移除角度校正)
-            {'type': 'trigger_ccd2', 'params': {}},
-            # ❌ 移除: {'type': 'angle_correction', 'params': {}}
+           
         ]
         
         self.total_steps = len(self.motion_steps)
-        print(f"Flow1流程步驟建構完成，共{self.total_steps}步 (已移除角度校正)")
+        print(f"Flow1流程步驟建構完成(YOLOv11版本)，共{self.total_steps}步")
     
     def execute(self) -> FlowResult:
-        """執行Flow1主邏輯 - 移除角度校正版本"""
+        """執行Flow1主邏輯 - YOLOv11版本"""
         # 檢查點位是否已載入
         if not self.points_loaded:
             return FlowResult(
@@ -247,6 +573,16 @@ class Flow1VisionPickExecutor(FlowExecutor):
             return FlowResult(
                 success=False,
                 error_message="機械臂未連接或未初始化",
+                execution_time=time.time() - self.start_time,
+                steps_completed=self.current_step,
+                total_steps=self.total_steps
+            )
+        
+        # 連接CCD1 YOLOv11系統
+        if not self.ccd1_interface.connect():
+            return FlowResult(
+                success=False,
+                error_message="CCD1 YOLOv11系統連接失敗",
                 execution_time=time.time() - self.start_time,
                 steps_completed=self.current_step,
                 total_steps=self.total_steps
@@ -274,8 +610,8 @@ class Flow1VisionPickExecutor(FlowExecutor):
                     success = self._execute_gripper_close()
                 elif step['type'] == 'gripper_smart_release':
                     success = self._execute_gripper_smart_release(step['params'])
-                elif step['type'] == 'ccd1_smart_detection':  # 對應paste.txt的智能檢測
-                    detected_position = self._execute_ccd1_smart_detection()
+                elif step['type'] == 'ccd1_yolo_detection':  # YOLOv11檢測
+                    detected_position = self._execute_ccd1_yolo_detection()
                     success = detected_position is not None
                 elif step['type'] == 'move_to_detected_position_high':
                     success = self._execute_move_to_detected_high(detected_position)
@@ -283,9 +619,6 @@ class Flow1VisionPickExecutor(FlowExecutor):
                     success = self._execute_move_to_detected_low(detected_position)
                 elif step['type'] == 'trigger_ccd2':
                     success = self._execute_trigger_ccd2()
-                # ❌ 移除角度校正處理
-                # elif step['type'] == 'angle_correction':
-                #     success = self._execute_angle_correction()
                 else:
                     print(f"未知步驟類型: {step['type']}")
                     success = False
@@ -323,9 +656,12 @@ class Flow1VisionPickExecutor(FlowExecutor):
                 steps_completed=self.current_step,
                 total_steps=self.total_steps
             )
+        finally:
+            # 斷開CCD1連接
+            self.ccd1_interface.disconnect()
     
     def _execute_move_to_point(self, params: Dict[str, Any]) -> bool:
-        """執行移動到外部點位檔案的點位 - 使用關節角度 (對應paste.txt風格)"""
+        """執行移動到外部點位檔案的點位"""
         try:
             point_name = params['point_name']
             move_type = params['move_type']
@@ -355,22 +691,44 @@ class Flow1VisionPickExecutor(FlowExecutor):
             return False
     
     def _execute_gripper_close(self) -> bool:
-        """執行夾爪關閉 - 對應paste.txt的quick_close API"""
+        """執行夾爪快速關閉 - 包含錯誤處理"""
         try:
             gripper_api = self.external_modules.get('gripper')
-            if gripper_api:
-                return gripper_api.quick_close()
-            else:
-                print("夾爪API未初始化")
+            if not gripper_api:
+                print("錯誤: 夾爪API未初始化")
                 return False
+            
+            print("夾爪快速關閉")
+            success = gripper_api.quick_close()
+            
+            if success:
+                print("✓ 夾爪快速關閉成功")
+                
+                # 等待夾爪關閉完成
+                time.sleep(1.0)  # 等待1秒確保夾爪完全關閉
+                
+                # 檢查夾爪狀態
+                if hasattr(gripper_api, 'get_current_position'):
+                    try:
+                        current_pos = gripper_api.get_current_position()
+                        if current_pos is not None:
+                            print(f"  夾爪當前位置: {current_pos}")
+                    except Exception as e:
+                        print(f"  無法讀取夾爪位置: {e}")
+                
+                return True
+            else:
+                print("✗ 夾爪快速關閉失敗")
+                return False
+                
         except Exception as e:
-            print(f"夾爪關閉失敗: {e}")
+            print(f"夾爪快速關閉異常: {e}")
             return False
     
     def _execute_gripper_smart_release(self, params: Dict[str, Any]) -> bool:
-        """執行夾爪智能撐開 - 修正版（增加等待時間確保撐開完成）"""
+        """執行夾爪智能撐開"""
         try:
-            position = params.get('position', 370)
+            position = params.get('position', 470)
             print(f"夾爪智能撐開到位置: {position}")
             
             gripper_api = self.external_modules.get('gripper')
@@ -378,29 +736,11 @@ class Flow1VisionPickExecutor(FlowExecutor):
                 print("夾爪API未初始化")
                 return False
             
-            # 🔥 關鍵修正：執行智能撐開操作
             success = gripper_api.smart_release(position)
             
             if success:
                 print(f"✓ 夾爪智能撐開指令發送成功")
-                
-                # 🔥 關鍵新增：等待夾爪撐開操作完全完成
-                print("  等待夾爪撐開動作完成...")
-                time.sleep(1.5)  # 等待1.5秒確保夾爪完全撐開
-                
-                # 可選：檢查夾爪位置確認撐開完成
-                if hasattr(gripper_api, 'get_current_position'):
-                    try:
-                        current_pos = gripper_api.get_current_position()
-                        if current_pos is not None:
-                            print(f"  夾爪當前位置: {current_pos}")
-                            if abs(current_pos - position) <= 20:  # 容差20
-                                print(f"  ✓ 夾爪已撐開到目標位置 (誤差: {abs(current_pos - position)})")
-                            else:
-                                print(f"  ⚠️ 夾爪位置偏差較大 (目標: {position}, 實際: {current_pos})")
-                    except Exception as e:
-                        print(f"  無法讀取夾爪位置: {e}")
-                
+                time.sleep(1.5)  # 等待夾爪撐開動作完成
                 print(f"✓ 夾爪智能撐開完成 - 位置{position}")
                 return True
             else:
@@ -411,29 +751,27 @@ class Flow1VisionPickExecutor(FlowExecutor):
             print(f"夾爪智能撐開異常: {e}")
             return False
     
-    def _execute_ccd1_smart_detection(self) -> Optional[Dict[str, float]]:
-        """執行CCD1智能檢測 - 對應paste.txt的get_next_object API"""
+    def _execute_ccd1_yolo_detection(self) -> Optional[Dict[str, float]]:
+        """執行CCD1 YOLOv11檢測 - 取第一個CASE_F物件"""
         try:
-            ccd1_api = self.external_modules.get('ccd1')
-            if not ccd1_api:
-                print("CCD1 API未初始化")
+            print("  使用CCD1 YOLOv11檢測API...")
+            
+            # 執行YOLOv11檢測
+            result = self.ccd1_interface.capture_and_detect_yolo()
+            
+            if not result.success:
+                print(f"YOLOv11檢測失敗: {result.error_message}")
                 return None
             
-            print("  使用CCD1智能檢測API...")
-            
-            # 檢查CCD1系統狀態
-            system_status = ccd1_api.get_system_status()
-            if not system_status['connected']:
-                print("  ⚠️ CCD1系統未連接")
+            if result.case_f_count == 0:
+                print("YOLOv11未檢測到CASE_F物件")
                 return None
             
-            print(f"  CCD1系統狀態: Ready={system_status.get('ready', False)}")
-            
-            # 🔥 關鍵：使用paste.txt中的get_next_circle_world_coord API
-            # 自動處理：檢查FIFO佇列 → 如果空則自動拍照檢測 → 返回結果或None
-            coord = ccd1_api.get_next_circle_world_coord()
-            
-            if coord:
+            # 取第一個CASE_F物件作為目標
+            if result.world_coord_valid and result.case_f_world_coords:
+                # 優先使用世界座標
+                world_x, world_y = result.case_f_world_coords[0]
+                
                 # 獲取vp_topside點位的Z高度和R值
                 vp_topside_point = self.points_manager.get_point('vp_topside')
                 if not vp_topside_point:
@@ -441,39 +779,41 @@ class Flow1VisionPickExecutor(FlowExecutor):
                     return None
                 
                 detected_pos = {
-                    'x': coord.world_x,
-                    'y': coord.world_y,
+                    'x': world_x,
+                    'y': world_y,
                     'z': vp_topside_point.z,  # 使用vp_topside的Z高度
                     'r': vp_topside_point.r   # 繼承vp_topside的R值
                 }
-                print(f"CCD1檢測成功: ({detected_pos['x']:.2f}, {detected_pos['y']:.2f})")
+                
+                print(f"YOLOv11檢測成功(世界座標): ({detected_pos['x']:.2f}, {detected_pos['y']:.2f})")
                 print(f"繼承vp_topside - Z:{detected_pos['z']:.2f}, R:{detected_pos['r']:.2f}")
                 return detected_pos
+                
+            elif result.case_f_coords:
+                # 使用像素座標 (需要轉換為機器人座標系)
+                pixel_x, pixel_y = result.case_f_coords[0]
+                print(f"警告: 僅獲得像素座標({pixel_x}, {pixel_y})，需要座標轉換")
+                # 這裡需要實現像素座標到機器人座標的轉換
+                # 暫時返回None，需要根據實際標定參數實現
+                return None
             else:
-                print("CCD1未檢測到有效物件")
+                print("YOLOv11檢測結果無有效座標")
                 return None
                 
         except Exception as e:
-            print(f"CCD1檢測異常: {e}")
+            print(f"YOLOv11檢測異常: {e}")
             return None
     
     def _execute_move_to_detected_high(self, detected_position: Optional[Dict[str, float]]) -> bool:
-        """移動到檢測位置(等高) - 對應paste.txt的move_to_object_vp_height"""
+        """移動到檢測位置(等高)"""
         try:
             if not detected_position:
                 print("檢測位置為空，無法移動")
                 return False
             
-            # 🔥 關鍵新增：在MovL前切換到左手系
+            # 切換到左手系 (修正API調用)
             print("  切換到左手系（LorR=0）...")
-            if hasattr(self.robot, 'set_arm_orientation'):
-                # 如果robot已有封裝方法
-                if not self.robot.set_arm_orientation(0):  # 0 = 左手系
-                    print("  ⚠️ 切換到左手系失敗，但繼續執行")
-                else:
-                    print("  ✓ 已切換到左手系")
-            elif hasattr(self.robot, 'dashboard_api') and self.robot.dashboard_api:
-                # 直接調用底層API
+            if hasattr(self.robot, 'dashboard_api') and self.robot.dashboard_api:
                 try:
                     result = self.robot.dashboard_api.SetArmOrientation(0)  # 0 = 左手系
                     if "0," in str(result):  # 檢查是否成功（ErrorID=0表示成功）
@@ -482,12 +822,17 @@ class Flow1VisionPickExecutor(FlowExecutor):
                         print(f"  ⚠️ 切換到左手系可能失敗: {result}")
                 except Exception as e:
                     print(f"  ⚠️ 切換座標系異常: {e}")
+            elif hasattr(self.robot, 'set_arm_orientation'):
+                # 兼容性：如果robot有封裝方法
+                if not self.robot.set_arm_orientation(0):
+                    print("  ⚠️ 切換到左手系失敗，但繼續執行")
+                else:
+                    print("  ✓ 已切換到左手系")
             else:
                 print("  ⚠️ 無法訪問座標系切換API，跳過")
             
             print(f"移動到檢測位置(等高): ({detected_position['x']:.2f}, {detected_position['y']:.2f}, {self.VP_DETECT_HEIGHT:.2f})")
             
-            # 🔥 關鍵修正：使用完整的MovL+sync流程
             success = self.robot.move_l(
                 detected_position['x'],
                 detected_position['y'],
@@ -496,9 +841,8 @@ class Flow1VisionPickExecutor(FlowExecutor):
             )
             
             if success:
-                # 🔥 關鍵：確保MovL到位後才繼續
                 self.robot.sync()
-                print(f"MovL已完成並同步: 檢測高度={self.VP_DETECT_HEIGHT:.2f}mm, R={detected_position['r']:.2f}°")
+                print(f"MovL已完成並同步: 檢測高度={self.VP_DETECT_HEIGHT:.2f}mm")
                 return True
             else:
                 print(f"MovL指令執行失敗")
@@ -509,7 +853,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
             return False
     
     def _execute_move_to_detected_low(self, detected_position: Optional[Dict[str, float]]) -> bool:
-        """移動到檢測位置(夾取高度) - 修正版（在夾爪操作前sync）"""
+        """移動到檢測位置(夾取高度)"""
         try:
             if not detected_position:
                 print("檢測位置為空，無法移動")
@@ -517,19 +861,16 @@ class Flow1VisionPickExecutor(FlowExecutor):
             
             print(f"移動到檢測位置(夾取): ({detected_position['x']:.2f}, {detected_position['y']:.2f}, {self.PICKUP_HEIGHT:.2f})")
             
-            # 使用夾取高度
             success = self.robot.move_l(
                 detected_position['x'],
                 detected_position['y'],
-                self.PICKUP_HEIGHT,  # 148.92mm
+                self.PICKUP_HEIGHT,
                 detected_position['r']
             )
             
             if success:
-                # 🔥 關鍵修正：在夾爪操作前必須sync確保機械臂到位
                 self.robot.sync()
                 print(f"✓ 下降到夾取位置完成並已同步，夾取高度={self.PICKUP_HEIGHT:.2f}mm")
-                print("  機械臂已準備好進行夾爪操作")
                 return True
             else:
                 print(f"✗ 下降到夾取位置失敗")
@@ -540,11 +881,10 @@ class Flow1VisionPickExecutor(FlowExecutor):
             return False
     
     def _execute_trigger_ccd2(self) -> bool:
-        """觸發CCD2檢測 - 簡化版本，移除後續角度校正"""
+        """觸發CCD2檢測"""
         try:
             print("觸發CCD2物件正反面辨識")
             
-            # 使用機械臂dashboard_api執行IO操作
             # 觸發CCD2檢測 (DO8 = 1)
             if not self.robot.set_do(self.CCD2_TRIGGER_PIN, 1):
                 print("觸發CCD2失敗")
@@ -557,17 +897,12 @@ class Flow1VisionPickExecutor(FlowExecutor):
                 print("CCD2復位失敗")
                 return False
             
-            print("✓ CCD2觸發成功 (已移除後續角度校正)")
+            print("✓ CCD2觸發成功")
             return True
             
         except Exception as e:
             print(f"觸發CCD2異常: {e}")
             return False
-    
-    # ❌ 完全移除角度校正方法
-    # def _execute_angle_correction(self) -> bool:
-    #     """已移除: 角度校正功能"""
-    #     pass
     
     def pause(self) -> bool:
         """暫停Flow"""

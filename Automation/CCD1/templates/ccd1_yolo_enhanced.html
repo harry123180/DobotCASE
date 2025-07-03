@@ -179,7 +179,7 @@
             font-weight: 500;
         }
 
-        .input-group input {
+        .input-group input, .input-group select {
             width: 100%;
             padding: 10px;
             border: 2px solid #ddd;
@@ -188,7 +188,7 @@
             transition: border-color 0.3s ease;
         }
 
-        .input-group input:focus {
+        .input-group input:focus, .input-group select:focus {
             outline: none;
             border-color: #3498db;
             box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
@@ -226,6 +226,7 @@
 
         .case-f-count { color: #27ae60; }
         .case-b-count { color: #3498db; }
+        .stack-count { color: #e74c3c; }
         .total-count { color: #8e44ad; }
 
         .coordinates-list {
@@ -275,6 +276,36 @@
             color: #27ae60;
             text-align: center;
             margin-bottom: 10px;
+        }
+
+        /* 新增：模型控制面板樣式 */
+        .model-control {
+            background: linear-gradient(135deg, #fff3e0, #ffcc80);
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 5px solid #ff9800;
+            margin-bottom: 20px;
+        }
+
+        .model-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+        }
+
+        .current-model {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #ff9800;
+        }
+
+        .model-info {
+            font-size: 0.9em;
+            color: #666;
         }
 
         .registers-panel {
@@ -422,8 +453,8 @@
     <div class="container">
         <!-- 標題區域 -->
         <div class="header">
-            <h1>CCD1視覺檢測系統 <span class="version-badge">YOLOv11 v5.0</span></h1>
-            <p>CASE_B/CASE_F物件分類檢測 | 握手式狀態機控制 | 基地址200-299</p>
+            <h1>CCD1視覺檢測系統 <span class="version-badge">YOLOv11 v5.1</span></h1>
+            <p>CASE_B/CASE_F/STACK物件分類檢測 | 多模型動態切換 | 基地址200-299</p>
         </div>
 
         <!-- 主要網格佈局 -->
@@ -523,6 +554,58 @@
             </div>
         </div>
 
+        <!-- 新增：YOLO模型管理面板 -->
+        <div class="panel model-control">
+            <h2>🤖 YOLO模型管理</h2>
+            
+            <div class="model-status">
+                <div>
+                    <div class="current-model">當前模型: <span id="current-model-id">0</span></div>
+                    <div class="model-info">可用模型: <span id="available-model-count">0</span> 個</div>
+                </div>
+                <div>
+                    <div class="model-info">切換次數: <span id="model-switch-count">0</span></div>
+                    <div class="model-info">狀態: <span id="model-load-status">未載入</span></div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>選擇模型 (0=未指定, 1-20=模型ID)</label>
+                <select id="model-select">
+                    <option value="0">0 - 未指定模型</option>
+                    <option value="1">1 - 模型1</option>
+                    <option value="2">2 - 模型2</option>
+                    <option value="3">3 - 模型3</option>
+                    <option value="4">4 - 模型4</option>
+                    <option value="5">5 - 模型5</option>
+                    <option value="6">6 - 模型6</option>
+                    <option value="7">7 - 模型7</option>
+                    <option value="8">8 - 模型8</option>
+                    <option value="9">9 - 模型9</option>
+                    <option value="10">10 - 模型10</option>
+                    <option value="11">11 - 模型11</option>
+                    <option value="12">12 - 模型12</option>
+                    <option value="13">13 - 模型13</option>
+                    <option value="14">14 - 模型14</option>
+                    <option value="15">15 - 模型15</option>
+                    <option value="16">16 - 模型16</option>
+                    <option value="17">17 - 模型17</option>
+                    <option value="18">18 - 模型18</option>
+                    <option value="19">19 - 模型19</option>
+                    <option value="20">20 - 模型20</option>
+                </select>
+            </div>
+
+            <div class="controls-grid">
+                <button class="btn btn-warning" id="switch-model">切換模型</button>
+                <button class="btn" id="refresh-model-status">刷新狀態</button>
+            </div>
+
+            <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.8); border-radius: 8px; font-size: 0.9em;">
+                <strong>說明：</strong>支援1-20個模型動態切換，檔案命名: model_1.pt, model_2.pt ... model_20.pt
+            </div>
+        </div>
+
         <!-- 標定管理面板 -->
         <div class="panel calibration-panel">
             <h2>標定管理 (自動載入)</h2>
@@ -555,7 +638,7 @@
 
         <!-- 檢測結果面板 -->
         <div class="panel detection-results">
-            <h2>YOLOv11檢測結果</h2>
+            <h2>YOLOv11檢測結果 (三種分類)</h2>
             
             <div class="results-grid">
                 <!-- CASE_F結果 -->
@@ -579,6 +662,19 @@
                     <h3>CASE_B檢測</h3>
                     <div class="case-count case-b-count" id="case-b-count">0</div>
                     <div>檢測到的CASE_B數量</div>
+                    <div style="font-size: 0.85em; color: #3498db; margin-top: 5px;">
+                        像素座標檢測
+                    </div>
+                </div>
+
+                <!-- 新增：STACK結果 -->
+                <div class="result-card">
+                    <h3>STACK檢測</h3>
+                    <div class="case-count stack-count" id="stack-count">0</div>
+                    <div>檢測到的STACK數量</div>
+                    <div style="font-size: 0.85em; color: #e74c3c; margin-top: 5px;">
+                        堆疊物件檢測
+                    </div>
                 </div>
 
                 <!-- 總計結果 -->
@@ -588,6 +684,7 @@
                     <div>總檢測數量</div>
                     
                     <div style="margin-top: 15px; font-size: 0.9em;">
+                        <div>使用模型: <span id="used-model-id" style="color: #ff9800; font-weight: 600;">0</span></div>
                         <div>拍照耗時: <span id="capture-time">0</span>ms</div>
                         <div>處理耗時: <span id="process-time">0</span>ms</div>
                         <div>總耗時: <span id="total-time">0</span>ms</div>
@@ -630,7 +727,7 @@
 
         <!-- 寄存器監控面板 -->
         <div class="panel registers-panel">
-            <h2>Modbus寄存器監控</h2>
+            <h2>Modbus寄存器監控 (含模型管理)</h2>
             
             <div class="controls-grid" style="margin-bottom: 20px;">
                 <button class="btn" id="refresh-registers">刷新寄存器</button>
@@ -685,6 +782,7 @@
             // 檢測結果
             caseFCount: document.getElementById('case-f-count'),
             caseBCount: document.getElementById('case-b-count'),
+            stackCount: document.getElementById('stack-count'), // 新增
             totalCount: document.getElementById('total-count'),
             caseFCoords: document.getElementById('case-f-coords'),
             
@@ -693,6 +791,7 @@
             processTime: document.getElementById('process-time'),
             totalTime: document.getElementById('total-time'),
             usedConfidence: document.getElementById('used-confidence'),
+            usedModelId: document.getElementById('used-model-id'), // 新增
             
             // 圖像顯示
             imagePlaceholder: document.getElementById('image-placeholder'),
@@ -713,6 +812,15 @@
             scanCalibration: document.getElementById('scan-calibration'),
             loadCalibration: document.getElementById('load-calibration'),
             
+            // 模型管理 (新增)
+            currentModelId: document.getElementById('current-model-id'),
+            availableModelCount: document.getElementById('available-model-count'),
+            modelSwitchCount: document.getElementById('model-switch-count'),
+            modelLoadStatus: document.getElementById('model-load-status'),
+            modelSelect: document.getElementById('model-select'),
+            switchModel: document.getElementById('switch-model'),
+            refreshModelStatus: document.getElementById('refresh-model-status'),
+            
             // 寄存器監控
             refreshRegisters: document.getElementById('refresh-registers'),
             autoRefreshToggle: document.getElementById('auto-refresh-toggle'),
@@ -723,9 +831,11 @@
         document.addEventListener('DOMContentLoaded', function() {
             setupEventListeners();
             updateStatus();
+            updateModelStatus(); // 新增
             
             // 定期更新狀態
             setInterval(updateStatus, 3000);
+            setInterval(updateModelStatus, 5000); // 新增：定期更新模型狀態
         });
         
         // 設置事件監聽器
@@ -746,6 +856,10 @@
             elements.scanCalibration.addEventListener('click', scanCalibrationFiles);
             elements.loadCalibration.addEventListener('click', loadCalibrationData);
             
+            // 模型管理 (新增)
+            elements.switchModel.addEventListener('click', switchModel);
+            elements.refreshModelStatus.addEventListener('click', updateModelStatus);
+            
             // 寄存器監控
             elements.refreshRegisters.addEventListener('click', refreshRegisters);
             elements.autoRefreshToggle.addEventListener('click', toggleAutoRefresh);
@@ -753,6 +867,78 @@
             // Socket.IO 事件
             socket.on('status_update', handleStatusUpdate);
             socket.on('detection_result', handleDetectionResult);
+        }
+        
+        // 新增：更新模型狀態
+        async function updateModelStatus() {
+            try {
+                const response = await fetch('/api/model_status');
+                const data = await response.json();
+                
+                if (data.success) {
+                    elements.currentModelId.textContent = data.current_model_id || 0;
+                    elements.availableModelCount.textContent = data.available_model_count || 0;
+                    elements.modelSwitchCount.textContent = data.model_switch_count || 0;
+                    elements.modelLoadStatus.textContent = data.is_model_loaded ? '已載入' : '未載入';
+                    
+                    // 更新模型選擇下拉選單的選中狀態
+                    elements.modelSelect.value = data.current_model_id || 0;
+                    
+                    // 更新可用模型選項的顯示
+                    updateModelSelectOptions(data.available_models || []);
+                }
+            } catch (error) {
+                console.error('更新模型狀態失敗:', error);
+            }
+        }
+        
+        // 新增：更新模型選擇選項
+        function updateModelSelectOptions(availableModels) {
+            const options = elements.modelSelect.querySelectorAll('option');
+            options.forEach(option => {
+                const modelId = parseInt(option.value);
+                if (modelId > 0) {
+                    const isAvailable = availableModels.includes(modelId);
+                    option.style.color = isAvailable ? '#27ae60' : '#95a5a6';
+                    option.textContent = option.textContent.split(' - ')[0] + ' - ' + 
+                                       (isAvailable ? '模型' + modelId + ' (可用)' : '模型' + modelId + ' (不存在)');
+                }
+            });
+        }
+        
+        // 新增：切換模型
+        async function switchModel() {
+            const modelId = parseInt(elements.modelSelect.value);
+            setButtonLoading(elements.switchModel, true);
+            
+            try {
+                const response = await fetch('/api/switch_model', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model_id: modelId })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showNotification(`模型切換成功: 模型${modelId}`, 'success');
+                    
+                    // 🔥 立即更新多個地方的模型顯示
+                    elements.currentModelId.textContent = data.current_model_id;
+                    elements.usedModelId.textContent = data.current_model_id;  // 立即更新檢測統計
+                    
+                    // 延遲更新完整狀態
+                    setTimeout(() => {
+                        updateModelStatus();
+                        updateStatus();
+                    }, 200);
+                } else {
+                    showNotification('模型切換失敗: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showNotification('模型切換異常: ' + error.message, 'error');
+            } finally {
+                setButtonLoading(elements.switchModel, false);
+            }
         }
         
         // 更新系統狀態
@@ -959,20 +1145,27 @@
             }
         }
         
-        // 更新檢測結果
+        // 更新檢測結果 - 支援三種分類
         function updateDetectionResults(data) {
             console.log('收到檢測結果:', data);
             
-            // 更新計數
+            // 更新計數 (包含STACK) - 修正這裡
             elements.caseFCount.textContent = data.case_f_count || 0;
             elements.caseBCount.textContent = data.case_b_count || 0;
+            elements.stackCount.textContent = data.stack_count || 0; // 確保這行存在且正確
             elements.totalCount.textContent = data.total_detections || 0;
             
-            // 更新時間統計
+            // 更新時間統計和模型ID
             elements.captureTime.textContent = (data.capture_time || 0).toFixed(1);
             elements.processTime.textContent = (data.processing_time || 0).toFixed(1);
             elements.totalTime.textContent = (data.total_time || 0).toFixed(1);
             elements.usedConfidence.textContent = (data.confidence_threshold || 0.8).toFixed(2);
+            
+            // 🔥 修正：確保模型ID即時更新
+            if (data.model_id_used !== undefined) {
+                elements.usedModelId.textContent = data.model_id_used;
+                console.log('更新使用的模型ID:', data.model_id_used);
+            }
             
             // 更新CASE_F座標
             const caseFCoords = data.case_f_coords || [];
@@ -992,12 +1185,15 @@
             if (worldCoordValid) {
                 elements.worldCoordStatus.textContent = '有效';
                 elements.worldCoordStatus.style.color = '#27ae60';
-                showNotification(`檢測完成: CASE_F=${data.case_f_count}, CASE_B=${data.case_b_count}, 包含世界座標`, 'success');
+                showNotification(`檢測完成 (模型${data.model_id_used || 0}): F=${data.case_f_count}, B=${data.case_b_count}, S=${data.stack_count}, 包含世界座標`, 'success');
             } else {
                 elements.worldCoordStatus.textContent = '無效';
                 elements.worldCoordStatus.style.color = '#e74c3c';
-                showNotification(`檢測完成: CASE_F=${data.case_f_count}, CASE_B=${data.case_b_count}`, 'success');
+                showNotification(`檢測完成 (模型${data.model_id_used || 0}): F=${data.case_f_count}, B=${data.case_b_count}, S=${data.stack_count}`, 'success');
             }
+            
+            // 🔥 新增：檢測完成後立即更新模型狀態
+            setTimeout(updateModelStatus, 500);
         }
         
         // 更新CASE_F座標列表
@@ -1110,18 +1306,28 @@
             
             const sections = {
                 '控制寄存器': {},
+                '模型管理': {},  
                 '檢測結果': {},
+                '世界座標': {},  // 新增世界座標分類
                 '統計資訊': {},
                 '其他': {}
             };
             
-            // 分類寄存器
+            // 🔥 修正分類寄存器邏輯
             Object.entries(registers).forEach(([key, value]) => {
                 if (key.includes('控制') || key.includes('狀態') || key.includes('置信度')) {
                     sections['控制寄存器'][key] = value;
-                } else if (key.includes('CASE_') || key.includes('檢測') || key.includes('數量')) {
+                } else if (key.includes('MODEL') || key.includes('模型') || key.includes('202')) {  // 模型選擇寄存器202
+                    sections['模型管理'][key] = value;
+                } else if (key.includes('CASE_F') || key.includes('CASE_B') || key.includes('STACK') || 
+                        key.includes('檢測') || key.includes('數量') || 
+                        key.includes('240_') || key.includes('241_') || key.includes('242_') || key.includes('243_') || key.includes('244_')) {
                     sections['檢測結果'][key] = value;
-                } else if (key.includes('耗時') || key.includes('計數')) {
+                } else if (key.includes('世界') || key.includes('WORLD') || 
+                        key.includes('260_') || key.includes('261_') || key.includes('279_')) {  // 世界座標範圍260-279
+                    sections['世界座標'][key] = value;
+                } else if (key.includes('耗時') || key.includes('計數') || 
+                        key.includes('280_') || key.includes('281_') || key.includes('284_')) {  // 統計範圍280+
                     sections['統計資訊'][key] = value;
                 } else {
                     sections['其他'][key] = value;
