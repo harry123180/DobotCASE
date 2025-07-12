@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Dobot_Flow1_YOLOv11.py - Flow1 VP視覺抓取流程 (YOLOv11版本)
+Dobot_Flow1_YOLOv11.py - Flow1 VP視覺抓取流程 (YOLOv11版本) - 統一進度修正版
 基於統一Flow架構的運動控制執行器
 使用YOLOv11版本CCD1模組進行CASE_F物件檢測
 完全移除角度校正相關功能
+修正：統一將進度更新到寄存器1202而不是403
 """
 
 import time
@@ -425,7 +426,7 @@ class PointsManager:
 
 
 class Flow1VisionPickExecutor(FlowExecutor):
-    """Flow1: VP視覺抓取流程執行器 - YOLOv11版本"""
+    """Flow1: VP視覺抓取流程執行器 - YOLOv11版本 - 統一進度修正版"""
     
     def __init__(self):
         super().__init__(flow_id=1, flow_name="VP視覺抓取流程(YOLOv11)")
@@ -545,15 +546,13 @@ class Flow1VisionPickExecutor(FlowExecutor):
             {'type': 'move_to_point', 'params': {'point_name': 'flip_pre', 'move_type': 'J'}},
             
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
-            
-           
         ]
         
         self.total_steps = len(self.motion_steps)
         print(f"Flow1流程步驟建構完成(YOLOv11版本)，共{self.total_steps}步")
     
     def execute(self) -> FlowResult:
-        """執行Flow1主邏輯 - YOLOv11版本"""
+        """執行Flow1主邏輯 - YOLOv11版本 - 統一進度修正版"""
         # 檢查點位是否已載入
         if not self.points_loaded:
             return FlowResult(
@@ -634,10 +633,16 @@ class Flow1VisionPickExecutor(FlowExecutor):
                     )
                 
                 self.current_step += 1
+                
+                # 🔥 修正：統一更新進度到寄存器1202
+                self._update_progress_to_1202()
             
             # 流程成功完成
             self.status = FlowStatus.COMPLETED
             execution_time = time.time() - self.start_time
+            
+            # 🔥 修正：最終進度設為100%
+            self._update_progress_to_1202(100)
             
             return FlowResult(
                 success=True,
@@ -659,6 +664,39 @@ class Flow1VisionPickExecutor(FlowExecutor):
         finally:
             # 斷開CCD1連接
             self.ccd1_interface.disconnect()
+    
+    def _update_progress_to_1202(self, override_progress: Optional[int] = None):
+        """🔥 修正方法：統一更新進度到寄存器1202而不是403"""
+        try:
+            if override_progress is not None:
+                progress = override_progress
+            else:
+                progress = int((self.current_step / self.total_steps) * 100) if self.total_steps > 0 else 0
+            
+            # 方法1：通過state_machine的set_progress方法 (推薦)
+            if hasattr(self.state_machine, 'set_progress'):
+                self.state_machine.set_progress(progress)
+                print(f"[Flow1] 進度已更新到1202: {progress}% (透過MotionStateMachine)")
+                return
+            
+            # 方法2：直接寫入到1202寄存器 (備用方法)
+            if (self.state_machine and 
+                hasattr(self.state_machine, 'modbus_client') and 
+                self.state_machine.modbus_client is not None):
+                try:
+                    # 直接寫入運動進度寄存器1202
+                    result = self.state_machine.modbus_client.write_register(1202, progress)
+                    if hasattr(result, 'isError') and not result.isError():
+                        print(f"[Flow1] 進度已更新到1202: {progress}% (直接寫入)")
+                    else:
+                        print(f"[Flow1] 進度更新失敗: {result}")
+                except Exception as e:
+                    print(f"[Flow1] 進度更新異常: {e}")
+            else:
+                print(f"[Flow1] 無法更新進度：state_machine或modbus_client不可用")
+                
+        except Exception as e:
+            print(f"[Flow1] 進度更新到1202失敗: {e}")
     
     def _execute_move_to_point(self, params: Dict[str, Any]) -> bool:
         """執行移動到外部點位檔案的點位"""

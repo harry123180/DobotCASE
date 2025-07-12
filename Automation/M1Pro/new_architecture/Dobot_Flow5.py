@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Dobot_Flow5.py - Flow5 機械臂運轉流程執行器  
+Dobot_Flow5.py - Flow5 機械臂運轉流程執行器 - 統一進度修正版  
 基於Flow3組裝作業流程，整合角度檢測與第四軸旋轉控制
 參考Flow1/Flow2點位載入方式，禁止使用內建點位
-修改版：優化角度控制邏輯 + 添加waitkey功能
+修正：統一將進度更新到寄存器1202而不是503
 """
 
 import time
@@ -38,7 +38,7 @@ class FlowResult:
 
 
 class Flow5AssemblyExecutor:
-    """Flow5: 機械臂運轉流程執行器 - 整合角度檢測與第四軸控制"""
+    """Flow5: 機械臂運轉流程執行器 - 整合角度檢測與第四軸控制 - 統一進度修正版"""
     
     # 硬編碼第四軸原始角度
     J4_ORIGINAL_DEGREE = 176.96
@@ -48,7 +48,7 @@ class Flow5AssemblyExecutor:
         self.flow_name = "機械臂運轉流程"
         self.status = FlowStatus.IDLE
         self.current_step = 0
-        self.total_steps = 14  # 更新總步驟數
+        self.total_steps = 18  # 更新總步驟數
         self.start_time = 0.0
         self.last_error = ""
         
@@ -97,8 +97,9 @@ class Flow5AssemblyExecutor:
         if not self._load_external_points():
             raise RuntimeError("載入外部點位檔案失敗，Flow5無法初始化")
             
-        print("✓ Flow5執行器初始化完成 - 機械臂運轉流程 (含角度檢測)")
+        print("✓ Flow5執行器初始化完成 - 機械臂運轉流程 (含角度檢測) - 統一進度修正版")
         print(f"✓ 第四軸原始角度: {self.J4_ORIGINAL_DEGREE}度")
+        print("✓ 進度將統一更新到寄存器1202")
         
     def _load_external_points(self) -> bool:
         """載入外部點位檔案 - 修正陣列格式JSON"""
@@ -207,7 +208,7 @@ class Flow5AssemblyExecutor:
             #{'type': 'waitkey', 'params': {'prompt': '請輸入 "go" 繼續到 put_asm_down 位置', 'expected_input': 'go'}},
             
             # 10. 設定機械臂速度
-            {'type': 'set_speed', 'params': {'speed_percent': 20}},
+            {'type': 'set_speed', 'params': {'speed_percent': 100}},
             
             # 11. 移動到put_asm_down (帶commandAngle)
             {'type': 'move_to_point_with_angle', 'params': {'point_name': 'put_asm_down', 'move_type': 'J'}},
@@ -226,7 +227,7 @@ class Flow5AssemblyExecutor:
             # 15. 移動到rotate_top (不帶角度)
             {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'flip_pre', 'move_type': 'J'}},
-            {'type': 'set_speed', 'params': {'speed_percent': 80}},
+            {'type': 'set_speed', 'params': {'speed_percent': 100}},
             # 16. 移動到standby (完成)
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}}
         ]
@@ -234,14 +235,15 @@ class Flow5AssemblyExecutor:
         self.total_steps = len(self.motion_steps)
         print(f"Flow5流程步驟建構完成，共{self.total_steps}步")
         print("角度控制策略：rotate相關點位使用原始角度，put_asm_top/put_asm_down使用commandAngle")
-        print("waitkey步驟：在put_asm_top之後等待終端輸入")
+        print("統一進度更新：所有進度將更新到寄存器1202")
     
     def execute(self) -> FlowResult:
-        """執行Flow5主邏輯"""
+        """執行Flow5主邏輯 - 統一進度修正版"""
         print("\n" + "="*60)
-        print("開始執行Flow5 - 機械臂運轉流程 (修改版角度控制 + waitkey + set_speed)")
-        print("流程序列: standby->角度檢測->rotate_top->rotate_down->夾爪撐開->rotate_top->put_asm_pre->put_asm_top(角度)->【waitkey】->【set_speed】->put_asm_down(角度)->夾爪關閉->put_asm_top(角度)->put_asm_pre->rotate_top->standby")
+        print("開始執行Flow5 - 機械臂運轉流程 (統一進度修正版)")
+        print("流程序列: standby->角度檢測->rotate_top->rotate_down->夾爪撐開->rotate_top->put_asm_pre->put_asm_top(角度)->【set_speed】->put_asm_down(角度)->夾爪關閉->put_asm_top(角度)->put_asm_pre->rotate_top->standby")
         print(f"第四軸原始角度: {self.J4_ORIGINAL_DEGREE}度")
+        print("進度統一更新到寄存器1202")
         print("="*60)
         
         self.status = FlowStatus.RUNNING
@@ -305,17 +307,15 @@ class Flow5AssemblyExecutor:
                 
                 self.current_step += 1
                 
-                # 更新進度
-                if self.state_machine:
-                    try:
-                        progress = int((self.current_step / self.total_steps) * 100)
-                        self.state_machine.write_register(503, progress)  # Flow5進度寄存器
-                    except Exception:
-                        pass
+                # 🔥 修正：統一更新進度到寄存器1202
+                self._update_progress_to_1202()
             
             # 流程完成
             self.status = FlowStatus.COMPLETED
             execution_time = time.time() - self.start_time
+            
+            # 🔥 修正：最終進度設為100%
+            self._update_progress_to_1202(100)
             
             print(f"\n✓ Flow5執行完成！總耗時: {execution_time:.2f}秒")
             if self.target_angle is not None and self.command_angle is not None:
@@ -341,6 +341,40 @@ class Flow5AssemblyExecutor:
                 steps_completed=self.current_step,
                 total_steps=self.total_steps
             )
+    
+    def _update_progress_to_1202(self, override_progress: Optional[int] = None):
+        """🔥 修正方法：統一更新進度到寄存器1202而不是503"""
+        try:
+            if override_progress is not None:
+                progress = override_progress
+            else:
+                progress = int((self.current_step / self.total_steps) * 100) if self.total_steps > 0 else 0
+            
+            # 方法1：通過state_machine的set_progress方法 (推薦)
+            if hasattr(self.state_machine, 'set_progress'):
+                self.state_machine.set_progress(progress)
+                print(f"[Flow5] 進度已更新到1202: {progress}% (透過MotionStateMachine)")
+                return
+            
+            # 方法2：直接寫入到1202寄存器 (備用方法)
+            if (self.state_machine and 
+                hasattr(self.state_machine, 'modbus_client') and 
+                self.state_machine.modbus_client is not None):
+                try:
+                    # 直接寫入運動進度寄存器1202
+                    result = self.state_machine.modbus_client.write_register(1202, progress)
+                    if hasattr(result, 'isError') and not result.isError():
+                        print(f"[Flow5] 進度已更新到1202: {progress}% (直接寫入)")
+                    else:
+                        print(f"[Flow5] 進度更新失敗: {result}")
+                except Exception as e:
+                    print(f"[Flow5] 進度更新異常: {e}")
+            else:
+                print(f"[Flow5] 無法更新進度：state_machine或modbus_client不可用")
+                
+        except Exception as e:
+            print(f"[Flow5] 進度更新到1202失敗: {e}")
+    
     def _execute_waittime(self, params: Dict[str, Any]) -> bool:
         """執行等待時間功能"""
         try:
@@ -367,6 +401,7 @@ class Flow5AssemblyExecutor:
             self.last_error = f"等待時間異常: {e}"
             print(f"  ✗ 等待時間異常: {self.last_error}")
             return False
+    
     def _execute_set_speed(self, params: Dict[str, Any]) -> bool:
         """執行設定機械臂速度功能"""
         try:
@@ -801,5 +836,7 @@ class Flow5AssemblyExecutor:
             'target_angle': self.target_angle,
             'command_angle': self.command_angle,
             'angle_detection_enabled': True,
-            'waitkey_enabled': True
+            'waitkey_enabled': True,
+            'progress_register': 1202,  # 新增：標示進度寄存器地址
+            'progress_unified': True    # 新增：標示已統一進度
         }

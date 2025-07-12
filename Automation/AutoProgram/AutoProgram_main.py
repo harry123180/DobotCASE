@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AutoProgram_RobotJob.py - VP入料+機械臂協調控制系統
+AutoProgram_RobotJob.py - VP入料+機械臂協調控制系統 (增強版)
 雙執行緒架構：AutoFeeding執行緒 + RobotJob執行緒
 基地址：1300-1349
+新增功能：
+1. 控制地址1350 - 流程總開關
+2. 直振供料計數與清空流程
+3. VP清空檢測與自動停止
 """
 
 import time
@@ -32,7 +36,8 @@ class SystemStatus(Enum):
     ROBOT_JOB_RUNNING = 2
     FLOW1_EXECUTING = 3
     FLOW5_EXECUTING = 4
-    ERROR = 5
+    VP_CLEARING = 5  # 新增：VP清空中
+    ERROR = 6
 
 
 @dataclass
@@ -58,8 +63,8 @@ class ProtectionZone:
         """判斷點是否在保護區域四邊形內"""
         points = [
             (10.71, -246.12),   # x1, y1
-            (10.71, -374.21),   # x2, y2
-            (-77.88, -374.22),  # x3, y3
+            (10.71, -360.21),   # x2, y2
+            (-77.88, -360.22),  # x3, y3
             (-111.25, -246.13)  # x4, y4
         ]
         
@@ -103,12 +108,18 @@ class AutoFeedingThread:
         self.CCD1_BASE = 200
         self.VP_BASE = 300
         self.FLOW4_BASE = 448
+        self.CONTROL_ADDRESS = 1350  # 新增：流程控制地址
         
         # 統計資訊
         self.cycle_count = 0
         self.case_f_found_count = 0
         self.flow4_trigger_count = 0
         self.vp_vibration_count = 0
+        
+        # 新增：直振供料與清空流程
+        self.flow4_consecutive_count = 0  # 連續直振次數
+        self.vp_clearing_mode = False     # VP清空模式
+        self.vp_empty_detection_count = 0 # VP空檢測次數
         
         # 入料完成標誌
         self.feeding_ready = False
@@ -132,6 +143,14 @@ class AutoFeedingThread:
         print("[AutoFeeding] 機械臂作業完成，恢復入料檢測")
         self.pause_for_robot = False
         self.feeding_ready = False
+    
+    def check_flow_control(self) -> bool:
+        """檢查流程控制開關 (1350地址)"""
+        try:
+            control_value = self.read_register(self.CONTROL_ADDRESS)
+            return control_value == 1
+        except Exception:
+            return False
     
     def read_register(self, address: int) -> Optional[int]:
         """讀取單個寄存器"""
@@ -411,9 +430,173 @@ class AutoFeedingThread:
         
         return True
     
-    def auto_feeding_cycle(self) -> bool:
-        """執行一次自動入料週期"""
+    def trigger_vp_clear_vibration(self) -> bool:
+        """觸發VP清空震動 - 翻正所有料件"""
+        print("[AutoFeeding] 觸發VP清空震動 (spread強度50頻率43)")
+        
+        command_code = 5   # execute_action
+        action_code = 11   # spread
+        strength = 50      # 強度50
+        frequency = 43     # 頻率43
+        duration = 0.5     # 持續0.5秒
+        
+        # 啟動VP震動
+        success = True
+        success &= self.write_register(320, command_code)
+        success &= self.write_register(321, action_code)
+        success &= self.write_register(322, strength)
+        success &= self.write_register(323, frequency)
+        success &= self.write_register(324, int(time.time()) % 65535)  # command_id
+        
+        if not success:
+            print("[AutoFeeding] ✗ VP清空震動指令發送失敗")
+            return False
+        
+        # 等待震動完成
+        time.sleep(duration)
+        
+        # 停止震動
+        if not self.stop_vp_vibration():
+            print("[AutoFeeding] ✗ VP清空震動停止失敗")
+            return False
+        
+        print("[AutoFeeding] ✓ VP清空震動完成")
+        return True
+    
+    def check_vp_empty_condition(self) -> bool:
+        """檢查VP是否為空 (總檢測數為0)"""
+        detection_result = self.trigger_ccd1_detection()
+        
+        if not detection_result.operation_success:
+            print("[AutoFeeding] ✗ VP空檢測失敗")
+            return False
+        
+        is_empty = (detection_result.total_detections == 0)
+        print(f"[AutoFeeding] VP空檢測: 總檢測數={detection_result.total_detections}, 是否為空={is_empty}")
+        
+        return is_empty
+    def clear_flow1_control_with_verify(self) -> bool:
+        """清除Flow1控制狀態並驗證 - 增強版，確保真正清零"""
+        max_attempts = 5  # 最多嘗試5次
+        attempt = 0
+        
+        while attempt < max_attempts:
+            attempt += 1
+            
+            # 嘗試寫入0
+            write_success = self.write_register(1240, 0)  # FLOW1_CONTROL
+            
+            if not write_success:
+                print(f"[AutoFeeding] ✗ Flow1控制清零寫入失敗 (嘗試{attempt}/{max_attempts})")
+                time.sleep(0.2)
+                continue
+            
+            # 等待寫入穩定
+            time.sleep(0.1)
+            
+            # 讀取驗證
+            current_value = self.read_register(1240)
+            
+            if current_value == 0:
+                print(f"[AutoFeeding] ✓ Flow1控制清零成功 (嘗試{attempt}/{max_attempts})")
+                return True
+            else:
+                print(f"[AutoFeeding] ✗ Flow1控制清零驗證失敗: 期望0，實際{current_value} (嘗試{attempt}/{max_attempts})")
+                time.sleep(0.2)
+        
+        print(f"[AutoFeeding] ✗ Flow1控制清零最終失敗 (嘗試{max_attempts}次)")
+        return False
+    def execute_vp_clearing_process(self) -> bool:
+        """執行VP清空流程"""
+        print("\n[AutoFeeding] === 開始VP清空流程 ===")
+        print("[AutoFeeding] 料桶無料，執行VP清空：翻正所有料件 + Flow1清空")
+        
+        self.vp_clearing_mode = True
+        self.vp_empty_detection_count = 0
+        
         try:
+            # 步驟1：VP震動翻正所有料件
+            if not self.trigger_vp_clear_vibration():
+                print("[AutoFeeding] ✗ VP清空震動失敗")
+                return False
+            
+            # 步驟2：重複執行Flow1直到VP空
+            flow1_attempts = 0
+            max_flow1_attempts = 20  # 防止無限循環
+            
+            while flow1_attempts < max_flow1_attempts:
+                flow1_attempts += 1
+                print(f"\n[AutoFeeding] Flow1清空嘗試 {flow1_attempts}/{max_flow1_attempts}")
+                
+                # 觸發Flow1
+                if not self.write_register(1240, 1):  # FLOW1_CONTROL
+                    print("[AutoFeeding] ✗ Flow1觸發失敗")
+                    break
+                
+                # 等待Flow1完成 (最多30秒)
+                flow1_timeout = 30.0
+                start_time = time.time()
+                flow1_completed = False
+                
+                while (time.time() - start_time) < flow1_timeout:
+                    flow1_status = self.read_register(1204)  # FLOW1_COMPLETE
+                    if flow1_status == 1:
+                        flow1_completed = True
+                        print(f"[AutoFeeding] ✓ Flow1清空完成 (耗時{time.time() - start_time:.1f}s)")
+                        break
+                    time.sleep(0.5)
+                
+                if not flow1_completed:
+                    print("[AutoFeeding] ✗ Flow1清空超時")
+                    break
+                
+                # ===== 修正：增強版Flow1控制清零 =====
+                clear_success = self.clear_flow1_control_with_verify()
+                if not clear_success:
+                    print("[AutoFeeding] ✗ Flow1控制清零失敗，終止清空流程")
+                    break
+                time.sleep(0.5)
+                
+                # VP震動 + 檢測VP是否為空
+                self.trigger_vp_clear_vibration()
+                time.sleep(0.5)  # 等待0.5秒
+                
+                if self.check_vp_empty_condition():
+                    self.vp_empty_detection_count += 1
+                    print(f"[AutoFeeding] VP空檢測 {self.vp_empty_detection_count}/5")
+                    
+                    if self.vp_empty_detection_count >= 5:
+                        print("[AutoFeeding] ✓ VP連續5次檢測為空，清空流程完成")
+                        
+                        # 清空流程完成，停止AutoProgram
+                        print("[AutoFeeding] 設置控制地址1350=0，停止AutoProgram")
+                        self.write_register(self.CONTROL_ADDRESS, 0)
+                        
+                        return True
+                else:
+                    self.vp_empty_detection_count = 0  # 重置空檢測計數
+                
+                time.sleep(1.0)  # 等待下一輪
+            
+            print(f"[AutoFeeding] ✗ VP清空流程失敗 (Flow1嘗試{flow1_attempts}次)")
+            return False
+            
+        except Exception as e:
+            print(f"[AutoFeeding] ✗ VP清空流程異常: {e}")
+            return False
+        
+        finally:
+            self.vp_clearing_mode = False
+            print("[AutoFeeding] === VP清空流程結束 ===\n")
+    
+    def auto_feeding_cycle(self) -> bool:
+        """執行一次自動入料週期 (增強版)"""
+        try:
+            # 檢查流程控制開關
+            if not self.check_flow_control():
+                print("[AutoFeeding] 流程控制開關關閉 (1350=0)，跳過週期")
+                return False
+            
             self.cycle_count += 1
             print(f"\n[AutoFeeding] === 週期 {self.cycle_count} 開始 ===")
             
@@ -435,6 +618,8 @@ class AutoFeedingThread:
             if target_coords:
                 # 找到保護區域內的CASE_F
                 self.case_f_found_count += 1
+                self.flow4_consecutive_count = 0  # 重置連續直振計數
+                
                 if self.update_first_case_f_coordinates(target_coords):
                     print(f"[AutoFeeding] ✓ 找到CASE_F在保護區域: {target_coords}")
                     self.feeding_ready = True
@@ -449,11 +634,22 @@ class AutoFeedingThread:
                     # 料件不足，觸發Flow4送料
                     if self.trigger_flow4_feeding():
                         self.flow4_trigger_count += 1
+                        self.flow4_consecutive_count += 1  # 增加連續直振計數
+                        
                         print(f"[AutoFeeding] 料件不足，觸發Flow4送料 (總檢測={detection_result.total_detections})")
+                        print(f"[AutoFeeding] 連續直振次數: {self.flow4_consecutive_count}/5")
+                        
+                        # 檢查是否達到連續直振5次
+                        if self.flow4_consecutive_count >= 5:
+                            print("[AutoFeeding] 連續直振5次，料桶無料，開始VP清空流程")
+                            self.execute_vp_clearing_process()
+                            return True  # 清空流程會自動停止系統
                 
                 elif detection_result.total_detections >= 4:
                     # 料件充足但沒有CASE_F在保護區，震動散開並重新檢測
                     print(f"[AutoFeeding] 料件充足但無CASE_F在保護區 (總檢測={detection_result.total_detections})")
+                    self.flow4_consecutive_count = 0  # 重置連續直振計數
+                    
                     target_coords_after_vp = self.trigger_vp_vibration_and_redetect()
                     if target_coords_after_vp:
                         # 震動後找到CASE_F，更新座標
@@ -490,6 +686,9 @@ class AutoFeedingThread:
         self.case_f_found_count = 0
         self.flow4_trigger_count = 0
         self.vp_vibration_count = 0
+        self.flow4_consecutive_count = 0  # 重置連續直振計數
+        self.vp_clearing_mode = False
+        self.vp_empty_detection_count = 0
         self.feeding_ready = False
         self.pause_for_robot = False
         
@@ -518,15 +717,27 @@ class AutoFeedingThread:
             print("[AutoFeeding] 執行緒內部停止，跳過join操作")
     
     def _auto_feeding_loop(self):
-        """自動入料主循環"""
+        """自動入料主循環 (增強版)"""
         cycle_interval = self.config['auto_program']['cycle_interval']
         
         while self.running:
             try:
+                # 檢查流程控制開關 (100ms高頻輪詢)
+                if not self.check_flow_control():
+                    print("[AutoFeeding] 流程控制關閉，等待重新啟動...")
+                    time.sleep(0.1)  # 100ms高頻輪詢
+                    continue
+                
                 # 檢查是否需要暫停
                 if self.pause_for_robot:
                     print("[AutoFeeding] 已暫停，等待機械臂作業完成...")
                     time.sleep(0.5)
+                    continue
+                
+                # 如果在VP清空模式，不執行正常檢測
+                if self.vp_clearing_mode:
+                    print("[AutoFeeding] VP清空模式中，跳過正常檢測...")
+                    time.sleep(1.0)
                     continue
                 
                 # 只有在feeding_ready=False時才執行檢測
@@ -559,6 +770,7 @@ class RobotJobThread:
         self.FLOW1_CONTROL = 1240  # Flow1控制
         self.FLOW1_STATUS = 1204   # Flow1完成狀態
         self.FLOW5_STATUS = 1206   # Flow5完成狀態
+        self.CONTROL_ADDRESS = 1350  # 流程控制地址
         
         # 統計資訊
         self.flow1_trigger_count = 0
@@ -582,9 +794,22 @@ class RobotJobThread:
         except Exception:
             return False
     
+    def check_flow_control(self) -> bool:
+        """檢查流程控制開關 (1350地址)"""
+        try:
+            control_value = self.read_register(self.CONTROL_ADDRESS)
+            return control_value == 1
+        except Exception:
+            return False
+    
     def on_feeding_ready(self):
         """自動入料完成回調"""
         print("[RobotJob] 收到自動入料完成通知")
+        
+        # 檢查流程控制開關
+        if not self.check_flow_control():
+            print("[RobotJob] 流程控制關閉，忽略入料完成通知")
+            return
         
         # 只要prepare_done=False，就觸發Flow1
         if not self.prepare_done:
@@ -605,8 +830,12 @@ class RobotJobThread:
             print(f"[RobotJob] prepare_done=True，機台已準備好接受出料指令")
     
     def robot_job_cycle(self):
-        """機械臂作業週期"""
+        """機械臂作業週期 (增強版)"""
         try:
+            # 檢查流程控制開關
+            if not self.check_flow_control():
+                return
+            
             # 檢查機械臂是否Ready (1200=9)
             robot_status = self.read_register(1200)  # 機械臂狀態寄存器
             robot_ready = (robot_status == 9) if robot_status is not None else False
@@ -626,8 +855,16 @@ class RobotJobThread:
                 
                 # 只清空Flow1控制狀態，保持Flow1完成狀態供其他模組使用
                 self.write_register(self.FLOW1_CONTROL, 0)
+                
+                
+                for i in range(5):
+                    self.write_register(self.FLOW1_CONTROL, 0)
+                    current_value = self.read_register(self.FLOW1_CONTROL)
+                    if current_value == 0:
+                        break
+                    if i == 4:
+                        print("[RobotJob] ✗ Flow1控制清零失敗")
                 print("[RobotJob] Flow1控制狀態已清零，prepare_done=True，等待其他模組執行Flow5")
-            
             # 檢查Flow5完成狀態
             flow5_status = self.read_register(self.FLOW5_STATUS)
             if flow5_status == 1:
@@ -707,7 +944,7 @@ class RobotJobThread:
 
 
 class AutoProgramRobotJobController:
-    """VP入料+機械臂協調控制系統"""
+    """VP入料+機械臂協調控制系統 (增強版)"""
     
     def __init__(self, modbus_host: str = "127.0.0.1", modbus_port: int = 502):
         self.modbus_host = modbus_host
@@ -728,9 +965,10 @@ class AutoProgramRobotJobController:
         # 系統狀態
         self.system_status = SystemStatus.STOPPED
         
-        print("VP入料+機械臂協調控制系統初始化完成")
+        print("VP入料+機械臂協調控制系統初始化完成 (增強版)")
         print(f"Modbus服務器: {modbus_host}:{modbus_port}")
         print(f"系統基地址: {self.base_address}")
+        print(f"流程控制地址: 1350")
     
     def load_config(self) -> Dict[str, Any]:
         """載入配置檔案"""
@@ -741,22 +979,28 @@ class AutoProgramRobotJobController:
                 "vp_vibration_duration": 0.5,
                 "vp_stop_delay": 0.2,
                 "flow4_pulse_duration": 0.1,
-                "max_case_f_check": 5
+                "max_case_f_check": 5,
+                "flow4_consecutive_limit": 5,      # 新增：連續直振限制
+                "vp_empty_check_count": 5          # 新增：VP空檢測計數限制
             },
             "vp_params": {
                 "spread_action_code": 11,
                 "spread_strength": 50,
                 "spread_frequency": 43,
                 "spread_duration": 0.5,
-                "stop_command_code": 3
+                "stop_command_code": 3,
+                "clear_strength": 50,              # 新增：清空震動強度
+                "clear_frequency": 43              # 新增：清空震動頻率
             },
             "timing": {
                 "command_delay": 0.1,
                 "status_check_interval": 0.1,
-                "register_clear_delay": 0.05
+                "register_clear_delay": 0.05,
+                "flow_control_poll_interval": 0.1  # 新增：流程控制輪詢間隔
             },
             "modbus_mapping": {
-                "base_address": 1300
+                "base_address": 1300,
+                "control_address": 1350            # 新增：控制地址
             }
         }
         
@@ -816,11 +1060,17 @@ class AutoProgramRobotJobController:
             # 1307: VP震動次數
             # 1308: Flow1觸發次數
             # 1309: Flow5完成次數
+            # 1310: 連續直振次數       # 新增
+            # 1311: VP空檢測次數       # 新增
+            # 1350: 流程控制開關       # 新增
             
             self.modbus_client.write_register(1300, SystemStatus.STOPPED.value, slave=1)
             self.modbus_client.write_register(1301, 0, slave=1)  # AutoFeeding停止
             self.modbus_client.write_register(1302, 0, slave=1)  # RobotJob停止
             self.modbus_client.write_register(1303, 0, slave=1)  # 無錯誤
+            self.modbus_client.write_register(1310, 0, slave=1)  # 連續直振次數
+            self.modbus_client.write_register(1311, 0, slave=1)  # VP空檢測次數
+            self.modbus_client.write_register(1350, 0, slave=1)  # 流程控制關閉
             print("系統寄存器初始化完成")
         except Exception as e:
             print(f"系統寄存器初始化失敗: {e}")
@@ -847,6 +1097,8 @@ class AutoProgramRobotJobController:
                 self.modbus_client.write_register(1305, self.auto_feeding_thread.case_f_found_count, slave=1)
                 self.modbus_client.write_register(1306, self.auto_feeding_thread.flow4_trigger_count, slave=1)
                 self.modbus_client.write_register(1307, self.auto_feeding_thread.vp_vibration_count, slave=1)
+                self.modbus_client.write_register(1310, self.auto_feeding_thread.flow4_consecutive_count, slave=1)  # 新增
+                self.modbus_client.write_register(1311, self.auto_feeding_thread.vp_empty_detection_count, slave=1)  # 新增
             
             if self.robot_job_thread:
                 self.modbus_client.write_register(1308, self.robot_job_thread.flow1_trigger_count, slave=1)
@@ -868,7 +1120,7 @@ class AutoProgramRobotJobController:
             print("請先連接Modbus服務器")
             return
         
-        print("=== 啟動VP入料+機械臂協調控制系統 ===")
+        print("=== 啟動VP入料+機械臂協調控制系統 (增強版) ===")
         
         # 建立AutoFeeding執行緒
         self.auto_feeding_thread = AutoFeedingThread(self.modbus_client, self.config)
@@ -890,6 +1142,7 @@ class AutoProgramRobotJobController:
         self.system_status = SystemStatus.AUTO_FEEDING_RUNNING
         
         print("協調控制系統已啟動")
+        print("流程控制: 寫入1350=1啟動流程，1350=0停止流程")
     
     def stop_system(self):
         """停止協調控制系統"""
@@ -910,21 +1163,27 @@ class AutoProgramRobotJobController:
         print("協調控制系統已停止")
         self.print_statistics()
     
-    def stop_auto_feeding_for_robot(self):
-        """為機械臂作業停止自動入料"""
-        if self.auto_feeding_thread and self.auto_feeding_thread.running:
-            print("[System] 為機械臂作業暫停自動入料")
-            self.auto_feeding_thread.stop()
+    def enable_flow_control(self):
+        """啟動流程控制 (1350=1)"""
+        if self.connected:
+            try:
+                self.modbus_client.write_register(1350, 1, slave=1)
+                print("流程控制已啟動 (1350=1)")
+            except Exception as e:
+                print(f"流程控制啟動失敗: {e}")
     
-    def restart_auto_feeding_after_robot(self):
-        """機械臂作業完成後重啟自動入料"""
-        if self.auto_feeding_thread and not self.auto_feeding_thread.running:
-            print("[System] 機械臂作業完成，重啟自動入料")
-            self.auto_feeding_thread.start()
+    def disable_flow_control(self):
+        """停止流程控制 (1350=0)"""
+        if self.connected:
+            try:
+                self.modbus_client.write_register(1350, 0, slave=1)
+                print("流程控制已停止 (1350=0)")
+            except Exception as e:
+                print(f"流程控制停止失敗: {e}")
     
     def print_statistics(self):
-        """輸出統計資訊"""
-        print(f"\n=== 協調控制系統統計 ===")
+        """輸出統計資訊 (增強版)"""
+        print(f"\n=== 協調控制系統統計 (增強版) ===")
         
         if self.auto_feeding_thread:
             print(f"AutoFeeding統計:")
@@ -932,6 +1191,9 @@ class AutoProgramRobotJobController:
             print(f"  CASE_F找到次數: {self.auto_feeding_thread.case_f_found_count}")
             print(f"  Flow4觸發次數: {self.auto_feeding_thread.flow4_trigger_count}")
             print(f"  VP震動次數: {self.auto_feeding_thread.vp_vibration_count}")
+            print(f"  連續直振次數: {self.auto_feeding_thread.flow4_consecutive_count}")  # 新增
+            print(f"  VP空檢測次數: {self.auto_feeding_thread.vp_empty_detection_count}")  # 新增
+            print(f"  VP清空模式: {'是' if self.auto_feeding_thread.vp_clearing_mode else '否'}")  # 新增
             if self.auto_feeding_thread.cycle_count > 0:
                 success_rate = (self.auto_feeding_thread.case_f_found_count / self.auto_feeding_thread.cycle_count) * 100
                 print(f"  CASE_F找到率: {success_rate:.1f}%")
@@ -942,10 +1204,21 @@ class AutoProgramRobotJobController:
             print(f"  Flow5完成次數: {self.robot_job_thread.flow5_complete_count}")
     
     def get_status_info(self) -> Dict[str, Any]:
-        """獲取狀態資訊"""
+        """獲取狀態資訊 (增強版)"""
+        # 讀取流程控制開關狀態
+        flow_control_enabled = False
+        if self.connected:
+            try:
+                result = self.modbus_client.read_holding_registers(1350, count=1, slave=1)
+                if not result.isError():
+                    flow_control_enabled = result.registers[0] == 1
+            except:
+                pass
+        
         status = {
             "connected": self.connected,
             "system_status": self.system_status.name,
+            "flow_control_enabled": flow_control_enabled,  # 新增
             "auto_feeding_running": self.auto_feeding_thread.running if self.auto_feeding_thread else False,
             "robot_job_running": self.robot_job_thread.running if self.robot_job_thread else False
         }
@@ -956,6 +1229,9 @@ class AutoProgramRobotJobController:
                 "case_f_found_count": self.auto_feeding_thread.case_f_found_count,
                 "flow4_trigger_count": self.auto_feeding_thread.flow4_trigger_count,
                 "vp_vibration_count": self.auto_feeding_thread.vp_vibration_count,
+                "flow4_consecutive_count": self.auto_feeding_thread.flow4_consecutive_count,  # 新增
+                "vp_clearing_mode": self.auto_feeding_thread.vp_clearing_mode,              # 新增
+                "vp_empty_detection_count": self.auto_feeding_thread.vp_empty_detection_count,  # 新增
                 "feeding_ready": self.auto_feeding_thread.feeding_ready
             })
         
@@ -971,7 +1247,7 @@ class AutoProgramRobotJobController:
 
 def main():
     """主程序"""
-    print("VP入料+機械臂協調控制系統啟動")
+    print("VP入料+機械臂協調控制系統啟動 (增強版)")
     
     # 創建控制器
     controller = AutoProgramRobotJobController()
@@ -998,6 +1274,8 @@ def main():
         print("\n指令說明:")
         print("  s - 顯示狀態")
         print("  r - 重啟系統")
+        print("  start - 啟動流程控制 (1350=1)")
+        print("  stop - 停止流程控制 (1350=0)")
         print("  pause - 暫停自動入料")
         print("  resume - 恢復自動入料")
         print("  q - 退出程序")
@@ -1017,10 +1295,16 @@ def main():
                     controller.stop_system()
                     time.sleep(1.0)
                     controller.start_system()
+                elif cmd == 'start':
+                    controller.enable_flow_control()
+                elif cmd == 'stop':
+                    controller.disable_flow_control()
                 elif cmd == 'pause':
-                    controller.stop_auto_feeding_for_robot()
+                    if controller.auto_feeding_thread:
+                        controller.auto_feeding_thread.pause_for_robot_operation()
                 elif cmd == 'resume':
-                    controller.restart_auto_feeding_after_robot()
+                    if controller.auto_feeding_thread:
+                        controller.auto_feeding_thread.resume_after_robot_operation()
                 else:
                     print("無效指令")
                     

@@ -10,8 +10,8 @@
   "vp_params": {
     "spread_action_code": 11,
     "spread_strength": 50,
-    "spread_frequency": 43,
-    "spread_duration": 0.5,
+    "spread_frequency": 42,
+    "spread_duration": 0.7,
     "stop_command_code": 3
   },
   "timing": {
