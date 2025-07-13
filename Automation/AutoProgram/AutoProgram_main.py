@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AutoProgram_main.py - 機械臂協調控制模組 (分離式設計)
+AutoProgram_main.py - 機械臂協調控制模組 (簡化監控版)
 基地址：1300-1399
-專注負責：機械臂Flow1/Flow5協調 + AutoFeeding模組交握
-使用Dobot_main運動狀態(1200)判斷機械臂Ready狀態
+專注負責：監控AutoFeeding(940)和Flow5完成狀態，maintain prepare_done=True
+AutoFeeding已改為穩定供料模組，持續保持CASE_F在保護區域
 """
 
 import time
@@ -29,24 +29,13 @@ class SystemStatus(Enum):
     """系統狀態"""
     STOPPED = 0
     RUNNING = 1
-    FLOW1_EXECUTING = 2
-    FLOW5_EXECUTING = 3
+    FLOW1_TRIGGERED = 2
+    FLOW5_COMPLETED = 3
     ERROR = 4
 
 
-@dataclass
-class AutoFeedingStatus:
-    """AutoFeeding模組狀態"""
-    module_status: int = 0          # 900: 模組狀態
-    feeding_complete: int = 0       # 940: 入料完成標誌
-    target_x: float = 0.0          # 941-942: 目標座標X
-    target_y: float = 0.0          # 943-944: 目標座標Y
-    total_detections: int = 0      # 946: 檢測結果總數
-    case_f_count: int = 0          # 947: CASE_F總數
-
-
 class AutoProgramController:
-    """機械臂協調控制模組 (分離式設計)"""
+    """機械臂協調控制模組 (簡化監控版)"""
     
     def __init__(self, modbus_host: str = "127.0.0.1", modbus_port: int = 502):
         self.modbus_host = modbus_host
@@ -58,26 +47,17 @@ class AutoProgramController:
         self.BASE_ADDRESS = 1300
         
         # AutoFeeding模組地址
-        self.AF_BASE = 900
-        self.AF_MODULE_STATUS = 900        # AutoFeeding模組狀態
-        self.AF_FEEDING_COMPLETE = 940     # 入料完成標誌
-        self.AF_TARGET_X_HIGH = 941        # 目標座標X高位
-        self.AF_TARGET_X_LOW = 942         # 目標座標X低位
-        self.AF_TARGET_Y_HIGH = 943        # 目標座標Y高位
-        self.AF_TARGET_Y_LOW = 944         # 目標座標Y低位
-        self.AF_CONFIRM_READ = 945         # AutoProgram確認讀取
-        self.AF_TOTAL_DETECTIONS = 946     # 檢測結果總數
-        self.AF_CASE_F_COUNT = 947         # CASE_F總數
+        self.AF_CASE_F_AVAILABLE = 940         # AutoFeeding CASE_F可用標誌
+        self.AF_TARGET_X_HIGH = 941            # 目標座標X高位
+        self.AF_TARGET_X_LOW = 942             # 目標座標X低位
+        self.AF_TARGET_Y_HIGH = 943            # 目標座標Y高位
+        self.AF_TARGET_Y_LOW = 944             # 目標座標Y低位
+        self.AF_COORDS_TAKEN = 945             # 座標已讀取標誌
         
-        # AutoFeeding控制地址
-        self.AF_RUN_CONTROL = 920          # 啟動/停止控制
-        self.AF_PAUSE_CONTROL = 921        # 暫停/恢復控制
-        
-        # 機械臂模組地址 (使用Dobot_main的狀態寄存器)
-        self.DOBOT_MOTION_STATUS = 1200    # Dobot運動狀態寄存器 (來自Dobot_main)
-        self.FLOW1_CONTROL = 1240          # Flow1控制 (Dobot_main)
-        self.FLOW1_COMPLETE = 1204         # Flow1完成狀態 (Dobot_main)
-        self.FLOW5_COMPLETE = 1206         # Flow5完成狀態 (Dobot_main)
+        # Dobot M1Pro地址
+        self.DOBOT_FLOW1_CONTROL = 1240        # Flow1控制
+        self.DOBOT_FLOW1_COMPLETE = 1204       # Flow1完成狀態
+        self.DOBOT_FLOW5_COMPLETE = 1206       # Flow5完成狀態
         
         # 載入配置
         self.config = self.load_config()
@@ -89,41 +69,37 @@ class AutoProgramController:
         
         # 核心狀態變數
         self.prepare_done = False
+        self.auto_program_enabled = True  # 自動程序啟用開關
         
         # 統計資訊
         self.coordination_cycle_count = 0
         self.flow1_trigger_count = 0
         self.flow5_complete_count = 0
-        self.feeding_ready_count = 0
+        self.case_f_taken_count = 0
         
-        print("機械臂協調控制模組初始化完成 (分離式設計)")
+        print("機械臂協調控制模組初始化完成 (簡化監控版)")
         print(f"Modbus服務器: {modbus_host}:{modbus_port}")
         print(f"AutoProgram基地址: {self.BASE_ADDRESS}")
-        print(f"AutoFeeding基地址: {self.AF_BASE}")
-        print(f"機械臂狀態來源: Dobot運動狀態寄存器({self.DOBOT_MOTION_STATUS})")
+        print(f"監控目標: AutoFeeding(940) + Flow5完成(1206)")
+        print(f"目標: 維持prepare_done=True狀態")
     
     def load_config(self) -> Dict[str, Any]:
         """載入配置檔案"""
         default_config = {
             "autoprogram": {
-                "coordination_interval": 0.5,      # 協調週期間隔
-                "flow1_timeout": 30.0,             # Flow1執行超時
-                "flow5_timeout": 60.0,             # Flow5執行超時
-                "feeding_confirm_timeout": 2.0,    # 入料確認超時
-                # 移除: "robot_ready_value": 9     # 機械臂Ready狀態值 (不再需要)
+                "coordination_interval": 0.2,      # 協調週期間隔(更快響應)
+                "auto_program_enabled": True,      # 自動程序啟用
+                "flow1_trigger_delay": 0.1,        # Flow1觸發延遲
+                "coords_confirm_delay": 0.1,       # 座標確認延遲
             },
-            "autofeeding_handshake": {
-                "max_confirm_attempts": 5,         # 最大確認嘗試次數
-                "confirm_retry_delay": 0.2,        # 確認重試間隔
-                "coordinate_read_delay": 0.1       # 座標讀取延遲
+            "monitoring": {
+                "case_f_check_interval": 0.1,      # CASE_F檢查間隔
+                "flow5_check_interval": 0.2,       # Flow5檢查間隔
+                "status_update_interval": 1.0,     # 狀態更新間隔
             },
             "timing": {
-                "register_clear_delay": 0.1,       # 寄存器清除延遲
-                "status_check_interval": 0.1,      # 狀態檢查間隔
-                "command_delay": 0.1               # 指令延遲
-            },
-            "robot_ready": {
-                "enable_debug": True               # 啟用機械臂Ready狀態調試
+                "register_clear_delay": 0.05,      # 寄存器清除延遲
+                "flow1_response_timeout": 10.0,    # Flow1響應超時
             }
         }
         
@@ -175,28 +151,27 @@ class AutoProgramController:
         try:
             # AutoProgram狀態寄存器 (1300-1319)
             self.write_register(1300, SystemStatus.STOPPED.value)  # 系統狀態
-            self.write_register(1301, 0)  # 機械臂狀態
-            self.write_register(1302, 0)  # prepare_done狀態
-            self.write_register(1303, 0)  # feeding_ready狀態
-            self.write_register(1304, 0)  # Flow1完成狀態
-            self.write_register(1305, 0)  # Flow5完成狀態
-            self.write_register(1306, 0)  # 協調週期計數
-            self.write_register(1307, 0)  # Flow1觸發次數
-            self.write_register(1308, 0)  # Flow5完成次數
+            self.write_register(1301, 0)  # prepare_done狀態
+            self.write_register(1302, 1 if self.auto_program_enabled else 0)  # 自動程序啟用狀態
+            self.write_register(1303, 0)  # AutoFeeding CASE_F狀態
+            self.write_register(1304, 0)  # Flow5完成狀態
+            self.write_register(1305, 0)  # 協調週期計數
+            self.write_register(1306, 0)  # Flow1觸發次數
+            self.write_register(1307, 0)  # Flow5完成次數
+            self.write_register(1308, 0)  # CASE_F取得次數
             self.write_register(1309, 0)  # 錯誤代碼
             
             # AutoProgram控制寄存器 (1320-1339)
             self.write_register(1320, 0)  # 系統控制
-            self.write_register(1321, 0)  # Flow1控制
+            self.write_register(1321, 1 if self.auto_program_enabled else 0)  # 自動程序啟用控制
             self.write_register(1322, 0)  # 錯誤清除
             self.write_register(1323, 0)  # 強制重置
             
-            # 機械臂協調寄存器 (1340-1359)
-            self.write_register(1340, 0)  # Flow1執行觸發
-            self.write_register(1341, 0)  # 目標座標X高位
-            self.write_register(1342, 0)  # 目標座標X低位
-            self.write_register(1343, 0)  # 目標座標Y高位
-            self.write_register(1344, 0)  # 目標座標Y低位
+            # AutoFeeding狀態寄存器 (1340-1359)
+            self.write_register(1340, 0)  # 目標座標X高位
+            self.write_register(1341, 0)  # 目標座標X低位
+            self.write_register(1342, 0)  # 目標座標Y高位
+            self.write_register(1343, 0)  # 目標座標Y低位
             
             print("AutoProgram系統寄存器初始化完成")
         except Exception as e:
@@ -238,106 +213,35 @@ class AutoProgramController:
         # 轉換為毫米(除以100)
         return combined / 100.0
     
-    def check_robot_ready(self) -> bool:
-        """檢查機械臂是否Ready - 使用Dobot_main運動狀態寄存器"""
-        dobot_motion_status = self.read_register(self.DOBOT_MOTION_STATUS)
-        if dobot_motion_status is None:
-            if self.config['robot_ready']['enable_debug']:
-                print(f"[AutoProgram] ✗ 無法讀取Dobot運動狀態寄存器({self.DOBOT_MOTION_STATUS})")
-            return False
+    def get_autofeeding_status(self) -> Dict[str, Any]:
+        """獲取AutoFeeding模組狀態"""
+        case_f_available = self.read_register(self.AF_CASE_F_AVAILABLE) or 0
+        coords_taken = self.read_register(self.AF_COORDS_TAKEN) or 0
         
-        # 解析狀態位 (bit0=Ready, bit1=Running, bit2=Alarm, bit3=Initialized)
-        ready_bit = (dobot_motion_status & 0x01) != 0
-        running_bit = (dobot_motion_status & 0x02) != 0  
-        alarm_bit = (dobot_motion_status & 0x04) != 0
-        initialized_bit = (dobot_motion_status & 0x08) != 0
+        target_x = 0.0
+        target_y = 0.0
         
-        # Ready條件：Ready位=1 且 非Alarm狀態
-        robot_ready = ready_bit and not alarm_bit
+        if case_f_available == 1:
+            target_x = self.read_32bit_coordinate(self.AF_TARGET_X_HIGH, self.AF_TARGET_X_LOW)
+            target_y = self.read_32bit_coordinate(self.AF_TARGET_Y_HIGH, self.AF_TARGET_Y_LOW)
         
-        if self.config['robot_ready']['enable_debug']:
-            print(f"[AutoProgram] Dobot狀態({self.DOBOT_MOTION_STATUS}): {dobot_motion_status} ({dobot_motion_status:04b})")
-            print(f"[AutoProgram]   Ready={ready_bit}, Running={running_bit}, Alarm={alarm_bit}, Init={initialized_bit}")
-            print(f"[AutoProgram]   機械臂Ready判斷: {robot_ready}")
-        
-        # 更新到1301寄存器供外部讀取
-        self.write_register(1301, dobot_motion_status)
-        
-        return robot_ready
+        return {
+            'case_f_available': bool(case_f_available),
+            'coords_taken': bool(coords_taken),
+            'target_x': target_x,
+            'target_y': target_y
+        }
     
-    def read_autofeeding_status(self) -> AutoFeedingStatus:
-        """讀取AutoFeeding模組狀態"""
-        status = AutoFeedingStatus()
+    def take_case_f_coordinates(self) -> Optional[tuple]:
+        """讀取並確認CASE_F座標"""
+        af_status = self.get_autofeeding_status()
         
-        status.module_status = self.read_register(self.AF_MODULE_STATUS) or 0
-        status.feeding_complete = self.read_register(self.AF_FEEDING_COMPLETE) or 0
-        status.total_detections = self.read_register(self.AF_TOTAL_DETECTIONS) or 0
-        status.case_f_count = self.read_register(self.AF_CASE_F_COUNT) or 0
+        if not af_status['case_f_available']:
+            return None
         
-        # 讀取32位座標
-        if status.feeding_complete == 1:
-            status.target_x = self.read_32bit_coordinate(self.AF_TARGET_X_HIGH, self.AF_TARGET_X_LOW)
-            status.target_y = self.read_32bit_coordinate(self.AF_TARGET_Y_HIGH, self.AF_TARGET_Y_LOW)
-        
-        return status
-    
-    def start_autofeeding(self) -> bool:
-        """啟動AutoFeeding模組"""
-        success = self.write_register(self.AF_RUN_CONTROL, 1)
-        if success:
-            print("[AutoProgram] 啟動AutoFeeding模組")
-        else:
-            print("[AutoProgram] ✗ AutoFeeding模組啟動失敗")
-        return success
-    
-    def stop_autofeeding(self) -> bool:
-        """停止AutoFeeding模組"""
-        success = self.write_register(self.AF_RUN_CONTROL, 0)
-        if success:
-            print("[AutoProgram] 停止AutoFeeding模組")
-        else:
-            print("[AutoProgram] ✗ AutoFeeding模組停止失敗")
-        return success
-    
-    def pause_autofeeding(self) -> bool:
-        """暫停AutoFeeding檢測 (Flow1執行前)"""
-        success = self.write_register(self.AF_PAUSE_CONTROL, 1)
-        if success:
-            print("[AutoProgram] 暫停AutoFeeding檢測")
-        else:
-            print("[AutoProgram] ✗ AutoFeeding暫停失敗")
-        return success
-    
-    def resume_autofeeding(self) -> bool:
-        """恢復AutoFeeding檢測 (Flow1執行後)"""
-        success = self.write_register(self.AF_PAUSE_CONTROL, 0)
-        if success:
-            print("[AutoProgram] 恢復AutoFeeding檢測")
-        else:
-            print("[AutoProgram] ✗ AutoFeeding恢復失敗")
-        return success
-    
-    def confirm_feeding_read(self) -> bool:
-        """確認已讀取AutoFeeding座標"""
-        max_attempts = self.config['autofeeding_handshake']['max_confirm_attempts']
-        retry_delay = self.config['autofeeding_handshake']['confirm_retry_delay']
-        
-        for attempt in range(max_attempts):
-            if self.write_register(self.AF_CONFIRM_READ, 1):
-                print(f"[AutoProgram] 確認讀取AutoFeeding座標 (嘗試{attempt + 1}/{max_attempts})")
-                return True
-            else:
-                print(f"[AutoProgram] ✗ 確認讀取失敗 (嘗試{attempt + 1}/{max_attempts})")
-                time.sleep(retry_delay)
-        
-        print("[AutoProgram] ✗ 確認讀取最終失敗")
-        return False
-    
-    def copy_target_coordinates(self, target_x: float, target_y: float) -> bool:
-        """複製目標座標到AutoProgram寄存器"""
-        # 轉換為整數形式(×100)
-        x_int = int(target_x * 100)
-        y_int = int(target_y * 100)
+        # 複製座標到AutoProgram寄存器
+        x_int = int(af_status['target_x'] * 100)
+        y_int = int(af_status['target_y'] * 100)
         
         # 處理負數(補碼)
         if x_int < 0:
@@ -353,148 +257,141 @@ class AutoProgramController:
         
         # 寫入AutoProgram座標寄存器
         success = True
-        success &= self.write_register(1341, x_high)  # 目標座標X高位
-        success &= self.write_register(1342, x_low)   # 目標座標X低位
-        success &= self.write_register(1343, y_high)  # 目標座標Y高位
-        success &= self.write_register(1344, y_low)   # 目標座標Y低位
+        success &= self.write_register(1340, x_high)  # 目標座標X高位
+        success &= self.write_register(1341, x_low)   # 目標座標X低位
+        success &= self.write_register(1342, y_high)  # 目標座標Y高位
+        success &= self.write_register(1343, y_low)   # 目標座標Y低位
         
         if success:
-            print(f"[AutoProgram] 目標座標已複製: ({target_x:.2f}, {target_y:.2f})")
+            # 確認已讀取座標
+            self.write_register(self.AF_COORDS_TAKEN, 1)
+            time.sleep(self.config['autoprogram']['coords_confirm_delay'])
+            
+            self.case_f_taken_count += 1
+            print(f"[AutoProgram] ✓ 已讀取CASE_F座標: ({af_status['target_x']:.2f}, {af_status['target_y']:.2f})")
+            
+            return (af_status['target_x'], af_status['target_y'])
         else:
-            print("[AutoProgram] ✗ 目標座標複製失敗")
-        
-        return success
+            print("[AutoProgram] ✗ 座標複製失敗")
+            return None
     
-    def execute_flow1(self) -> bool:
-        """執行Flow1取料作業 - 使用Dobot_main Flow1控制"""
-        print("[AutoProgram] === 開始執行Flow1取料作業 ===")
+    def trigger_flow1(self) -> bool:
+        """觸發Flow1取料作業"""
+        print("[AutoProgram] 觸發Flow1取料作業")
         
-        # 觸發Dobot_main的Flow1控制
-        if not self.write_register(self.FLOW1_CONTROL, 1):
-            print(f"[AutoProgram] ✗ Flow1觸發失敗 (寫入{self.FLOW1_CONTROL}=1失敗)")
+        # 觸發Flow1控制
+        if not self.write_register(self.DOBOT_FLOW1_CONTROL, 1):
+            print(f"[AutoProgram] ✗ Flow1觸發失敗 (寫入{self.DOBOT_FLOW1_CONTROL}=1失敗)")
             return False
         
+        time.sleep(self.config['autoprogram']['flow1_trigger_delay'])
+        
+        # 清除Flow1控制狀態
+        self.write_register(self.DOBOT_FLOW1_CONTROL, 0)
+        
         self.flow1_trigger_count += 1
-        print(f"[AutoProgram] Flow1已觸發 (寫入{self.FLOW1_CONTROL}=1)，等待完成...")
+        self.system_status = SystemStatus.FLOW1_TRIGGERED
         
-        # 等待Flow1完成
-        timeout = self.config['autoprogram']['flow1_timeout']
-        start_time = time.time()
-        
-        while (time.time() - start_time) < timeout:
-            flow1_status = self.read_register(self.FLOW1_COMPLETE)
-            if flow1_status == 1:
-                elapsed = time.time() - start_time
-                print(f"[AutoProgram] ✓ Flow1執行完成 (耗時{elapsed:.1f}s)")
-                
-                # 清除Flow1控制狀態
-                self.write_register(self.FLOW1_CONTROL, 0)
-                time.sleep(self.config['timing']['register_clear_delay'])
-                print(f"[AutoProgram] Flow1控制狀態已清除 ({self.FLOW1_CONTROL}=0)")
-                
-                return True
-            
-            time.sleep(self.config['timing']['status_check_interval'])
-        
-        # Flow1超時
-        elapsed = time.time() - start_time
-        print(f"[AutoProgram] ✗ Flow1執行超時 (耗時{elapsed:.1f}s)")
-        self.write_register(self.FLOW1_CONTROL, 0)  # 清除控制狀態
-        return False
+        print(f"[AutoProgram] ✓ Flow1已觸發 (第{self.flow1_trigger_count}次)")
+        return True
+    
+    def check_flow1_complete(self) -> bool:
+        """檢查Flow1是否完成"""
+        flow1_complete = self.read_register(self.DOBOT_FLOW1_COMPLETE)
+        return flow1_complete == 1
+    
+    def clear_flow1_complete(self):
+        """清除Flow1完成狀態"""
+        self.write_register(self.DOBOT_FLOW1_COMPLETE, 0)
+        print(f"[AutoProgram] Flow1完成狀態已清除 ({self.DOBOT_FLOW1_COMPLETE}=0)")
     
     def check_flow5_complete(self) -> bool:
         """檢查Flow5是否完成"""
-        flow5_status = self.read_register(self.FLOW5_COMPLETE)
-        return flow5_status == 1
+        flow5_complete = self.read_register(self.DOBOT_FLOW5_COMPLETE)
+        return flow5_complete == 1
     
-    def clear_flow5_status(self):
+    def clear_flow5_complete(self):
         """清除Flow5完成狀態"""
-        self.write_register(self.FLOW5_COMPLETE, 0)
+        self.write_register(self.DOBOT_FLOW5_COMPLETE, 0)
         self.flow5_complete_count += 1
-        print(f"[AutoProgram] Flow5完成狀態已清除 ({self.FLOW5_COMPLETE}=0)")
+        self.system_status = SystemStatus.FLOW5_COMPLETED
+        print(f"[AutoProgram] Flow5完成狀態已清除 ({self.DOBOT_FLOW5_COMPLETE}=0，第{self.flow5_complete_count}次)")
+    
+    def check_control_registers(self):
+        """檢查控制寄存器變更"""
+        try:
+            # 檢查系統控制寄存器 (1320)
+            system_control = self.read_register(1320)
+            if system_control == 1 and not self.running:
+                print("[AutoProgram] 檢測到系統啟動指令 (1320=1)")
+                self.start()
+            elif system_control == 0 and self.running:
+                print("[AutoProgram] 檢測到系統停止指令 (1320=0)")
+                self.stop()
+            
+            # 檢查自動程序控制寄存器 (1321)
+            auto_control = self.read_register(1321)
+            if auto_control is not None:
+                if auto_control != (1 if self.auto_program_enabled else 0):
+                    self.auto_program_enabled = (auto_control == 1)
+                    print(f"[AutoProgram] 自動程序啟用狀態更新: {self.auto_program_enabled} (1321={auto_control})")
+            
+        except Exception as e:
+            print(f"[AutoProgram] 控制寄存器檢查異常: {e}")
     
     def coordination_cycle(self):
-        """機械臂協調控制週期"""
+        """機械臂協調控制週期 (簡化版)"""
         try:
             self.coordination_cycle_count += 1
             
-            # 檢查機械臂Ready狀態 (使用Dobot_main運動狀態)
-            robot_ready = self.check_robot_ready()
+            # DEBUG: 每10個週期輸出一次狀態
+            if self.coordination_cycle_count % 10 == 0:
+                af_status = self.get_autofeeding_status()
+                print(f"[AutoProgram] DEBUG - 週期{self.coordination_cycle_count}: "
+                    f"prepare_done={self.prepare_done}, "
+                    f"CASE_F可用={af_status['case_f_available']}, "
+                    f"自動程序啟用={self.auto_program_enabled}")
             
-            # 讀取AutoFeeding狀態
-            af_status = self.read_autofeeding_status()
-            
-            # 更新狀態寄存器
-            self.write_register(1303, 1 if af_status.feeding_complete == 1 else 0)  # feeding_ready狀態
-            
-            # 核心邏輯：優先確保prepare_done為True
+            # 主要協調邏輯
             if not self.prepare_done:
                 # prepare_done=False，需要執行Flow1讓機台準備好
-                if robot_ready:
-                    # 機械臂Ready，啟動AutoFeeding
-                    if af_status.module_status != 1:  # AutoFeeding未運行
-                        print("[AutoProgram] 機械臂Ready，啟動AutoFeeding模組")
-                        self.start_autofeeding()
+                af_status = self.get_autofeeding_status()
+                
+                if af_status['case_f_available']:
+                    print(f"[AutoProgram] 檢測到CASE_F可用，prepare_done=False，觸發Flow1")
                     
-                    # 檢查是否有入料完成
-                    if af_status.feeding_complete == 1:
-                        self.feeding_ready_count += 1
-                        print(f"[AutoProgram] 檢測到入料完成 (第{self.feeding_ready_count}次)")
-                        print(f"[AutoProgram] 目標座標: ({af_status.target_x:.2f}, {af_status.target_y:.2f})")
-                        print(f"[AutoProgram] 檢測統計: 總數={af_status.total_detections}, CASE_F={af_status.case_f_count}")
-                        
-                        # 複製座標到AutoProgram寄存器
-                        if self.copy_target_coordinates(af_status.target_x, af_status.target_y):
-                            # 確認讀取
-                            if self.confirm_feeding_read():
-                                # 暫停AutoFeeding避免干擾Flow1
-                                if self.pause_autofeeding():
-                                    # 執行Flow1
-                                    if self.execute_flow1():
-                                        # Flow1成功，設置prepare_done=True
-                                        self.prepare_done = True
-                                        self.write_register(1302, 1)  # 更新prepare_done狀態
-                                        print("[AutoProgram] ✓ Flow1完成，prepare_done=True，機台準備就緒")
-                                    else:
-                                        print("[AutoProgram] ✗ Flow1執行失敗")
-                                    
-                                    # 恢復AutoFeeding
-                                    self.resume_autofeeding()
-                                else:
-                                    print("[AutoProgram] ✗ AutoFeeding暫停失敗")
-                            else:
-                                print("[AutoProgram] ✗ 入料完成確認失敗")
+                    # 讀取座標
+                    coords = self.take_case_f_coordinates()
+                    if coords:
+                        # 觸發Flow1
+                        if self.trigger_flow1():
+                            print(f"[AutoProgram] ✓ Flow1已觸發，等待完成...")
                         else:
-                            print("[AutoProgram] ✗ 目標座標複製失敗")
+                            print(f"[AutoProgram] ✗ Flow1觸發失敗")
+                    else:
+                        print(f"[AutoProgram] ✗ 座標讀取失敗")
                 else:
-                    # 機械臂未Ready，停止AutoFeeding節省資源
-                    if af_status.module_status == 1:  # AutoFeeding正在運行
-                        print("[AutoProgram] 機械臂未Ready，停止AutoFeeding模組")
-                        self.stop_autofeeding()
-            
+                    # DEBUG: 每50個週期輸出一次等待訊息
+                    if self.coordination_cycle_count % 50 == 0:
+                        print(f"[AutoProgram] 等待CASE_F可用... (940={af_status.get('case_f_available', 'N/A')})")
             else:
-                # prepare_done=True，機台已準備好，等待Flow5完成
-                if self.check_flow5_complete():
-                    print("[AutoProgram] 檢測到Flow5完成，重置系統狀態")
-                    
-                    # Flow5完成，重置prepare_done=False開始新週期
-                    self.prepare_done = False
-                    self.write_register(1302, 0)  # 更新prepare_done狀態
-                    
-                    # 清除Flow5完成狀態
-                    self.clear_flow5_status()
-                    
-                    print("[AutoProgram] prepare_done=False，系統準備新週期")
-                
-                # 如果機械臂不Ready且AutoFeeding在運行，停止它
-                if not robot_ready and af_status.module_status == 1:
-                    print("[AutoProgram] 機械臂未Ready，停止AutoFeeding模組")
-                    self.stop_autofeeding()
-                
-                # 如果機械臂Ready且prepare_done=True，確保AutoFeeding在運行以備下次週期
-                elif robot_ready and af_status.module_status != 1:
-                    print("[AutoProgram] 機械臂Ready且prepare_done=True，確保AutoFeeding運行")
-                    self.start_autofeeding()
+                # DEBUG: 每50個週期輸出一次prepare_done狀態
+                if self.coordination_cycle_count % 50 == 0:
+                    print(f"[AutoProgram] prepare_done=True，等待Flow5完成...")
+            
+            # 檢查Flow1完成狀態
+            if self.check_flow1_complete():
+                print("[AutoProgram] 檢測到Flow1完成")
+                self.clear_flow1_complete()
+                self.prepare_done = True
+                print("[AutoProgram] ✓ prepare_done=True，機台準備就緒")
+            
+            # 檢查Flow5完成狀態
+            if self.check_flow5_complete():
+                print("[AutoProgram] 檢測到Flow5完成，料件已送至組立區")
+                self.clear_flow5_complete()
+                self.prepare_done = False
+                print("[AutoProgram] ✓ prepare_done=False，準備新週期")
             
         except Exception as e:
             print(f"[AutoProgram] 協調週期異常: {e}")
@@ -507,11 +404,34 @@ class AutoProgramController:
             
             # 更新系統狀態
             self.write_register(1300, self.system_status.value)
+            self.write_register(1301, 1 if self.prepare_done else 0)
+            self.write_register(1302, 1 if self.auto_program_enabled else 0)
+            
+            # 更新AutoFeeding狀態
+            af_status = self.get_autofeeding_status()
+            self.write_register(1303, 1 if af_status['case_f_available'] else 0)
+            self.write_register(1304, 1 if self.check_flow5_complete() else 0)
             
             # 更新統計資訊
-            self.write_register(1306, self.coordination_cycle_count)  # 協調週期計數
-            self.write_register(1307, self.flow1_trigger_count)       # Flow1觸發次數
-            self.write_register(1308, self.flow5_complete_count)      # Flow5完成次數
+            self.write_register(1305, self.coordination_cycle_count)
+            self.write_register(1306, self.flow1_trigger_count)
+            self.write_register(1307, self.flow5_complete_count)
+            self.write_register(1308, self.case_f_taken_count)
+            
+            # 更新座標
+            if af_status['case_f_available']:
+                x_int = int(af_status['target_x'] * 100)
+                y_int = int(af_status['target_y'] * 100)
+                
+                if x_int < 0:
+                    x_int = x_int + 4294967296
+                if y_int < 0:
+                    y_int = y_int + 4294967296
+                
+                self.write_register(1340, (x_int >> 16) & 0xFFFF)
+                self.write_register(1341, x_int & 0xFFFF)
+                self.write_register(1342, (y_int >> 16) & 0xFFFF)
+                self.write_register(1343, y_int & 0xFFFF)
             
         except Exception as e:
             print(f"系統寄存器更新失敗: {e}")
@@ -521,7 +441,7 @@ class AutoProgramController:
         if self.running:
             return
         
-        print("[AutoProgram] === 啟動機械臂協調控制系統 ===")
+        print("[AutoProgram] === 啟動機械臂協調控制系統 (簡化監控版) ===")
         self.running = True
         self.system_status = SystemStatus.RUNNING
         
@@ -530,17 +450,20 @@ class AutoProgramController:
         self.coordination_cycle_count = 0
         self.flow1_trigger_count = 0
         self.flow5_complete_count = 0
-        self.feeding_ready_count = 0
+        self.case_f_taken_count = 0
         
-        # 更新狀態寄存器
-        self.write_register(1302, 0)  # prepare_done=False
+        # 立即更新狀態寄存器
+        self.write_register(1300, SystemStatus.RUNNING.value)  # 更新系統狀態為運行中
+        self.write_register(1301, 0)  # prepare_done=False
         
         self.thread = threading.Thread(target=self._coordination_loop, daemon=True)
         self.thread.start()
         
-        print("[AutoProgram] 協調控制系統已啟動，開始機械臂協調控制")
-        print("[AutoProgram] 目標：以最快速度讓prepare_done=True")
-        print(f"[AutoProgram] 機械臂狀態來源: Dobot運動狀態寄存器({self.DOBOT_MOTION_STATUS})")
+        print("[AutoProgram] 協調控制系統已啟動")
+        print("[AutoProgram] 監控目標:")
+        print(f"[AutoProgram]   - AutoFeeding CASE_F可用標誌: {self.AF_CASE_F_AVAILABLE}")
+        print(f"[AutoProgram]   - Flow5完成狀態: {self.DOBOT_FLOW5_COMPLETE}")
+        print("[AutoProgram] 目標: 維持prepare_done=True狀態")
     
     def stop(self):
         """停止機械臂協調控制系統"""
@@ -551,8 +474,8 @@ class AutoProgramController:
         self.running = False
         self.system_status = SystemStatus.STOPPED
         
-        # 停止AutoFeeding模組
-        self.stop_autofeeding()
+        # 立即更新狀態寄存器
+        self.write_register(1300, SystemStatus.STOPPED.value)  # 更新系統狀態為停止
         
         # 更新系統寄存器
         self.update_system_registers()
@@ -567,9 +490,24 @@ class AutoProgramController:
         """協調控制主循環"""
         interval = self.config['autoprogram']['coordination_interval']
         
-        while self.running:
+        print("[AutoProgram] 協調控制主循環已啟動")
+        
+        loop_count = 0
+        while True:  # 持續運行，即使系統停止也要檢查控制寄存器
             try:
-                self.coordination_cycle()
+                loop_count += 1
+                
+                # DEBUG: 每100次循環輸出一次心跳
+                if loop_count % 100 == 0:
+                    print(f"[AutoProgram] 控制循環心跳 - 第{loop_count}次, running={self.running}, auto_enabled={self.auto_program_enabled}")
+                
+                # 總是檢查控制寄存器變更
+                self.check_control_registers()
+                
+                # 只有在系統運行且自動程序啟用時才執行協調邏輯
+                if self.running and self.auto_program_enabled:
+                    self.coordination_cycle()
+                
                 time.sleep(interval)
                 
             except Exception as e:
@@ -589,44 +527,37 @@ class AutoProgramController:
         print(f"協調週期數: {self.coordination_cycle_count}")
         print(f"Flow1觸發次數: {self.flow1_trigger_count}")
         print(f"Flow5完成次數: {self.flow5_complete_count}")
-        print(f"入料完成檢測次數: {self.feeding_ready_count}")
+        print(f"CASE_F取得次數: {self.case_f_taken_count}")
         print(f"當前prepare_done狀態: {self.prepare_done}")
-        
-        if self.coordination_cycle_count > 0:
-            flow1_rate = (self.flow1_trigger_count / self.coordination_cycle_count) * 100
-            print(f"Flow1觸發率: {flow1_rate:.1f}%")
+        print(f"自動程序啟用: {self.auto_program_enabled}")
     
     def get_status_info(self) -> Dict[str, Any]:
         """獲取狀態資訊"""
         # 讀取AutoFeeding狀態
-        af_status = self.read_autofeeding_status()
+        af_status = self.get_autofeeding_status()
         
         return {
             "connected": self.connected,
             "system_status": self.system_status.name,
             "running": self.running,
+            "auto_program_enabled": self.auto_program_enabled,
             "prepare_done": self.prepare_done,
-            "robot_ready": self.check_robot_ready(),
-            "autofeeding_status": {
-                "module_status": af_status.module_status,
-                "feeding_complete": af_status.feeding_complete,
-                "target_coordinates": (af_status.target_x, af_status.target_y),
-                "total_detections": af_status.total_detections,
-                "case_f_count": af_status.case_f_count
-            },
+            "autofeeding_status": af_status,
+            "flow1_complete": self.check_flow1_complete(),
+            "flow5_complete": self.check_flow5_complete(),
             "statistics": {
                 "coordination_cycle_count": self.coordination_cycle_count,
                 "flow1_trigger_count": self.flow1_trigger_count,
                 "flow5_complete_count": self.flow5_complete_count,
-                "feeding_ready_count": self.feeding_ready_count
+                "case_f_taken_count": self.case_f_taken_count
             }
         }
 
 
 def main():
     """主程序"""
-    print("機械臂協調控制模組啟動 (分離式設計)")
-    print("使用Dobot_main運動狀態寄存器(1200)判斷機械臂Ready狀態")
+    print("機械臂協調控制模組啟動 (簡化監控版)")
+    print("目標: 監控AutoFeeding(940) + Flow5完成(1206)，維持prepare_done=True")
     
     # 創建控制器
     controller = AutoProgramController()
@@ -637,14 +568,20 @@ def main():
         return
     
     try:
-        # 啟動協調控制系統
-        controller.start()
+        # 啟動控制循環 (不管系統是否啟動，都要檢查控制寄存器)
+        print("[AutoProgram] 啟動控制循環，等待指令...")
+        controller.thread = threading.Thread(target=controller._coordination_loop, daemon=True)
+        controller.thread.start()
         
         # 定期更新系統寄存器
         def update_registers():
-            while controller.running:
-                controller.update_system_registers()
-                time.sleep(2.0)
+            while True:  # 持續更新
+                try:
+                    controller.update_system_registers()
+                    time.sleep(1.0)
+                except Exception as e:
+                    print(f"寄存器更新異常: {e}")
+                    time.sleep(2.0)
         
         update_thread = threading.Thread(target=update_registers, daemon=True)
         update_thread.start()
@@ -652,12 +589,16 @@ def main():
         # 主循環 - 等待用戶操作
         print("\n指令說明:")
         print("  s - 顯示狀態")
-        print("  r - 重啟系統")
-        print("  start_af - 手動啟動AutoFeeding")
-        print("  stop_af - 手動停止AutoFeeding")
+        print("  start - 手動啟動系統")
+        print("  stop - 手動停止系統")
+        print("  enable - 啟用自動程序")
+        print("  disable - 停用自動程序")
         print("  flow1 - 手動觸發Flow1")
-        print("  debug_on - 開啟機械臂Ready狀態調試")
-        print("  debug_off - 關閉機械臂Ready狀態調試")
+        print("  clear_f1 - 清除Flow1完成狀態")
+        print("  clear_f5 - 清除Flow5完成狀態")
+        print("  coords - 手動讀取CASE_F座標")
+        print("  check_af - 檢查AutoFeeding狀態")
+        print("  check_regs - 檢查控制寄存器")
         print("  q - 退出程序")
         
         while True:
@@ -676,24 +617,45 @@ def main():
                                 print(f"    {sub_key}: {sub_value}")
                         else:
                             print(f"  {key}: {value}")
-                elif cmd == 'r':
-                    controller.stop()
-                    time.sleep(1.0)
-                    controller.start()
-                elif cmd == 'start_af':
-                    controller.start_autofeeding()
-                elif cmd == 'stop_af':
-                    controller.stop_autofeeding()
+                elif cmd == 'start':
+                    controller.write_register(1320, 1)
+                    print("系統啟動指令已發送 (1320=1)")
+                elif cmd == 'stop':
+                    controller.write_register(1320, 0)
+                    print("系統停止指令已發送 (1320=0)")
+                elif cmd == 'enable':
+                    controller.auto_program_enabled = True
+                    controller.write_register(1321, 1)
+                    print("自動程序已啟用")
+                elif cmd == 'disable':
+                    controller.auto_program_enabled = False
+                    controller.write_register(1321, 0)
+                    print("自動程序已停用")
                 elif cmd == 'flow1':
-                    if controller.execute_flow1():
-                        controller.prepare_done = True
-                        controller.write_register(1302, 1)
-                elif cmd == 'debug_on':
-                    controller.config['robot_ready']['enable_debug'] = True
-                    print("機械臂Ready狀態調試已開啟")
-                elif cmd == 'debug_off':
-                    controller.config['robot_ready']['enable_debug'] = False
-                    print("機械臂Ready狀態調試已關閉")
+                    if controller.trigger_flow1():
+                        print("Flow1已觸發")
+                    else:
+                        print("Flow1觸發失敗")
+                elif cmd == 'clear_f1':
+                    controller.clear_flow1_complete()
+                elif cmd == 'clear_f5':
+                    controller.clear_flow5_complete()
+                elif cmd == 'coords':
+                    coords = controller.take_case_f_coordinates()
+                    if coords:
+                        print(f"CASE_F座標: {coords}")
+                    else:
+                        print("無可用的CASE_F座標")
+                elif cmd == 'check_af':
+                    af_status = controller.get_autofeeding_status()
+                    print(f"AutoFeeding狀態: {af_status}")
+                elif cmd == 'check_regs':
+                    reg1320 = controller.read_register(1320)
+                    reg1321 = controller.read_register(1321)
+                    reg940 = controller.read_register(940)
+                    print(f"控制寄存器: 1320={reg1320}, 1321={reg1321}")
+                    print(f"AutoFeeding: 940={reg940}")
+                    print(f"系統狀態: running={controller.running}, auto_enabled={controller.auto_program_enabled}")
                 else:
                     print("無效指令")
                     
@@ -704,7 +666,8 @@ def main():
     
     finally:
         # 清理資源
-        controller.stop()
+        if controller.running:
+            controller._stop_system()  # 使用內部停止方法避免線程問題
         controller.disconnect()
         print("程序已退出")
 
