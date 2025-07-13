@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Dobot_Flow1_YOLOv11.py - Flow1 VP視覺抓取流程 (YOLOv11版本) - 統一進度修正版
+Dobot_Flow1_AutoFeeding.py - Flow1 VP視覺抓取流程 (AutoFeeding座標版本)
 基於統一Flow架構的運動控制執行器
-使用YOLOv11版本CCD1模組進行CASE_F物件檢測
-完全移除角度校正相關功能
-修正：統一將進度更新到寄存器1202而不是403
+從AutoFeeding模組讀取經過篩選的目標座標(941-944地址)
+修正：統一將進度更新到寄存器1202
 """
 
 import time
@@ -41,27 +40,8 @@ class RobotPoint:
     j4: float
 
 
-@dataclass
-class CCD1YOLOResult:
-    """CCD1 YOLOv11檢測結果數據結構"""
-    case_f_count: int = 0
-    case_b_count: int = 0
-    total_detections: int = 0
-    case_f_coords: List[Tuple[float, float]] = None
-    case_f_world_coords: List[Tuple[float, float]] = None
-    world_coord_valid: bool = False
-    success: bool = False
-    error_message: Optional[str] = None
-
-    def __post_init__(self):
-        if self.case_f_coords is None:
-            self.case_f_coords = []
-        if self.case_f_world_coords is None:
-            self.case_f_world_coords = []
-
-
-class CCD1YOLOInterface:
-    """CCD1 YOLOv11接口 - 基於paste.txt地址定義"""
+class AutoFeedingCoordinateInterface:
+    """AutoFeeding座標接口 - 讀取經過篩選的目標座標"""
     
     def __init__(self, modbus_host: str = "127.0.0.1", modbus_port: int = 502):
         self.modbus_host = modbus_host
@@ -69,88 +49,26 @@ class CCD1YOLOInterface:
         self.modbus_client: Optional[ModbusTcpClient] = None
         self.connected = False
         
-        # CCD1 YOLOv11寄存器映射 (基於paste.txt) - 基地址200
+        # AutoFeeding交握寄存器映射 (基地址900)
         self.REGISTERS = {
-            # 控制寄存器 (200-201)
-            'CONTROL_COMMAND': 200,       # 控制指令
-            'STATUS_REGISTER': 201,       # 狀態寄存器
-            
-            # 完成標誌寄存器 (202-205)
-            'CAPTURE_COMPLETE': 202,      # 拍照完成標誌
-            'DETECT_COMPLETE': 203,       # 檢測完成標誌
-            'OPERATION_SUCCESS': 204,     # 操作成功標誌
-            'ERROR_CODE': 205,            # 錯誤代碼
-            
-            # YOLOv11檢測結果寄存器 (240-259)
-            'CASE_F_COUNT': 240,          # CASE_F檢測數量
-            'CASE_B_COUNT': 241,          # CASE_B檢測數量
-            'TOTAL_DETECTIONS': 242,      # 總檢測數量
-            'DETECTION_SUCCESS': 243,     # 檢測成功標誌
-            
-            # CASE_F座標寄存器 (244-253) - 最多5個
-            'CASE_F_1_X': 244,           # CASE_F 1號 X座標
-            'CASE_F_1_Y': 245,           # CASE_F 1號 Y座標
-            'CASE_F_2_X': 246,           # CASE_F 2號 X座標
-            'CASE_F_2_Y': 247,           # CASE_F 2號 Y座標
-            'CASE_F_3_X': 248,           # CASE_F 3號 X座標
-            'CASE_F_3_Y': 249,           # CASE_F 3號 Y座標
-            'CASE_F_4_X': 250,           # CASE_F 4號 X座標
-            'CASE_F_4_Y': 251,           # CASE_F 4號 Y座標
-            'CASE_F_5_X': 252,           # CASE_F 5號 X座標
-            'CASE_F_5_Y': 253,           # CASE_F 5號 Y座標
-            
-            # 世界座標寄存器 (260-279) - YOLOv11版本擴展
-            'WORLD_COORD_VALID': 260,     # 世界座標有效標誌
-            'CASE_F_1_WORLD_X_HIGH': 261, # CASE_F 1號世界X座標高位
-            'CASE_F_1_WORLD_X_LOW': 262,  # CASE_F 1號世界X座標低位
-            'CASE_F_1_WORLD_Y_HIGH': 263, # CASE_F 1號世界Y座標高位
-            'CASE_F_1_WORLD_Y_LOW': 264,  # CASE_F 1號世界Y座標低位
-            'CASE_F_2_WORLD_X_HIGH': 265, # CASE_F 2號世界X座標高位
-            'CASE_F_2_WORLD_X_LOW': 266,  # CASE_F 2號世界X座標低位
-            'CASE_F_2_WORLD_Y_HIGH': 267, # CASE_F 2號世界Y座標高位
-            'CASE_F_2_WORLD_Y_LOW': 268,  # CASE_F 2號世界Y座標低位
-            'CASE_F_3_WORLD_X_HIGH': 269, # CASE_F 3號世界X座標高位
-            'CASE_F_3_WORLD_X_LOW': 270,  # CASE_F 3號世界X座標低位
-            'CASE_F_3_WORLD_Y_HIGH': 271, # CASE_F 3號世界Y座標高位
-            'CASE_F_3_WORLD_Y_LOW': 272,  # CASE_F 3號世界Y座標低位
-            'CASE_F_4_WORLD_X_HIGH': 273, # CASE_F 4號世界X座標高位
-            'CASE_F_4_WORLD_X_LOW': 274,  # CASE_F 4號世界X座標低位
-            'CASE_F_4_WORLD_Y_HIGH': 275, # CASE_F 4號世界Y座標高位
-            'CASE_F_4_WORLD_Y_LOW': 276,  # CASE_F 4號世界Y座標低位
-            'CASE_F_5_WORLD_X_HIGH': 277, # CASE_F 5號世界X座標高位
-            'CASE_F_5_WORLD_X_LOW': 278,  # CASE_F 5號世界X座標低位
-            'CASE_F_5_WORLD_Y_HIGH': 279, # CASE_F 5號世界Y座標高位
+            # 入料交握寄存器 (940-959)
+            'FEEDING_COMPLETE': 940,      # 入料完成標誌
+            'TARGET_X_HIGH': 941,         # 料件座標X高位
+            'TARGET_X_LOW': 942,          # 料件座標X低位
+            'TARGET_Y_HIGH': 943,         # 料件座標Y高位
+            'TARGET_Y_LOW': 944,          # 料件座標Y低位
+            'AUTOPROGRAM_CONFIRM': 945,   # AutoProgram確認讀取
+            'TOTAL_DETECTIONS': 946,      # 檢測結果總數
+            'CASE_F_COUNT': 947,          # CASE_F總數
         }
-        
-        # 指令定義 (基於paste.txt)
-        self.COMMANDS = {
-            'CLEAR': 0,
-            'CAPTURE': 8,
-            'CAPTURE_DETECT': 16,
-            'INITIALIZE': 32
-        }
-        
-        # 狀態位定義
-        self.STATUS_BITS = {
-            'READY': 0,
-            'RUNNING': 1,
-            'ALARM': 2,
-            'INITIALIZED': 3
-        }
-        
-        self.operation_timeout = 10.0  # 操作超時時間(秒)
     
     def connect(self) -> bool:
-        """連接到CCD1 Modbus服務器"""
-        if not MODBUS_AVAILABLE:
-            print("錯誤: Modbus Client不可用")
-            return False
-        
+        """連接到AutoFeeding Modbus服務器"""
         try:
             if self.modbus_client:
                 self.modbus_client.close()
             
-            print(f"連接CCD1 YOLOv11系統: {self.modbus_host}:{self.modbus_port}")
+            print(f"連接AutoFeeding模組: {self.modbus_host}:{self.modbus_port}")
             
             self.modbus_client = ModbusTcpClient(
                 host=self.modbus_host,
@@ -160,14 +78,14 @@ class CCD1YOLOInterface:
             
             if self.modbus_client.connect():
                 self.connected = True
-                print("✓ CCD1 YOLOv11系統連接成功")
+                print("✓ AutoFeeding模組連接成功")
                 return True
             else:
-                print("✗ CCD1 YOLOv11系統連接失敗")
+                print("✗ AutoFeeding模組連接失敗")
                 return False
                 
         except Exception as e:
-            print(f"CCD1連接異常: {e}")
+            print(f"AutoFeeding連接異常: {e}")
             return False
     
     def disconnect(self):
@@ -175,7 +93,7 @@ class CCD1YOLOInterface:
         if self.modbus_client and self.connected:
             try:
                 self.modbus_client.close()
-                print("CCD1連接已斷開")
+                print("AutoFeeding連接已斷開")
             except:
                 pass
         self.connected = False
@@ -210,130 +128,71 @@ class CCD1YOLOInterface:
         except Exception:
             return False
     
-    def wait_for_ready(self, timeout: float = 10.0) -> bool:
-        """等待系統Ready狀態"""
-        start_time = time.time()
-        
-        while time.time() - start_time < timeout:
-            status = self.read_register('STATUS_REGISTER')
-            if status is not None:
-                ready = bool(status & (1 << self.STATUS_BITS['READY']))
-                alarm = bool(status & (1 << self.STATUS_BITS['ALARM']))
-                
-                if ready and not alarm:
-                    return True
-                elif alarm:
-                    print("CCD1系統處於Alarm狀態")
-                    return False
-            
-            time.sleep(0.1)
-        
-        print("等待CCD1 Ready狀態超時")
-        return False
+    def check_feeding_complete(self) -> bool:
+        """檢查入料是否完成"""
+        feeding_complete = self.read_register('FEEDING_COMPLETE')
+        return feeding_complete == 1
     
-    def wait_for_operation_complete(self, timeout: float = 10.0) -> bool:
-        """等待操作完成"""
-        start_time = time.time()
-        
-        while time.time() - start_time < timeout:
-            # 檢查是否不再Running
-            status = self.read_register('STATUS_REGISTER')
-            if status is not None:
-                running = bool(status & (1 << self.STATUS_BITS['RUNNING']))
-                if not running:
-                    # 檢查操作是否成功
-                    success = self.read_register('OPERATION_SUCCESS')
-                    return success == 1
-            
-            time.sleep(0.05)  # 50ms輪詢
-        
-        print("等待CCD1操作完成超時")
-        return False
-    
-    def capture_and_detect_yolo(self) -> CCD1YOLOResult:
-        """讀取YOLOv11檢測結果 - 被動讀取模式"""
-        result = CCD1YOLOResult()
-        
+    def read_target_coordinates(self) -> Optional[Dict[str, float]]:
+        """讀取AutoFeeding提供的目標座標"""
         try:
-            if not self.connected:
-                result.error_message = "CCD1未連接"
-                return result
+            # 檢查入料完成標誌
+            if not self.check_feeding_complete():
+                print("AutoFeeding入料未完成，無法讀取座標")
+                return None
             
-            print("讀取CCD1 YOLOv11檢測結果...")
+            # 讀取32位座標
+            x_high = self.read_register('TARGET_X_HIGH') or 0
+            x_low = self.read_register('TARGET_X_LOW') or 0
+            y_high = self.read_register('TARGET_Y_HIGH') or 0
+            y_low = self.read_register('TARGET_Y_LOW') or 0
             
-            # 直接讀取檢測結果 (假設CCD1已自動完成檢測)
-            case_f_count = self.read_register('CASE_F_COUNT') or 0
-            case_b_count = self.read_register('CASE_B_COUNT') or 0
+            # 32位合併並轉換精度
+            world_x_int = (x_high << 16) | x_low
+            world_y_int = (y_high << 16) | y_low
+            
+            # 處理負數 (補碼轉換)
+            if world_x_int >= 2**31:
+                world_x_int -= 2**32
+            if world_y_int >= 2**31:
+                world_y_int -= 2**32
+            
+            # 恢復精度 (÷100)
+            world_x = world_x_int / 100.0
+            world_y = world_y_int / 100.0
+            
+            # 讀取統計資訊
             total_detections = self.read_register('TOTAL_DETECTIONS') or 0
-            detection_success = self.read_register('DETECTION_SUCCESS') or 0
-            world_coord_valid = self.read_register('WORLD_COORD_VALID') or 0
+            case_f_count = self.read_register('CASE_F_COUNT') or 0
             
-            result.case_f_count = case_f_count
-            result.case_b_count = case_b_count
-            result.total_detections = total_detections
-            result.success = detection_success == 1
-            result.world_coord_valid = world_coord_valid == 1
+            print(f"AutoFeeding座標讀取成功:")
+            print(f"  目標座標: ({world_x:.2f}, {world_y:.2f}) mm")
+            print(f"  檢測統計: 總數={total_detections}, CASE_F={case_f_count}")
             
-            print(f"YOLOv11檢測結果: CASE_F={case_f_count}, CASE_B={case_b_count}, 總計={total_detections}")
-            
-            # 讀取CASE_F像素座標
-            if case_f_count > 0:
-                for i in range(min(case_f_count, 5)):
-                    x_reg = f'CASE_F_{i+1}_X'
-                    y_reg = f'CASE_F_{i+1}_Y'
-                    
-                    x = self.read_register(x_reg)
-                    y = self.read_register(y_reg)
-                    
-                    if x is not None and y is not None:
-                        result.case_f_coords.append((float(x), float(y)))
-                        print(f"  CASE_F {i+1}: 像素座標({x}, {y})")
-            
-            # 讀取CASE_F世界座標 (如果有效)
-            if result.world_coord_valid and case_f_count > 0:
-                for i in range(min(case_f_count, 5)):
-                    x_high_reg = f'CASE_F_{i+1}_WORLD_X_HIGH'
-                    x_low_reg = f'CASE_F_{i+1}_WORLD_X_LOW'
-                    y_high_reg = f'CASE_F_{i+1}_WORLD_Y_HIGH'
-                    y_low_reg = f'CASE_F_{i+1}_WORLD_Y_LOW'
-                    
-                    x_high = self.read_register(x_high_reg) or 0
-                    x_low = self.read_register(x_low_reg) or 0
-                    y_high = self.read_register(y_high_reg) or 0
-                    y_low = self.read_register(y_low_reg) or 0
-                    
-                    # 32位合併並轉換精度
-                    world_x_int = (x_high << 16) | x_low
-                    world_y_int = (y_high << 16) | y_low
-                    
-                    # 處理負數 (補碼轉換)
-                    if world_x_int >= 2**31:
-                        world_x_int -= 2**32
-                    if world_y_int >= 2**31:
-                        world_y_int -= 2**32
-                    
-                    # 恢復精度 (÷100)
-                    world_x = world_x_int / 100.0
-                    world_y = world_y_int / 100.0
-                    
-                    result.case_f_world_coords.append((world_x, world_y))
-                    print(f"  CASE_F {i+1}: 世界座標({world_x:.2f}, {world_y:.2f}) mm")
-            
-            # 檢查是否有有效的檢測結果
-            if case_f_count > 0:
-                result.success = True
-                print(f"✓ 成功讀取到 {case_f_count} 個CASE_F物件")
-            else:
-                result.success = False
-                result.error_message = "未檢測到CASE_F物件"
-                print("⚠️ 未檢測到CASE_F物件")
-            
-            return result
+            return {
+                'x': world_x,
+                'y': world_y,
+                'total_detections': total_detections,
+                'case_f_count': case_f_count
+            }
             
         except Exception as e:
-            result.error_message = f"讀取YOLOv11檢測結果異常: {str(e)}"
-            print(f"❌ 讀取檢測結果異常: {e}")
-            return result
+            print(f"讀取AutoFeeding目標座標異常: {e}")
+            return None
+    
+    def confirm_coordinate_read(self) -> bool:
+        """確認已讀取座標 - AutoProgram協議"""
+        try:
+            success = self.write_register('AUTOPROGRAM_CONFIRM', 1)
+            if success:
+                print("已確認讀取AutoFeeding座標")
+                return True
+            else:
+                print("確認讀取AutoFeeding座標失敗")
+                return False
+        except Exception as e:
+            print(f"確認讀取座標異常: {e}")
+            return False
 
 
 class PointsManager:
@@ -426,10 +285,10 @@ class PointsManager:
 
 
 class Flow1VisionPickExecutor(FlowExecutor):
-    """Flow1: VP視覺抓取流程執行器 - YOLOv11版本 - 統一進度修正版"""
+    """Flow1: VP視覺抓取流程執行器 - AutoFeeding座標版本"""
     
     def __init__(self):
-        super().__init__(flow_id=1, flow_name="VP視覺抓取流程(YOLOv11)")
+        super().__init__(flow_id=1, flow_name="VP視覺抓取流程(AutoFeeding)")
         self.motion_steps = []
         
         # 流程高度參數
@@ -440,20 +299,18 @@ class Flow1VisionPickExecutor(FlowExecutor):
         self.points_manager = PointsManager()
         self.points_loaded = False
         
-        # 初始化CCD1 YOLOv11接口
-        self.ccd1_interface = CCD1YOLOInterface()
+        # 初始化AutoFeeding座標接口
+        self.autofeeding_interface = AutoFeedingCoordinateInterface()
         
         # Flow1需要的點位名稱
         self.REQUIRED_POINTS = [
             "standby",      # 待機點
             "vp_topside",   # VP震動盤上方點
             "flip_pre",     # 翻轉預備點
-            "flip_top",     # 翻轉頂部點
-            "flip_down"     # 翻轉底部點
+            "Goal_CV_top",  # 翻轉目標頂部點
+            "rotate_top",   # 旋轉頂部點
+            "rotate_down"   # 旋轉底部點
         ]
-        
-        # CCD2 IO控制腳位
-        self.CCD2_TRIGGER_PIN = 8  # DO8: 觸發CCD2檢測
         
         # 嘗試載入點位檔案
         self._load_and_validate_points()
@@ -488,22 +345,22 @@ class Flow1VisionPickExecutor(FlowExecutor):
         self.points_loaded = True
         
     def build_flow_steps(self):
-        """建構Flow1步驟 - YOLOv11版本"""
+        """建構Flow1步驟 - AutoFeeding座標版本"""
         if not self.points_loaded:
             print("警告: 點位未載入，無法建構流程步驟")
             self.motion_steps = []
             self.total_steps = 0
             return
             
-        # Flow1流程步驟 - YOLOv11版本
+        # Flow1流程步驟 - AutoFeeding座標版本
         self.motion_steps = [
             # 1. 初始準備
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
             {'type': 'gripper_close', 'params': {}},
             
-            # 2. VP視覺檢測序列 - YOLOv11版本
+            # 2. VP視覺檢測序列 - 讀取AutoFeeding座標版本
             {'type': 'move_to_point', 'params': {'point_name': 'vp_topside', 'move_type': 'J'}},
-            {'type': 'ccd1_yolo_detection', 'params': {}},  # 使用YOLOv11檢測
+            {'type': 'read_autofeeding_coordinates', 'params': {}},  # 從AutoFeeding讀取座標
             
             # 3. 移動到檢測位置 (等高)
             {'type': 'move_to_detected_position_high', 'params': {}},
@@ -519,40 +376,28 @@ class Flow1VisionPickExecutor(FlowExecutor):
             # 6. 翻轉檢測序列
             {'type': 'move_to_point', 'params': {'point_name': 'flip_pre', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'Goal_CV_top', 'move_type': 'J'}},
-            # 6. 到rotate_top
             {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
-            
-            # 7. 到rotate_down
             {'type': 'move_to_point', 'params': {'point_name': 'rotate_down', 'move_type': 'J'}},
             
-            # 8. 夾爪快速關閉
+            # 7. 翻轉操作序列
             {'type': 'gripper_close', 'params': {}},
-            
-            # 9. 到rotate_top
             {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
-            
-            # 10. 到rotate_down
             {'type': 'move_to_point', 'params': {'point_name': 'rotate_down', 'move_type': 'J'}},
-            
-            # 11. 夾爪智慧撐開470
             {'type': 'gripper_smart_release', 'params': {'position': 470}},
-            
-            # 12. 夾爪快速關閉
             {'type': 'gripper_close', 'params': {}},
             
-            # 13. 到rotate_top
+            # 8. 返回待機
             {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'Goal_CV_top', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'flip_pre', 'move_type': 'J'}},
-            
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
         ]
         
         self.total_steps = len(self.motion_steps)
-        print(f"Flow1流程步驟建構完成(YOLOv11版本)，共{self.total_steps}步")
+        print(f"Flow1流程步驟建構完成(AutoFeeding座標版本)，共{self.total_steps}步")
     
     def execute(self) -> FlowResult:
-        """執行Flow1主邏輯 - YOLOv11版本 - 統一進度修正版"""
+        """執行Flow1主邏輯 - AutoFeeding座標版本"""
         # 檢查點位是否已載入
         if not self.points_loaded:
             return FlowResult(
@@ -577,11 +422,11 @@ class Flow1VisionPickExecutor(FlowExecutor):
                 total_steps=self.total_steps
             )
         
-        # 連接CCD1 YOLOv11系統
-        if not self.ccd1_interface.connect():
+        # 連接AutoFeeding模組
+        if not self.autofeeding_interface.connect():
             return FlowResult(
                 success=False,
-                error_message="CCD1 YOLOv11系統連接失敗",
+                error_message="AutoFeeding模組連接失敗",
                 execution_time=time.time() - self.start_time,
                 steps_completed=self.current_step,
                 total_steps=self.total_steps
@@ -609,15 +454,13 @@ class Flow1VisionPickExecutor(FlowExecutor):
                     success = self._execute_gripper_close()
                 elif step['type'] == 'gripper_smart_release':
                     success = self._execute_gripper_smart_release(step['params'])
-                elif step['type'] == 'ccd1_yolo_detection':  # YOLOv11檢測
-                    detected_position = self._execute_ccd1_yolo_detection()
+                elif step['type'] == 'read_autofeeding_coordinates':  # 讀取AutoFeeding座標
+                    detected_position = self._execute_read_autofeeding_coordinates()
                     success = detected_position is not None
                 elif step['type'] == 'move_to_detected_position_high':
                     success = self._execute_move_to_detected_high(detected_position)
                 elif step['type'] == 'move_to_detected_position_low':
                     success = self._execute_move_to_detected_low(detected_position)
-                elif step['type'] == 'trigger_ccd2':
-                    success = self._execute_trigger_ccd2()
                 else:
                     print(f"未知步驟類型: {step['type']}")
                     success = False
@@ -634,14 +477,14 @@ class Flow1VisionPickExecutor(FlowExecutor):
                 
                 self.current_step += 1
                 
-                # 🔥 修正：統一更新進度到寄存器1202
+                # 統一更新進度到寄存器1202
                 self._update_progress_to_1202()
             
             # 流程成功完成
             self.status = FlowStatus.COMPLETED
             execution_time = time.time() - self.start_time
             
-            # 🔥 修正：最終進度設為100%
+            # 最終進度設為100%
             self._update_progress_to_1202(100)
             
             return FlowResult(
@@ -662,11 +505,11 @@ class Flow1VisionPickExecutor(FlowExecutor):
                 total_steps=self.total_steps
             )
         finally:
-            # 斷開CCD1連接
-            self.ccd1_interface.disconnect()
+            # 斷開AutoFeeding連接
+            self.autofeeding_interface.disconnect()
     
     def _update_progress_to_1202(self, override_progress: Optional[int] = None):
-        """🔥 修正方法：統一更新進度到寄存器1202而不是403"""
+        """統一更新進度到寄存器1202"""
         try:
             if override_progress is not None:
                 progress = override_progress
@@ -684,7 +527,6 @@ class Flow1VisionPickExecutor(FlowExecutor):
                 hasattr(self.state_machine, 'modbus_client') and 
                 self.state_machine.modbus_client is not None):
                 try:
-                    # 直接寫入運動進度寄存器1202
                     result = self.state_machine.modbus_client.write_register(1202, progress)
                     if hasattr(result, 'isError') and not result.isError():
                         print(f"[Flow1] 進度已更新到1202: {progress}% (直接寫入)")
@@ -697,6 +539,60 @@ class Flow1VisionPickExecutor(FlowExecutor):
                 
         except Exception as e:
             print(f"[Flow1] 進度更新到1202失敗: {e}")
+    
+    def _execute_read_autofeeding_coordinates(self) -> Optional[Dict[str, float]]:
+        """從AutoFeeding模組讀取經過篩選的目標座標"""
+        try:
+            print("  從AutoFeeding模組讀取目標座標...")
+            
+            # 等待AutoFeeding入料完成 (最多等待10秒)
+            timeout = 10.0
+            start_time = time.time()
+            
+            while time.time() - start_time < timeout:
+                if self.autofeeding_interface.check_feeding_complete():
+                    print("✓ AutoFeeding入料完成，讀取座標")
+                    break
+                print("  等待AutoFeeding入料完成...")
+                time.sleep(0.5)
+            else:
+                print("✗ 等待AutoFeeding入料完成超時")
+                return None
+            
+            # 讀取目標座標
+            coord_data = self.autofeeding_interface.read_target_coordinates()
+            if not coord_data:
+                print("✗ 讀取AutoFeeding目標座標失敗")
+                return None
+            
+            # 確認已讀取座標
+            if not self.autofeeding_interface.confirm_coordinate_read():
+                print("⚠️ 確認讀取座標失敗，但繼續執行")
+            
+            # 獲取vp_topside點位的Z高度和R值
+            vp_topside_point = self.points_manager.get_point('vp_topside')
+            if not vp_topside_point:
+                print("錯誤: 無法獲取vp_topside點位")
+                return None
+            
+            detected_pos = {
+                'x': coord_data['x'],
+                'y': coord_data['y'],
+                'z': vp_topside_point.z,  # 使用vp_topside的Z高度
+                'r': vp_topside_point.r,  # 繼承vp_topside的R值
+                'source': 'autofeeding'
+            }
+            
+            print(f"✓ AutoFeeding座標讀取成功:")
+            print(f"  目標位置: ({detected_pos['x']:.2f}, {detected_pos['y']:.2f})")
+            print(f"  繼承vp_topside - Z:{detected_pos['z']:.2f}, R:{detected_pos['r']:.2f}")
+            print(f"  檢測統計: 總數={coord_data['total_detections']}, CASE_F={coord_data['case_f_count']}")
+            
+            return detected_pos
+            
+        except Exception as e:
+            print(f"讀取AutoFeeding座標異常: {e}")
+            return None
     
     def _execute_move_to_point(self, params: Dict[str, Any]) -> bool:
         """執行移動到外部點位檔案的點位"""
@@ -729,7 +625,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
             return False
     
     def _execute_gripper_close(self) -> bool:
-        """執行夾爪快速關閉 - 包含錯誤處理"""
+        """執行夾爪快速關閉"""
         try:
             gripper_api = self.external_modules.get('gripper')
             if not gripper_api:
@@ -741,19 +637,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
             
             if success:
                 print("✓ 夾爪快速關閉成功")
-                
-                # 等待夾爪關閉完成
                 time.sleep(1.0)  # 等待1秒確保夾爪完全關閉
-                
-                # 檢查夾爪狀態
-                if hasattr(gripper_api, 'get_current_position'):
-                    try:
-                        current_pos = gripper_api.get_current_position()
-                        if current_pos is not None:
-                            print(f"  夾爪當前位置: {current_pos}")
-                    except Exception as e:
-                        print(f"  無法讀取夾爪位置: {e}")
-                
                 return True
             else:
                 print("✗ 夾爪快速關閉失敗")
@@ -789,59 +673,6 @@ class Flow1VisionPickExecutor(FlowExecutor):
             print(f"夾爪智能撐開異常: {e}")
             return False
     
-    def _execute_ccd1_yolo_detection(self) -> Optional[Dict[str, float]]:
-        """執行CCD1 YOLOv11檢測 - 取第一個CASE_F物件"""
-        try:
-            print("  使用CCD1 YOLOv11檢測API...")
-            
-            # 執行YOLOv11檢測
-            result = self.ccd1_interface.capture_and_detect_yolo()
-            
-            if not result.success:
-                print(f"YOLOv11檢測失敗: {result.error_message}")
-                return None
-            
-            if result.case_f_count == 0:
-                print("YOLOv11未檢測到CASE_F物件")
-                return None
-            
-            # 取第一個CASE_F物件作為目標
-            if result.world_coord_valid and result.case_f_world_coords:
-                # 優先使用世界座標
-                world_x, world_y = result.case_f_world_coords[0]
-                
-                # 獲取vp_topside點位的Z高度和R值
-                vp_topside_point = self.points_manager.get_point('vp_topside')
-                if not vp_topside_point:
-                    print("錯誤: 無法獲取vp_topside點位")
-                    return None
-                
-                detected_pos = {
-                    'x': world_x,
-                    'y': world_y,
-                    'z': vp_topside_point.z,  # 使用vp_topside的Z高度
-                    'r': vp_topside_point.r   # 繼承vp_topside的R值
-                }
-                
-                print(f"YOLOv11檢測成功(世界座標): ({detected_pos['x']:.2f}, {detected_pos['y']:.2f})")
-                print(f"繼承vp_topside - Z:{detected_pos['z']:.2f}, R:{detected_pos['r']:.2f}")
-                return detected_pos
-                
-            elif result.case_f_coords:
-                # 使用像素座標 (需要轉換為機器人座標系)
-                pixel_x, pixel_y = result.case_f_coords[0]
-                print(f"警告: 僅獲得像素座標({pixel_x}, {pixel_y})，需要座標轉換")
-                # 這裡需要實現像素座標到機器人座標的轉換
-                # 暫時返回None，需要根據實際標定參數實現
-                return None
-            else:
-                print("YOLOv11檢測結果無有效座標")
-                return None
-                
-        except Exception as e:
-            print(f"YOLOv11檢測異常: {e}")
-            return None
-    
     def _execute_move_to_detected_high(self, detected_position: Optional[Dict[str, float]]) -> bool:
         """移動到檢測位置(等高)"""
         try:
@@ -849,25 +680,17 @@ class Flow1VisionPickExecutor(FlowExecutor):
                 print("檢測位置為空，無法移動")
                 return False
             
-            # 切換到左手系 (修正API調用)
+            # 切換到左手系
             print("  切換到左手系（LorR=0）...")
             if hasattr(self.robot, 'dashboard_api') and self.robot.dashboard_api:
                 try:
                     result = self.robot.dashboard_api.SetArmOrientation(0)  # 0 = 左手系
-                    if "0," in str(result):  # 檢查是否成功（ErrorID=0表示成功）
+                    if "0," in str(result):
                         print("  ✓ 已切換到左手系")
                     else:
                         print(f"  ⚠️ 切換到左手系可能失敗: {result}")
                 except Exception as e:
                     print(f"  ⚠️ 切換座標系異常: {e}")
-            elif hasattr(self.robot, 'set_arm_orientation'):
-                # 兼容性：如果robot有封裝方法
-                if not self.robot.set_arm_orientation(0):
-                    print("  ⚠️ 切換到左手系失敗，但繼續執行")
-                else:
-                    print("  ✓ 已切換到左手系")
-            else:
-                print("  ⚠️ 無法訪問座標系切換API，跳過")
             
             print(f"移動到檢測位置(等高): ({detected_position['x']:.2f}, {detected_position['y']:.2f}, {self.VP_DETECT_HEIGHT:.2f})")
             
@@ -916,30 +739,6 @@ class Flow1VisionPickExecutor(FlowExecutor):
                 
         except Exception as e:
             print(f"移動到檢測位置(夾取高度)失敗: {e}")
-            return False
-    
-    def _execute_trigger_ccd2(self) -> bool:
-        """觸發CCD2檢測"""
-        try:
-            print("觸發CCD2物件正反面辨識")
-            
-            # 觸發CCD2檢測 (DO8 = 1)
-            if not self.robot.set_do(self.CCD2_TRIGGER_PIN, 1):
-                print("觸發CCD2失敗")
-                return False
-            
-            # 延遲一段時間後復位
-            time.sleep(0.1)  # 100ms脈衝
-            
-            if not self.robot.set_do(self.CCD2_TRIGGER_PIN, 0):
-                print("CCD2復位失敗")
-                return False
-            
-            print("✓ CCD2觸發成功")
-            return True
-            
-        except Exception as e:
-            print(f"觸發CCD2異常: {e}")
             return False
     
     def pause(self) -> bool:
