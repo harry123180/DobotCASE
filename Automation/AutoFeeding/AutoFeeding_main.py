@@ -4,6 +4,7 @@
 AutoFeeding_main.py - 獨立入料檢測模組 (修正版)
 基地址：900-999
 功能：持續檢測，主動監控Flow1，簡化交握邏輯
+修改：監控1201當前執行Flow，當值為1時暫停自動進料程序
 """
 
 import time
@@ -111,8 +112,8 @@ class AutoFeedingModule:
         self.VP_BASE = 300
         self.FLOW4_ADDRESS = 448
         
-        # 🟢 Flow1控制地址 - 主動監控
-        self.FLOW1_CONTROL = 1240  # Flow1控制寄存器，來自Dobot_main
+        # 🟢 修改：監控1201當前執行Flow而不是1240控制寄存器
+        self.CURRENT_MOTION_FLOW = 1201  # 當前運動Flow (0=無, 1=Flow1, 2=Flow2, 5=Flow5)
         
         # 載入配置
         self.config = self.load_config()
@@ -142,7 +143,8 @@ class AutoFeedingModule:
         self.error_code = 0
         
         print(f"[AutoFeeding] 獨立模組初始化 (修正版) - 基地址{self.BASE_ADDRESS}")
-        print(f"[AutoFeeding] 主動監控Flow1控制地址: {self.FLOW1_CONTROL}")
+        print(f"[AutoFeeding] 監控當前執行Flow地址: {self.CURRENT_MOTION_FLOW}")
+        print(f"[AutoFeeding] 當1201=1時暫停自動進料程序")
     
     def load_config(self) -> Dict[str, Any]:
         """載入配置檔案"""
@@ -342,24 +344,24 @@ class AutoFeedingModule:
             print(f"[ERROR] 狀態寄存器更新失敗: {e}")
     
     def check_flow1_status(self) -> bool:
-        """🟢 主動監控Flow1控制狀態"""
+        """🟢 主動監控當前執行Flow狀態 - 修改為監控1201"""
         try:
-            flow1_control = self.read_register(self.FLOW1_CONTROL)
-            if flow1_control is None:
+            current_motion_flow = self.read_register(self.CURRENT_MOTION_FLOW)
+            if current_motion_flow is None:
                 return False
             
-            # 檢查Flow1控制狀態變化
-            flow1_now_active = (flow1_control == 1)
+            # 檢查當前執行Flow狀態變化
+            flow1_now_active = (current_motion_flow == 1)
             
             if flow1_now_active != self.flow1_active:
                 # Flow1狀態變化
                 self.flow1_active = flow1_now_active
                 if self.flow1_active:
-                    print(f"[AutoFeeding] 🔴 檢測到Flow1啟動 ({self.FLOW1_CONTROL}=1)，暫停檢測")
+                    print(f"[AutoFeeding] 🔴 檢測到Flow1正在執行 ({self.CURRENT_MOTION_FLOW}=1)，暫停檢測")
                     if self.status == AutoFeedingStatus.RUNNING:
                         self.status = AutoFeedingStatus.FLOW1_PAUSED
                 else:
-                    print(f"[AutoFeeding] 🟢 檢測到Flow1停止 ({self.FLOW1_CONTROL}=0)，恢復檢測")
+                    print(f"[AutoFeeding] 🟢 檢測到Flow1執行完成 ({self.CURRENT_MOTION_FLOW}=0)，恢復檢測")
                     if self.status == AutoFeedingStatus.FLOW1_PAUSED:
                         self.status = AutoFeedingStatus.RUNNING
                         # Flow1完成後，檢查座標是否被讀取
@@ -688,7 +690,8 @@ class AutoFeedingModule:
         """🟢 主循環 - 簡化邏輯"""
         print("[AutoFeeding] 主循環啟動 (修正版)")
         print("[AutoFeeding] 特性：")
-        print("  ✓ 主動監控Flow1控制狀態")
+        print("  ✓ 主動監控當前執行Flow狀態 (1201)")
+        print("  ✓ 當1201=1時暫停自動進料程序")
         print("  ✓ 持續檢測確保CASE_F可用")
         print("  ✓ 簡化交握邏輯")
         print("  ✓ Flow1直接讀取座標")
@@ -715,7 +718,7 @@ class AutoFeedingModule:
                         time.sleep(5.0)
                         continue
                 
-                # 🟢 主動監控Flow1狀態
+                # 🟢 主動監控Flow1狀態 - 改為監控1201
                 self.check_flow1_status()
                 
                 # 🟢 檢查座標是否被讀取
@@ -757,7 +760,8 @@ def main():
     print("=== AutoFeeding獨立模組啟動 (修正版) ===")
     print("基地址範圍: 900-999")
     print("主要改進:")
-    print("  🟢 主動監控Flow1控制地址(1240)")
+    print("  🟢 監控當前執行Flow地址(1201)")
+    print("  🟢 當1201=1時暫停自動進料程序")
     print("  🟢 持續檢測保持CASE_F可用")
     print("  🟢 簡化交握邏輯")
     print("  🟢 Flow1直接讀取座標(940-944)")

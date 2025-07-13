@@ -382,7 +382,7 @@ class AutoProgramController:
             # 檢查Flow1完成狀態
             if self.check_flow1_complete():
                 print("[AutoProgram] 檢測到Flow1完成")
-                self.clear_flow1_complete()
+                #self.clear_flow1_complete()
                 self.prepare_done = True
                 print("[AutoProgram] ✓ prepare_done=True，機台準備就緒")
             
