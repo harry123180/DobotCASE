@@ -727,7 +727,7 @@ class MotionFlowThread(BaseFlowThread):
         """初始化Flow執行器"""
         try:
             # Flow1: VP視覺抓取
-            flow1 = Flow1VisionPickExecutor()
+            flow1 = Flow1VisionPickExecutor(enable_sync=False)
             flow1.initialize(self.robot, self.motion_state_machine, self.external_modules)
             self.flow_executors[1] = flow1
             
