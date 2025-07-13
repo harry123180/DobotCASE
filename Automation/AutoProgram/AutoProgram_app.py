@@ -444,7 +444,59 @@ def control_flow1():
         
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
+# 在AutoProgram_app.py中添加這個路由
 
+@app.route('/api/control/auto_handshake', methods=['POST'])
+def auto_handshake():
+    """自動交握 - Flow1完成後自動觸發Flow5"""
+    try:
+        logMessage = []
+        
+        # 1. 檢查Flow1完成狀態
+        flow1_complete = controller.read_register('DOBOT_FLOW1_COMPLETE')
+        logMessage.append(f"檢查Flow1完成狀態: {flow1_complete}")
+        
+        if not flow1_complete:
+            return jsonify({
+                'success': False,
+                'message': 'Flow1尚未完成，無法執行自動交握'
+            })
+        
+        logMessage.append("✓ Flow1已完成，開始自動交握流程")
+        
+        # 2. 清除Flow1完成狀態
+        clear_success = controller.write_register('DOBOT_FLOW1_COMPLETE', 0)
+        if clear_success:
+            logMessage.append("✓ Flow1完成狀態已清除")
+        else:
+            logMessage.append("✗ Flow1完成狀態清除失敗")
+            
+        # 3. 觸發Flow5
+        trigger_success = controller.write_register('DOBOT_FLOW5_CONTROL', 1)
+        if trigger_success:
+            logMessage.append("✓ Flow5已觸發")
+        else:
+            logMessage.append("✗ Flow5觸發失敗")
+            
+        # 4. 等待一小段時間後清除Flow5控制狀態
+        import time
+        time.sleep(0.1)
+        controller.write_register('DOBOT_FLOW5_CONTROL', 0)
+        logMessage.append("✓ Flow5控制狀態已清除")
+        
+        success = clear_success and trigger_success
+        message = " | ".join(logMessage)
+        
+        return jsonify({
+            'success': success,
+            'message': f"自動交握{'成功' if success else '部分失敗'}: {message}"
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False, 
+            'message': f'自動交握執行失敗: {str(e)}'
+        })
 @app.route('/api/control/dobot_flow1', methods=['POST'])
 def control_dobot_flow1():
     """直接控制Dobot Flow1"""

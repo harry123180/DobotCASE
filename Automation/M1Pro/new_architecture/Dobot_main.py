@@ -1502,7 +1502,7 @@ class DobotNewArchController:
                 # 處理IO類控制寄存器 (447-449)
                 self._process_io_control_registers()
                 
-                time.sleep(0.05)  # 50ms循環
+                time.sleep(0.01)  # 10ms循環
                 
             except Exception as e:
                 print(f"[HandshakeLoop] 混合交握循環錯誤: {e}")

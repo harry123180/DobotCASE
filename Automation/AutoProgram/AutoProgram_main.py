@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 AutoProgram_main.py - 機械臂協調控制模組 (分離式設計)
-基地址：1200-1299
+基地址：1300-1399
 專注負責：機械臂Flow1/Flow5協調 + AutoFeeding模組交握
+使用Dobot_main運動狀態(1200)判斷機械臂Ready狀態
 """
 
 import time
@@ -72,8 +73,8 @@ class AutoProgramController:
         self.AF_RUN_CONTROL = 920          # 啟動/停止控制
         self.AF_PAUSE_CONTROL = 921        # 暫停/恢復控制
         
-        # 機械臂模組地址
-        self.ROBOT_STATUS = 400            # 機械臂狀態 (實際機械臂狀態)
+        # 機械臂模組地址 (使用Dobot_main的狀態寄存器)
+        self.DOBOT_MOTION_STATUS = 1200    # Dobot運動狀態寄存器 (來自Dobot_main)
         self.FLOW1_CONTROL = 1240          # Flow1控制 (Dobot_main)
         self.FLOW1_COMPLETE = 1204         # Flow1完成狀態 (Dobot_main)
         self.FLOW5_COMPLETE = 1206         # Flow5完成狀態 (Dobot_main)
@@ -99,6 +100,7 @@ class AutoProgramController:
         print(f"Modbus服務器: {modbus_host}:{modbus_port}")
         print(f"AutoProgram基地址: {self.BASE_ADDRESS}")
         print(f"AutoFeeding基地址: {self.AF_BASE}")
+        print(f"機械臂狀態來源: Dobot運動狀態寄存器({self.DOBOT_MOTION_STATUS})")
     
     def load_config(self) -> Dict[str, Any]:
         """載入配置檔案"""
@@ -108,7 +110,7 @@ class AutoProgramController:
                 "flow1_timeout": 30.0,             # Flow1執行超時
                 "flow5_timeout": 60.0,             # Flow5執行超時
                 "feeding_confirm_timeout": 2.0,    # 入料確認超時
-                "robot_ready_value": 9             # 機械臂Ready狀態值
+                # 移除: "robot_ready_value": 9     # 機械臂Ready狀態值 (不再需要)
             },
             "autofeeding_handshake": {
                 "max_confirm_attempts": 5,         # 最大確認嘗試次數
@@ -119,6 +121,9 @@ class AutoProgramController:
                 "register_clear_delay": 0.1,       # 寄存器清除延遲
                 "status_check_interval": 0.1,      # 狀態檢查間隔
                 "command_delay": 0.1               # 指令延遲
+            },
+            "robot_ready": {
+                "enable_debug": True               # 啟用機械臂Ready狀態調試
             }
         }
         
@@ -234,15 +239,29 @@ class AutoProgramController:
         return combined / 100.0
     
     def check_robot_ready(self) -> bool:
-        """檢查機械臂是否Ready"""
-        robot_status = self.read_register(400)  # 讀取實際機械臂狀態
-        if robot_status is None:
+        """檢查機械臂是否Ready - 使用Dobot_main運動狀態寄存器"""
+        dobot_motion_status = self.read_register(self.DOBOT_MOTION_STATUS)
+        if dobot_motion_status is None:
+            if self.config['robot_ready']['enable_debug']:
+                print(f"[AutoProgram] ✗ 無法讀取Dobot運動狀態寄存器({self.DOBOT_MOTION_STATUS})")
             return False
         
-        robot_ready = (robot_status == self.config['autoprogram']['robot_ready_value'])
+        # 解析狀態位 (bit0=Ready, bit1=Running, bit2=Alarm, bit3=Initialized)
+        ready_bit = (dobot_motion_status & 0x01) != 0
+        running_bit = (dobot_motion_status & 0x02) != 0  
+        alarm_bit = (dobot_motion_status & 0x04) != 0
+        initialized_bit = (dobot_motion_status & 0x08) != 0
+        
+        # Ready條件：Ready位=1 且 非Alarm狀態
+        robot_ready = ready_bit and not alarm_bit
+        
+        if self.config['robot_ready']['enable_debug']:
+            print(f"[AutoProgram] Dobot狀態({self.DOBOT_MOTION_STATUS}): {dobot_motion_status} ({dobot_motion_status:04b})")
+            print(f"[AutoProgram]   Ready={ready_bit}, Running={running_bit}, Alarm={alarm_bit}, Init={initialized_bit}")
+            print(f"[AutoProgram]   機械臂Ready判斷: {robot_ready}")
         
         # 更新到1301寄存器供外部讀取
-        self.write_register(1301, robot_status)
+        self.write_register(1301, dobot_motion_status)
         
         return robot_ready
     
@@ -347,16 +366,16 @@ class AutoProgramController:
         return success
     
     def execute_flow1(self) -> bool:
-        """執行Flow1取料作業"""
+        """執行Flow1取料作業 - 使用Dobot_main Flow1控制"""
         print("[AutoProgram] === 開始執行Flow1取料作業 ===")
         
-        # 觸發Flow1
-        if not self.write_register(1340, 1):
-            print("[AutoProgram] ✗ Flow1觸發失敗")
+        # 觸發Dobot_main的Flow1控制
+        if not self.write_register(self.FLOW1_CONTROL, 1):
+            print(f"[AutoProgram] ✗ Flow1觸發失敗 (寫入{self.FLOW1_CONTROL}=1失敗)")
             return False
         
         self.flow1_trigger_count += 1
-        print("[AutoProgram] Flow1已觸發，等待完成...")
+        print(f"[AutoProgram] Flow1已觸發 (寫入{self.FLOW1_CONTROL}=1)，等待完成...")
         
         # 等待Flow1完成
         timeout = self.config['autoprogram']['flow1_timeout']
@@ -369,8 +388,9 @@ class AutoProgramController:
                 print(f"[AutoProgram] ✓ Flow1執行完成 (耗時{elapsed:.1f}s)")
                 
                 # 清除Flow1控制狀態
-                self.write_register(1340, 0)
+                self.write_register(self.FLOW1_CONTROL, 0)
                 time.sleep(self.config['timing']['register_clear_delay'])
+                print(f"[AutoProgram] Flow1控制狀態已清除 ({self.FLOW1_CONTROL}=0)")
                 
                 return True
             
@@ -379,7 +399,7 @@ class AutoProgramController:
         # Flow1超時
         elapsed = time.time() - start_time
         print(f"[AutoProgram] ✗ Flow1執行超時 (耗時{elapsed:.1f}s)")
-        self.write_register(1340, 0)  # 清除控制狀態
+        self.write_register(self.FLOW1_CONTROL, 0)  # 清除控制狀態
         return False
     
     def check_flow5_complete(self) -> bool:
@@ -391,14 +411,14 @@ class AutoProgramController:
         """清除Flow5完成狀態"""
         self.write_register(self.FLOW5_COMPLETE, 0)
         self.flow5_complete_count += 1
-        print("[AutoProgram] Flow5完成狀態已清除")
+        print(f"[AutoProgram] Flow5完成狀態已清除 ({self.FLOW5_COMPLETE}=0)")
     
     def coordination_cycle(self):
         """機械臂協調控制週期"""
         try:
             self.coordination_cycle_count += 1
             
-            # 檢查機械臂Ready狀態
+            # 檢查機械臂Ready狀態 (使用Dobot_main運動狀態)
             robot_ready = self.check_robot_ready()
             
             # 讀取AutoFeeding狀態
@@ -433,7 +453,7 @@ class AutoProgramController:
                                     if self.execute_flow1():
                                         # Flow1成功，設置prepare_done=True
                                         self.prepare_done = True
-                                        self.write_register(1202, 1)  # 更新prepare_done狀態
+                                        self.write_register(1302, 1)  # 更新prepare_done狀態
                                         print("[AutoProgram] ✓ Flow1完成，prepare_done=True，機台準備就緒")
                                     else:
                                         print("[AutoProgram] ✗ Flow1執行失敗")
@@ -520,6 +540,7 @@ class AutoProgramController:
         
         print("[AutoProgram] 協調控制系統已啟動，開始機械臂協調控制")
         print("[AutoProgram] 目標：以最快速度讓prepare_done=True")
+        print(f"[AutoProgram] 機械臂狀態來源: Dobot運動狀態寄存器({self.DOBOT_MOTION_STATUS})")
     
     def stop(self):
         """停止機械臂協調控制系統"""
@@ -605,6 +626,7 @@ class AutoProgramController:
 def main():
     """主程序"""
     print("機械臂協調控制模組啟動 (分離式設計)")
+    print("使用Dobot_main運動狀態寄存器(1200)判斷機械臂Ready狀態")
     
     # 創建控制器
     controller = AutoProgramController()
@@ -634,6 +656,8 @@ def main():
         print("  start_af - 手動啟動AutoFeeding")
         print("  stop_af - 手動停止AutoFeeding")
         print("  flow1 - 手動觸發Flow1")
+        print("  debug_on - 開啟機械臂Ready狀態調試")
+        print("  debug_off - 關閉機械臂Ready狀態調試")
         print("  q - 退出程序")
         
         while True:
@@ -663,7 +687,13 @@ def main():
                 elif cmd == 'flow1':
                     if controller.execute_flow1():
                         controller.prepare_done = True
-                        controller.write_register(1202, 1)
+                        controller.write_register(1302, 1)
+                elif cmd == 'debug_on':
+                    controller.config['robot_ready']['enable_debug'] = True
+                    print("機械臂Ready狀態調試已開啟")
+                elif cmd == 'debug_off':
+                    controller.config['robot_ready']['enable_debug'] = False
+                    print("機械臂Ready狀態調試已關閉")
                 else:
                     print("無效指令")
                     

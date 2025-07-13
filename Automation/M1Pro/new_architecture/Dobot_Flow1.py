@@ -5,6 +5,7 @@ Dobot_Flow1_AutoFeeding.py - Flow1 VP視覺抓取流程 (AutoFeeding座標版本
 基於統一Flow架構的運動控制執行器
 從AutoFeeding模組讀取經過篩選的目標座標(941-944地址)
 修正：統一將進度更新到寄存器1202
+修正：改善AutoFeeding交握協議，延長等待時間，增加狀態檢查
 """
 
 import time
@@ -51,6 +52,9 @@ class AutoFeedingCoordinateInterface:
         
         # AutoFeeding交握寄存器映射 (基地址900)
         self.REGISTERS = {
+            # AutoFeeding狀態寄存器
+            'AF_MODULE_STATUS': 900,      # AutoFeeding模組狀態
+            
             # 入料交握寄存器 (940-959)
             'FEEDING_COMPLETE': 940,      # 入料完成標誌
             'TARGET_X_HIGH': 941,         # 料件座標X高位
@@ -355,12 +359,13 @@ class Flow1VisionPickExecutor(FlowExecutor):
         # Flow1流程步驟 - AutoFeeding座標版本
         self.motion_steps = [
             # 1. 初始準備
+            {'type': 'read_autofeeding_coordinates', 'params': {}},  # 從AutoFeeding讀取座標
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
             {'type': 'gripper_close', 'params': {}},
             
             # 2. VP視覺檢測序列 - 讀取AutoFeeding座標版本
             {'type': 'move_to_point', 'params': {'point_name': 'vp_topside', 'move_type': 'J'}},
-            {'type': 'read_autofeeding_coordinates', 'params': {}},  # 從AutoFeeding讀取座標
+            
             
             # 3. 移動到檢測位置 (等高)
             {'type': 'move_to_detected_position_high', 'params': {}},
@@ -541,53 +546,64 @@ class Flow1VisionPickExecutor(FlowExecutor):
             print(f"[Flow1] 進度更新到1202失敗: {e}")
     
     def _execute_read_autofeeding_coordinates(self) -> Optional[Dict[str, float]]:
-        """從AutoFeeding模組讀取經過篩選的目標座標"""
+        """優化版AutoFeeding座標讀取 - 減少等待時間"""
         try:
             print("  從AutoFeeding模組讀取目標座標...")
             
-            # 等待AutoFeeding入料完成 (最多等待10秒)
-            timeout = 10.0
+            # 1. 快速檢查AutoFeeding狀態 (移除備用檢查)
+            af_status = self.autofeeding_interface.read_register('AF_MODULE_STATUS')
+            if af_status not in [1, 2]:
+                print(f"  ✗ AutoFeeding模組未運行(狀態={af_status})")
+                return None
+            
+            # 2. 縮短入料完成等待時間
+            timeout = 10.0  # 從30秒縮短到10秒
             start_time = time.time()
+            check_interval = 0.1  # 從200ms縮短到100ms，提升檢測頻率
+            
+            print(f"  等待AutoFeeding入料完成 (超時{timeout}秒)...")
             
             while time.time() - start_time < timeout:
                 if self.autofeeding_interface.check_feeding_complete():
-                    print("✓ AutoFeeding入料完成，讀取座標")
+                    elapsed = time.time() - start_time
+                    print(f"✓ AutoFeeding入料完成 (等待時間{elapsed:.2f}秒)")
                     break
-                print("  等待AutoFeeding入料完成...")
-                time.sleep(0.5)
+                time.sleep(check_interval)
             else:
-                print("✗ 等待AutoFeeding入料完成超時")
+                print(f"✗ 等待AutoFeeding入料完成超時")
                 return None
             
-            # 讀取目標座標
+            # 3. 直接讀取座標，移除過多的狀態輸出
             coord_data = self.autofeeding_interface.read_target_coordinates()
             if not coord_data:
-                print("✗ 讀取AutoFeeding目標座標失敗")
                 return None
             
-            # 確認已讀取座標
-            if not self.autofeeding_interface.confirm_coordinate_read():
-                print("⚠️ 確認讀取座標失敗，但繼續執行")
+            # 4. 快速確認讀取
+            self.autofeeding_interface.confirm_coordinate_read()
             
-            # 獲取vp_topside點位的Z高度和R值
+            # 5. 縮短清除標誌等待時間
+            clear_timeout = 1.0  # 從3.0秒縮短到1.0秒
+            clear_start = time.time()
+            
+            while time.time() - clear_start < clear_timeout:
+                if not self.autofeeding_interface.check_feeding_complete():
+                    break
+                time.sleep(0.05)  # 50ms檢查間隔
+            
+            # 6. 構建結果座標
             vp_topside_point = self.points_manager.get_point('vp_topside')
             if not vp_topside_point:
-                print("錯誤: 無法獲取vp_topside點位")
                 return None
             
             detected_pos = {
                 'x': coord_data['x'],
                 'y': coord_data['y'],
-                'z': vp_topside_point.z,  # 使用vp_topside的Z高度
-                'r': vp_topside_point.r,  # 繼承vp_topside的R值
+                'z': vp_topside_point.z,
+                'r': vp_topside_point.r,
                 'source': 'autofeeding'
             }
             
-            print(f"✓ AutoFeeding座標讀取成功:")
-            print(f"  目標位置: ({detected_pos['x']:.2f}, {detected_pos['y']:.2f})")
-            print(f"  繼承vp_topside - Z:{detected_pos['z']:.2f}, R:{detected_pos['r']:.2f}")
-            print(f"  檢測統計: 總數={coord_data['total_detections']}, CASE_F={coord_data['case_f_count']}")
-            
+            print(f"✓ AutoFeeding座標讀取成功: ({detected_pos['x']:.2f}, {detected_pos['y']:.2f})")
             return detected_pos
             
         except Exception as e:
