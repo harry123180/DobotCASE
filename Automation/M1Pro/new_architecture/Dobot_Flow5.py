@@ -179,7 +179,7 @@ class Flow5AssemblyExecutor:
         """建構Flow5步驟 - 完整流程序列 (含waitkey) - 修改版角度控制"""
         self.motion_steps = [
             # 1. 移動到standby (起點)
-            {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
+            #{'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
             
             # 2. 執行角度檢測
             {'type': 'angle_detection', 'params': {}},
@@ -531,7 +531,7 @@ class Flow5AssemblyExecutor:
             # 獲取target_angle
             self.target_angle = detection_result.target_angle
             print(f"  ✓ 檢測到目標角度: {self.target_angle:.2f}度")
-            self.command_angle = self.target_angle - 3.14
+            self.command_angle = self.target_angle +20
             
             return True
             

@@ -312,7 +312,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
         
         # 流程高度參數
         self.VP_DETECT_HEIGHT = 244.65
-        self.PICKUP_HEIGHT = 150
+        self.PICKUP_HEIGHT = 160
         
         # 優化的等待時間參數
         self.GRIPPER_CLOSE_WAIT = 0.3  # 從1.0秒減少到0.3秒
@@ -398,7 +398,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
             {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'Goal_CV_top', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'flip_pre', 'move_type': 'J'}},
-            {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
+            #{'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
         ]
         
         self.total_steps = len(self.motion_steps)
@@ -522,58 +522,92 @@ class Flow1VisionPickExecutor(FlowExecutor):
             return False
     
     def _execute_read_autofeeding_coordinates_fast(self) -> Optional[Dict[str, float]]:
-        """快速讀取AutoFeeding座標 - 極度優化版"""
-        try:
-            # 快速狀態檢查 (無備用檢查)
-            af_status = self.autofeeding_interface.read_register('AF_MODULE_STATUS')
-            if af_status not in [1, 2]:
-                return None
-            
-            # 快速等待入料完成 (縮短超時)
-            timeout = 5.0  # 從10秒進一步縮短到5秒
-            start_time = time.time()
-            
-            while time.time() - start_time < timeout:
-                if self.autofeeding_interface.check_feeding_complete():
-                    break
-                time.sleep(0.05)  # 50ms檢查間隔
-            else:
-                return None
-            
-            # 快速讀取座標
-            coord_data = self.autofeeding_interface.read_target_coordinates_fast()
-            if not coord_data:
-                return None
-            
-            # 快速確認讀取
-            self.autofeeding_interface.confirm_coordinate_read_fast()
-            
-            # 快速清除標誌等待 (極度縮短)
-            clear_start = time.time()
-            while time.time() - clear_start < 0.5:  # 從1.0秒縮短到0.5秒
-                if not self.autofeeding_interface.check_feeding_complete():
-                    break
-                time.sleep(0.02)  # 20ms檢查間隔
-            
-            # 構建結果座標
-            vp_topside_point = self.points_manager.get_point('vp_topside')
-            if not vp_topside_point:
-                return None
-            
-            detected_pos = {
-                'x': coord_data['x'],
-                'y': coord_data['y'],
-                'z': vp_topside_point.z,
-                'r': vp_topside_point.r,
-                'source': 'autofeeding_optimized'
-            }
-            
-            print(f"✓ AutoFeeding座標讀取成功: ({detected_pos['x']:.2f}, {detected_pos['y']:.2f})")
-            return detected_pos
-            
-        except Exception as e:
-            print(f"AutoFeeding座標讀取異常: {e}")
-            return None
+        """快速讀取AutoFeeding座標 - 增加重試邏輯版本"""
+        max_retries = 20
+        retry_count = 0
+        
+        while retry_count < max_retries:
+            try:
+                retry_count += 1
+                
+                # 如果不是第一次嘗試，輸出重試資訊
+                if retry_count > 1:
+                    print(f"[AutoFeeding] 座標讀取重試 {retry_count}/{max_retries}")
+                
+                # 快速狀態檢查
+                af_status = self.autofeeding_interface.read_register('AF_MODULE_STATUS')
+                if af_status not in [1, 2]:
+                    print(f"[AutoFeeding] 重試{retry_count}: AutoFeeding模組狀態異常 ({af_status})")
+                    time.sleep(0.1)  # 重試間隔100ms
+                    continue
+                
+                # 快速等待入料完成
+                timeout = 5.0
+                start_time = time.time()
+                feeding_complete = False
+                
+                while time.time() - start_time < timeout:
+                    if self.autofeeding_interface.check_feeding_complete():
+                        feeding_complete = True
+                        break
+                    time.sleep(0.05)  # 50ms檢查間隔
+                
+                if not feeding_complete:
+                    print(f"[AutoFeeding] 重試{retry_count}: 入料未完成")
+                    time.sleep(0.1)
+                    continue
+                
+                # 快速讀取座標
+                coord_data = self.autofeeding_interface.read_target_coordinates_fast()
+                if not coord_data:
+                    print(f"[AutoFeeding] 重試{retry_count}: 座標資料讀取失敗")
+                    time.sleep(0.1)
+                    continue
+                
+                # 快速確認讀取
+                if not self.autofeeding_interface.confirm_coordinate_read_fast():
+                    print(f"[AutoFeeding] 重試{retry_count}: 確認讀取失敗")
+                    time.sleep(0.1)
+                    continue
+                
+                # 快速清除標誌等待
+                clear_start = time.time()
+                flag_cleared = False
+                
+                while time.time() - clear_start < 0.5:
+                    if not self.autofeeding_interface.check_feeding_complete():
+                        flag_cleared = True
+                        break
+                    time.sleep(0.02)  # 20ms檢查間隔
+                
+                # 構建結果座標
+                vp_topside_point = self.points_manager.get_point('vp_topside')
+                if not vp_topside_point:
+                    print(f"[AutoFeeding] 重試{retry_count}: vp_topside點位不存在")
+                    time.sleep(0.1)
+                    continue
+                
+                detected_pos = {
+                    'x': coord_data['x'],
+                    'y': coord_data['y'],
+                    'z': vp_topside_point.z,
+                    'r': vp_topside_point.r,
+                    'source': 'autofeeding_optimized_retry',
+                    'retry_count': retry_count,
+                    'flag_cleared': flag_cleared
+                }
+                
+                print(f"✓ AutoFeeding座標讀取成功 (重試{retry_count}次): ({detected_pos['x']:.2f}, {detected_pos['y']:.2f})")
+                return detected_pos
+                
+            except Exception as e:
+                print(f"[AutoFeeding] 重試{retry_count} 異常: {e}")
+                time.sleep(0.1)
+                continue
+        
+        # 所有重試都失敗
+        print(f"✗ AutoFeeding座標讀取失敗，已重試{max_retries}次")
+        return None
     
     def _execute_move_to_point_optimized(self, params: Dict[str, Any]) -> bool:
         """執行移動到點位 - 優化版sync控制"""

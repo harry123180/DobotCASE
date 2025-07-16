@@ -38,6 +38,7 @@ class AngleHighLevel:
     
     提供簡潔的方法供Flow流程調用，專注與CCD3模組交握獲取角度檢測結果
     移除旋轉馬達控制功能，保留角度檢測交握邏輯
+    修改版：無效輪廓時返回0度角度，以便Flow5繼續執行
     """
     
     def __init__(self, host: str = "127.0.0.1", port: int = 502):
@@ -58,7 +59,11 @@ class AngleHighLevel:
         self.status_check_interval = 0.2  # 狀態檢查間隔200ms
         self.command_confirm_timeout = 3.0  # 指令確認超時3秒
         
+        # Flow5容錯設定
+        self.fallback_angle_for_flow = 0.0  # 無效輪廓時返回的預設角度
+        
         logger.info(f"AngleHighLevel初始化: {host}:{port}, CCD3基地址:{self.ccd3_base_address}")
+        logger.info(f"Flow5容錯模式：無效輪廓時將返回預設角度 {self.fallback_angle_for_flow}度")
     
     def connect(self) -> bool:
         """連接到Modbus服務器
@@ -121,10 +126,11 @@ class AngleHighLevel:
         return ready and not alarm and initialized
     
     def detect_angle(self, detection_mode: int = 0) -> AngleDetectionResult:
-        """執行角度檢測
+        """執行角度檢測 - Flow5容錯版
         
         這是主要的公開方法，供Flow流程調用
         與CCD3模組交握，獲取角度檢測結果
+        修改版：當檢測到無效輪廓時，返回0度角度以便Flow5繼續執行
         
         Args:
             detection_mode: 檢測模式 (0=CASE橢圓擬合, 1=DR最小外接矩形)
@@ -135,7 +141,7 @@ class AngleHighLevel:
         start_time = time.time()
         
         try:
-            logger.info(f"=== 開始執行角度檢測 (模式:{detection_mode}) ===")
+            logger.info(f"=== 開始執行角度檢測 (模式:{detection_mode}, Flow5容錯模式) ===")
             
             # 步驟1: 檢查連接狀態
             if not self.modbus_client or not self.modbus_client.connected:
@@ -181,7 +187,7 @@ class AngleHighLevel:
             if clear_result.result != AngleOperationResult.SUCCESS:
                 return clear_result
             
-            # 步驟8: 處理檢測結果
+            # 步驟8: 處理檢測結果 - Flow5容錯修改
             execution_time = time.time() - start_time
             
             if result_data and result_data.get('success', False):
@@ -199,6 +205,116 @@ class AngleHighLevel:
                     execution_time=execution_time
                 )
             else:
+                # 🔥 Flow5容錯修改：無效輪廓時返回SUCCESS和預設角度0度
+                logger.warning(f"CCD3檢測到無效輪廓，Flow5容錯模式：返回預設角度 {self.fallback_angle_for_flow}度")
+                logger.warning("Flow5將使用預設角度繼續執行流程")
+                
+                return AngleDetectionResult(
+                    result=AngleOperationResult.SUCCESS,  # 改為SUCCESS讓Flow5繼續
+                    message=f"角度檢測無效輪廓，Flow5容錯：使用預設角度 {self.fallback_angle_for_flow}度",
+                    target_angle=self.fallback_angle_for_flow,  # 返回0度
+                    detected_center=None,
+                    contour_area=None,
+                    execution_time=execution_time
+                )
+            
+        except Exception as e:
+            execution_time = time.time() - start_time
+            logger.error(f"角度檢測過程發生異常: {e}")
+            
+            # 🔥 Flow5容錯修改：異常時也返回SUCCESS和預設角度
+            logger.warning(f"角度檢測異常，Flow5容錯模式：返回預設角度 {self.fallback_angle_for_flow}度")
+            
+            return AngleDetectionResult(
+                result=AngleOperationResult.SUCCESS,  # 改為SUCCESS讓Flow5繼續
+                message=f"角度檢測異常，Flow5容錯：使用預設角度 {self.fallback_angle_for_flow}度",
+                target_angle=self.fallback_angle_for_flow,  # 返回0度
+                detected_center=None,
+                contour_area=None,
+                execution_time=execution_time,
+                error_details=str(e)
+            )
+    
+    def detect_angle_strict(self, detection_mode: int = 0) -> AngleDetectionResult:
+        """執行角度檢測 - 嚴格模式 (原有行為)
+        
+        提供原有的嚴格檢測行為，失敗時返回錯誤狀態
+        供需要嚴格檢測的場景使用
+        
+        Args:
+            detection_mode: 檢測模式 (0=CASE橢圓擬合, 1=DR最小外接矩形)
+            
+        Returns:
+            AngleDetectionResult: 包含檢測結果的完整資訊
+        """
+        start_time = time.time()
+        
+        try:
+            logger.info(f"=== 開始執行角度檢測 (模式:{detection_mode}, 嚴格模式) ===")
+            
+            # 步驟1: 檢查連接狀態
+            if not self.modbus_client or not self.modbus_client.connected:
+                return AngleDetectionResult(
+                    result=AngleOperationResult.CONNECTION_ERROR,
+                    message="Modbus連接未建立，請先調用connect()"
+                )
+            
+            # 步驟2: 檢查CCD3系統狀態
+            if not self.is_ccd3_ready():
+                return AngleDetectionResult(
+                    result=AngleOperationResult.NOT_READY,
+                    message="CCD3角度檢測系統未準備就緒，請檢查系統狀態"
+                )
+            
+            # 步驟3: 設置檢測模式
+            logger.info(f"設置檢測模式: {detection_mode}")
+            if not self._set_detection_mode(detection_mode):
+                return AngleDetectionResult(
+                    result=AngleOperationResult.FAILED,
+                    message="設置檢測模式失敗"
+                )
+            
+            # 步驟4: 發送角度檢測指令並確認系統開始執行
+            logger.info("發送角度檢測指令並確認執行...")
+            execution_result = self._send_detection_command_with_confirm()
+            if execution_result.result != AngleOperationResult.SUCCESS:
+                return execution_result
+            
+            # 步驟5: 等待檢測完成
+            logger.info("等待角度檢測執行完成...")
+            completion_result = self._wait_for_detection_completion()
+            if completion_result.result != AngleOperationResult.SUCCESS:
+                return completion_result
+            
+            # 步驟6: 先讀取檢測結果 (在清零之前)
+            logger.info("讀取檢測結果...")
+            result_data = self._read_detection_results()
+            
+            # 步驟7: 清除指令並確認系統回到Ready狀態
+            logger.info("清除指令並確認系統回到Ready狀態...")
+            clear_result = self._clear_command_and_confirm_ready()
+            if clear_result.result != AngleOperationResult.SUCCESS:
+                return clear_result
+            
+            # 步驟8: 處理檢測結果 - 嚴格模式 (原有行為)
+            execution_time = time.time() - start_time
+            
+            if result_data and result_data.get('success', False):
+                logger.info(f"角度檢測成功完成，耗時: {execution_time:.2f}秒")
+                logger.info(f"檢測中心: {result_data.get('center')}")
+                logger.info(f"檢測角度: {result_data.get('angle'):.2f}度")
+                logger.info(f"輪廓面積: {result_data.get('contour_area')}")
+                
+                return AngleDetectionResult(
+                    result=AngleOperationResult.SUCCESS,
+                    message="角度檢測完成",
+                    target_angle=result_data.get('angle'),
+                    detected_center=result_data.get('center'),
+                    contour_area=result_data.get('contour_area'),
+                    execution_time=execution_time
+                )
+            else:
+                # 嚴格模式：無效輪廓時返回錯誤
                 return AngleDetectionResult(
                     result=AngleOperationResult.NO_VALID_CONTOUR,
                     message="角度檢測失敗，無有效輪廓",
@@ -214,6 +330,15 @@ class AngleHighLevel:
                 execution_time=execution_time,
                 error_details=str(e)
             )
+    
+    def set_fallback_angle(self, angle: float):
+        """設定無效輪廓時的預設角度
+        
+        Args:
+            angle: 預設角度值 (度)
+        """
+        self.fallback_angle_for_flow = angle
+        logger.info(f"Flow5容錯角度已設定為: {angle}度")
     
     def reset_ccd3_errors(self) -> AngleOperationResult:
         """重置CCD3錯誤狀態
@@ -595,9 +720,10 @@ class AngleHighLevel:
 
 # 便利函數，供快速調用 - 修正參數傳遞
 def detect_angle_with_ccd3(host: str = "127.0.0.1", port: int = 502, detection_mode: int = 0) -> AngleDetectionResult:
-    """便利函數：一鍵執行CCD3角度檢測
+    """便利函數：一鍵執行CCD3角度檢測 - Flow5容錯版
     
     自動處理連接/斷開，適合簡單的一次性調用
+    無效輪廓時返回0度角度
     
     Args:
         host: Modbus服務器IP
@@ -616,7 +742,35 @@ def detect_angle_with_ccd3(host: str = "127.0.0.1", port: int = 502, detection_m
         )
     
     try:
-        result = angle_detector.detect_angle(detection_mode)
+        result = angle_detector.detect_angle(detection_mode)  # 使用Flow5容錯版
+        return result
+    finally:
+        angle_detector.disconnect()
+
+def detect_angle_with_ccd3_strict(host: str = "127.0.0.1", port: int = 502, detection_mode: int = 0) -> AngleDetectionResult:
+    """便利函數：一鍵執行CCD3角度檢測 - 嚴格模式
+    
+    自動處理連接/斷開，適合簡單的一次性調用
+    失敗時返回錯誤狀態
+    
+    Args:
+        host: Modbus服務器IP
+        port: Modbus服務器端口
+        detection_mode: 檢測模式 (0=CASE, 1=DR)
+        
+    Returns:
+        AngleDetectionResult: 檢測結果
+    """
+    angle_detector = AngleHighLevel(host, port)
+    
+    if not angle_detector.connect():
+        return AngleDetectionResult(
+            result=AngleOperationResult.CONNECTION_ERROR,
+            message="無法連接到Modbus服務器"
+        )
+    
+    try:
+        result = angle_detector.detect_angle_strict(detection_mode)  # 使用嚴格模式
         return result
     finally:
         angle_detector.disconnect()

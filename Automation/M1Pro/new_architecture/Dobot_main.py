@@ -328,7 +328,7 @@ class MotionStateMachine:
     def is_ready_for_command(self) -> bool:
         """檢查是否可接受新的運動指令"""
         ready = (self.status_register & 0x01) != 0
-        print(f"[MotionStateMachine] is_ready_for_command(): 狀態寄存器={self.status_register:04b}, Ready位={ready}")
+        #print(f"[MotionStateMachine] is_ready_for_command(): 狀態寄存器={self.status_register:04b}, Ready位={ready}")
         return ready
         
     def _update_status_to_plc(self):
