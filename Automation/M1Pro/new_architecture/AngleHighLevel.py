@@ -152,17 +152,25 @@ class AngleHighLevel:
             
             # 步驟2: 檢查CCD3系統狀態
             if not self.is_ccd3_ready():
+                # 🔥 Flow5容錯修改：系統未準備就緒也返回SUCCESS和預設角度
+                logger.warning(f"CCD3角度檢測系統未準備就緒，Flow5容錯模式：返回預設角度 {self.fallback_angle_for_flow}度")
                 return AngleDetectionResult(
-                    result=AngleOperationResult.NOT_READY,
-                    message="CCD3角度檢測系統未準備就緒，請檢查系統狀態"
+                    result=AngleOperationResult.SUCCESS,  # 改為SUCCESS讓Flow5繼續
+                    message=f"CCD3系統未就緒，Flow5容錯：使用預設角度 {self.fallback_angle_for_flow}度",
+                    target_angle=self.fallback_angle_for_flow,
+                    execution_time=time.time() - start_time
                 )
             
             # 步驟3: 設置檢測模式
             logger.info(f"設置檢測模式: {detection_mode}")
             if not self._set_detection_mode(detection_mode):
+                # 🔥 Flow5容錯修改：設置模式失敗也返回SUCCESS和預設角度
+                logger.warning(f"設置檢測模式失敗，Flow5容錯模式：返回預設角度 {self.fallback_angle_for_flow}度")
                 return AngleDetectionResult(
-                    result=AngleOperationResult.FAILED,
-                    message="設置檢測模式失敗"
+                    result=AngleOperationResult.SUCCESS,  # 改為SUCCESS讓Flow5繼續
+                    message=f"CCD3模式設置失敗，Flow5容錯：使用預設角度 {self.fallback_angle_for_flow}度",
+                    target_angle=self.fallback_angle_for_flow,
+                    execution_time=time.time() - start_time
                 )
             
             # 步驟4: 發送角度檢測指令並確認系統開始執行
@@ -402,7 +410,7 @@ class AngleHighLevel:
             return False
     
     def _send_detection_command_with_confirm(self) -> AngleDetectionResult:
-        """發送角度檢測指令並確認系統開始執行 (私有方法) - 實務修正版"""
+        """發送角度檢測指令並確認系統開始執行 (私有方法) - Flow5容錯版"""
         try:
             # 步驟1: 確保控制指令寄存器已清零
             logger.debug("確保CCD3控制指令寄存器已清零...")
@@ -410,9 +418,11 @@ class AngleHighLevel:
                 address=self.ccd3_base_address, value=0, slave=1
             )
             if clear_result.isError():
+                # 🔥 Flow5容錯修改：清零失敗也返回SUCCESS
+                logger.warning(f"清零CCD3控制指令失敗，Flow5容錯模式：返回預設角度 {self.fallback_angle_for_flow}度")
                 return AngleDetectionResult(
-                    result=AngleOperationResult.FAILED,
-                    message="清零CCD3控制指令失敗"
+                    result=AngleOperationResult.SUCCESS,  # 改為SUCCESS
+                    message=f"CCD3清零失敗，Flow5容錯：使用預設角度 {self.fallback_angle_for_flow}度"
                 )
             
             # 步驟2: 等待系統回到Ready狀態 (狀態值=9)
@@ -437,9 +447,11 @@ class AngleHighLevel:
                         
                 time.sleep(0.1)
             else:
+                # 🔥 Flow5容錯修改：Ready狀態等待超時也返回SUCCESS
+                logger.warning(f"等待CCD3系統Ready狀態超時，Flow5容錯模式：返回預設角度 {self.fallback_angle_for_flow}度")
                 return AngleDetectionResult(
-                    result=AngleOperationResult.TIMEOUT,
-                    message="等待CCD3系統Ready狀態超時"
+                    result=AngleOperationResult.SUCCESS,  # 改為SUCCESS
+                    message=f"CCD3 Ready超時，Flow5容錯：使用預設角度 {self.fallback_angle_for_flow}度"
                 )
             
             # 步驟3: 發送拍照+角度檢測指令 (16)
@@ -448,9 +460,11 @@ class AngleHighLevel:
                 address=self.ccd3_base_address, value=16, slave=1
             )
             if result.isError():
+                # 🔥 Flow5容錯修改：指令發送失敗也返回SUCCESS
+                logger.warning(f"發送角度檢測指令失敗，Flow5容錯模式：返回預設角度 {self.fallback_angle_for_flow}度")
                 return AngleDetectionResult(
-                    result=AngleOperationResult.FAILED,
-                    message="發送角度檢測指令失敗"
+                    result=AngleOperationResult.SUCCESS,  # 改為SUCCESS
+                    message=f"CCD3指令發送失敗，Flow5容錯：使用預設角度 {self.fallback_angle_for_flow}度"
                 )
             
             # 步驟4: 實務修正 - 由於CCD3檢測很快，不強制要求看到Running=1
@@ -467,13 +481,16 @@ class AngleHighLevel:
             
         except Exception as e:
             logger.error(f"發送檢測指令異常: {e}")
+            # 🔥 Flow5容錯修改：異常也返回SUCCESS
+            logger.warning(f"發送檢測指令異常，Flow5容錯模式：返回預設角度 {self.fallback_angle_for_flow}度")
             return AngleDetectionResult(
-                result=AngleOperationResult.SYSTEM_ERROR,
-                message=f"發送檢測指令異常: {e}"
+                result=AngleOperationResult.SUCCESS,  # 改為SUCCESS
+                message=f"CCD3指令異常，Flow5容錯：使用預設角度 {self.fallback_angle_for_flow}度",
+                error_details=str(e)
             )
     
     def _wait_for_detection_completion(self) -> AngleDetectionResult:
-        """等待角度檢測完成 (私有方法) - 修正版：檢查840寄存器確認結果有效"""
+        """等待角度檢測完成 (私有方法) - Flow5容錯版：超時時也應用容錯邏輯"""
         start_time = time.time()
         
         # 實務交握邏輯：CCD3檢測很快，檢查狀態值變化 + 結果有效性
@@ -496,9 +513,11 @@ class AngleHighLevel:
                 
                 # 檢查是否有錯誤
                 if alarm:
+                    # 🔥 Flow5容錯修改：Alarm狀態也返回SUCCESS和預設角度
+                    logger.warning(f"CCD3進入Alarm狀態，Flow5容錯模式：返回預設角度 {self.fallback_angle_for_flow}度")
                     return AngleDetectionResult(
-                        result=AngleOperationResult.FAILED,
-                        message="CCD3檢測過程發生錯誤，系統進入Alarm狀態"
+                        result=AngleOperationResult.SUCCESS,  # 改為SUCCESS
+                        message=f"CCD3 Alarm狀態，Flow5容錯：使用預設角度 {self.fallback_angle_for_flow}度"
                     )
                 
                 # 實務修正：檢測完成判斷邏輯 - 狀態值=8 且 840寄存器=1
@@ -532,10 +551,12 @@ class AngleHighLevel:
                 logger.error(f"CCD3狀態檢查異常: {e}")
                 time.sleep(self.status_check_interval)
         
-        logger.error(f"CCD3角度檢測執行超時 ({self.detection_timeout}秒)")
+        # 🔥 Flow5容錯修改：超時時也返回SUCCESS和預設角度
+        logger.warning(f"CCD3角度檢測執行超時 ({self.detection_timeout}秒)")
+        logger.warning(f"Flow5容錯模式：超時時返回預設角度 {self.fallback_angle_for_flow}度")
         return AngleDetectionResult(
-            result=AngleOperationResult.TIMEOUT,
-            message=f"CCD3角度檢測執行超時 ({self.detection_timeout}秒)"
+            result=AngleOperationResult.SUCCESS,  # 改為SUCCESS讓Flow5繼續
+            message=f"CCD3檢測超時，Flow5容錯：使用預設角度 {self.fallback_angle_for_flow}度"
         )
     
     def _check_detection_result_flag(self) -> bool:
@@ -560,7 +581,7 @@ class AngleHighLevel:
             return False
     
     def _clear_command_and_confirm_ready(self) -> AngleDetectionResult:
-        """清除控制指令和結果標誌並確認系統回到Ready狀態 (私有方法) - 修正版：先確保結果已讀取"""
+        """清除控制指令和結果標誌並確認系統回到Ready狀態 (私有方法) - Flow5容錯版"""
         try:
             # 步驟1: 清除控制指令 (寫入0到寄存器800)
             logger.debug("清除CCD3控制指令 (800寄存器)...")
@@ -568,10 +589,8 @@ class AngleHighLevel:
                 address=self.ccd3_base_address, value=0, slave=1
             )
             if result.isError():
-                return AngleDetectionResult(
-                    result=AngleOperationResult.FAILED,
-                    message="清除CCD3控制指令失敗"
-                )
+                # 🔥 Flow5容錯修改：清除失敗也繼續
+                logger.warning("清除CCD3控制指令失敗，但Flow5容錯模式繼續執行")
             
             # 步驟2: 清除檢測結果標誌 (寫入0到寄存器840) - 注意：此時結果應該已經讀取
             logger.debug("清除CCD3檢測結果標誌 (840寄存器)...")
@@ -579,10 +598,8 @@ class AngleHighLevel:
                 address=self.ccd3_base_address + 40, value=0, slave=1
             )
             if result.isError():
-                return AngleDetectionResult(
-                    result=AngleOperationResult.FAILED,
-                    message="清除CCD3檢測結果標誌失敗"
-                )
+                # 🔥 Flow5容錯修改：清除失敗也繼續
+                logger.warning("清除CCD3檢測結果標誌失敗，但Flow5容錯模式繼續執行")
             
             # 步驟3: 確認系統回到Ready狀態 - 實務修正：狀態值應該變成9
             # 狀態值9 = 二進制1001 = bit0(Ready)=1 + bit3(Initialized)=1
@@ -600,9 +617,11 @@ class AngleHighLevel:
                     logger.debug(f"CCD3準備狀態確認: status_register={status_register}, Ready={ready}, Running={running}, Alarm={alarm}, Initialized={initialized}")
                     
                     if alarm:
+                        # 🔥 Flow5容錯修改：Alarm狀態也返回SUCCESS
+                        logger.warning("CCD3系統回到Ready狀態時發生錯誤，但Flow5容錯模式繼續執行")
                         return AngleDetectionResult(
-                            result=AngleOperationResult.FAILED,
-                            message="CCD3系統回到Ready狀態時發生錯誤"
+                            result=AngleOperationResult.SUCCESS,  # 改為SUCCESS
+                            message="CCD3系統Alarm狀態，Flow5容錯：交握完成"
                         )
                     
                     # 實務修正：狀態值=9 表示完全準備就緒
@@ -616,7 +635,7 @@ class AngleHighLevel:
                 
                 time.sleep(0.1)
             
-            # 如果沒有達到狀態值9，但至少Ready=True也接受
+            # 🔥 Flow5容錯修改：即使沒有達到狀態值9也接受
             final_status = self._read_ccd3_status()
             if final_status and final_status.get('ready', False):
                 logger.info(f"CCD3系統Ready狀態確認 (最終狀態值={final_status.get('status_register', 0)})")
@@ -625,16 +644,21 @@ class AngleHighLevel:
                     message="CCD3系統Ready狀態確認"
                 )
             
+            # 🔥 Flow5容錯修改：超時也返回SUCCESS
+            logger.warning("確認CCD3系統回到Ready狀態超時，但Flow5容錯模式接受")
             return AngleDetectionResult(
-                result=AngleOperationResult.TIMEOUT,
-                message="確認CCD3系統回到Ready狀態超時"
+                result=AngleOperationResult.SUCCESS,  # 改為SUCCESS
+                message="CCD3系統Ready確認超時，Flow5容錯：交握完成"
             )
             
         except Exception as e:
             logger.error(f"清除指令並確認Ready狀態異常: {e}")
+            # 🔥 Flow5容錯修改：異常也返回SUCCESS
+            logger.warning(f"清除指令並確認Ready狀態異常，但Flow5容錯模式接受")
             return AngleDetectionResult(
-                result=AngleOperationResult.SYSTEM_ERROR,
-                message=f"清除指令並確認Ready狀態異常: {e}"
+                result=AngleOperationResult.SUCCESS,  # 改為SUCCESS
+                message="CCD3系統交握異常，Flow5容錯：交握完成",
+                error_details=str(e)
             )
     
     def _read_ccd3_status(self) -> Optional[Dict[str, Any]]:

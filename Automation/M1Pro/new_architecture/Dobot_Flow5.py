@@ -193,7 +193,8 @@ class Flow5AssemblyExecutor:
             {'type': 'move_to_point', 'params': {'point_name': 'rotate_down', 'move_type': 'J'}},
             
             # 5. 夾爪撐開到470 (智慧撐開)
-            {'type': 'gripper_smart_release', 'params': {'position': 480}},
+            {'type': 'gripper_smart_release', 'params': {'position': 470}},
+            {'type': 'gripper_smart_release', 'params': {'position': 470}},
             
             # 6. 移動到rotate_top (不帶角度，使用原始角度)
             {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
@@ -216,6 +217,7 @@ class Flow5AssemblyExecutor:
             #{'type': 'waitkey', 'params': {'prompt': '請輸入 "go" 繼續到 put_asm_down 位置', 'expected_input': 'go'}},
             
             # 12. 夾爪快速關閉
+            {'type': 'gripper_quick_close', 'params': {}},
             {'type': 'gripper_quick_close', 'params': {}},
             
             # 13. 移動到put_asm_top (帶commandAngle)

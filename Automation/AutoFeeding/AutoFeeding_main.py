@@ -507,7 +507,7 @@ class AutoFeedingModule:
     def trigger_vp_vibration(self) -> bool:
         """觸發VP震動"""
         self.operation_status = OperationStatus.VP_CONTROLLING
-        
+        print(self.config['vp_params']['spread_action_code'],self.config['vp_params']['spread_strength'],self.config['vp_params']['spread_frequency'])
         # 啟動震動
         success = True
         success &= self.write_register(320, 5)  # execute_action
@@ -572,7 +572,7 @@ class AutoFeedingModule:
         print(f"[AutoFeeding] ✅ CASE_F已就緒: {coords}, Flow1可直接讀取座標")
     
     def feeding_cycle(self) -> bool:
-        """🟢 執行一次入料檢測週期 - 簡化邏輯"""
+        """🟢 執行一次入料檢測週期 - 修正版：背景物件判斷邏輯"""
         try:
             self.cycle_count += 1
             self.status = AutoFeedingStatus.DETECTING
@@ -590,13 +590,23 @@ class AutoFeedingModule:
                 print(f"[AutoFeeding] 週期{self.cycle_count} CCD1檢測失敗")
                 return False
             
-            print(f"[AutoFeeding] 週期{self.cycle_count} 檢測結果: CASE_F={detection_result.case_f_count}, 總數={detection_result.total_detections}")
+            # 🟢 讀取CASE_B和STACK數量計算背景物件
+            case_b_count = self.read_register(241) or 0  # CASE_B_COUNT
+            stack_count = self.read_register(242) or 0   # STACK_COUNT
+            background_count = case_b_count + stack_count
+            
+            print(f"[AutoFeeding] 週期{self.cycle_count} 檢測結果:")
+            print(f"  CASE_F={detection_result.case_f_count}")
+            print(f"  CASE_B={case_b_count}")
+            print(f"  STACK={stack_count}")
+            print(f"  背景物件總數={background_count}")
+            print(f"  總檢測數={detection_result.total_detections}")
             
             # 尋找保護區域內的CASE_F
             target_coords = self.find_case_f_in_protection_zone(detection_result)
             
             if target_coords:
-                # 🟢 找到正面物件 - 設置可用狀態，但繼續檢測
+                # 🟢 找到正面物件 - 直接設置可用狀態
                 self.case_f_found_count += 1
                 self.flow4_consecutive_count = 0
                 print(f"[AutoFeeding] ✅ 找到保護區內CASE_F: {target_coords}")
@@ -604,45 +614,62 @@ class AutoFeedingModule:
                 # 設置CASE_F可用狀態
                 self.set_case_f_available(target_coords)
                 
-                # 🟢 不暫停，繼續檢測確保持續有料件
-                
-            elif detection_result.total_detections < 4:
-                # 料件不足，觸發Flow4送料
-                print(f"[AutoFeeding] 料件不足 (總數={detection_result.total_detections}<4)，觸發Flow4送料")
-                
-                if self.trigger_flow4_feeding():
-                    self.flow4_trigger_count += 1
-                    self.flow4_consecutive_count += 1
-                    print(f"[AutoFeeding] Flow4送料完成 (連續{self.flow4_consecutive_count}次)")
-                    
-                    # 檢查連續直振限制
-                    if self.flow4_consecutive_count >= self.config['autofeeding']['flow4_consecutive_limit']:
-                        print("[AutoFeeding] 達到連續直振限制，需要VP清空")
-                        # 這裡可以加入VP清空流程或報警
+                # 🟢 修正邏輯：有CASE_F時檢查是否需要供料
+                if background_count < 4:
+                    print(f"[AutoFeeding] 背景物件不足({background_count}<4)，但有CASE_F可夾取，暫不供料")
+                    print(f"[AutoFeeding] 等待Flow1夾取後再評估是否需要補料")
                 else:
-                    print(f"[AutoFeeding] Flow4送料失敗")
+                    print(f"[AutoFeeding] 背景物件充足({background_count}>=4)，CASE_F已就緒")
                 
             else:
-                # 料件充足但無正面，VP震動重檢
-                print(f"[AutoFeeding] 料件充足 (總數={detection_result.total_detections}>=4) 但無正面，VP震動重檢")
-                self.flow4_consecutive_count = 0
+                # 🟢 保護區無CASE_F - 根據背景物件數量決定動作
+                if background_count < 4:
+                    # 背景物件不足且無正面，觸發直振供料
+                    print(f"[AutoFeeding] 背景物件不足({background_count}<4)且無CASE_F，觸發Flow4直振供料")
+                    
+                    if self.trigger_flow4_feeding():
+                        self.flow4_trigger_count += 1
+                        self.flow4_consecutive_count += 1
+                        print(f"[AutoFeeding] Flow4直振供料完成 (連續{self.flow4_consecutive_count}次)")
+                        
+                        # 檢查連續直振限制
+                        if self.flow4_consecutive_count >= self.config['autofeeding']['flow4_consecutive_limit']:
+                            print("[AutoFeeding] 🔴 達到連續直振限制，需要VP清空處理")
+                            # 這裡可以加入VP清空流程或報警
+                    else:
+                        print(f"[AutoFeeding] ❌ Flow4直振供料失敗")
                 
-                if self.trigger_vp_vibration():
-                    self.vp_vibration_count += 1
-                    print(f"[AutoFeeding] VP震動完成，等待穩定後重新檢測")
+                else:
+                    # 背景物件充足但無正面，VP震動重檢
+                    print(f"[AutoFeeding] 背景物件充足({background_count}>=4)但無CASE_F，VP震動散開重檢")
+                    self.flow4_consecutive_count = 0
                     
-                    # 等待穩定
-                    time.sleep(self.config['timing']['vp_stabilize_delay'])
-                    
-                    # 立即重新檢測
-                    retry_result = self.trigger_ccd1_detection()
-                    if retry_result.operation_success:
-                        print(f"[AutoFeeding] 震動後重檢: CASE_F={retry_result.case_f_count}, 總數={retry_result.total_detections}")
-                        retry_coords = self.find_case_f_in_protection_zone(retry_result)
-                        if retry_coords:
-                            self.case_f_found_count += 1
-                            print(f"[AutoFeeding] ✅ 震動後找到CASE_F: {retry_coords}")
-                            self.set_case_f_available(retry_coords)
+                    if self.trigger_vp_vibration():
+                        self.vp_vibration_count += 1
+                        print(f"[AutoFeeding] VP震動完成，等待穩定後重新檢測")
+                        
+                        # 等待穩定
+                        time.sleep(self.config['timing']['vp_stabilize_delay'])
+                        
+                        # 立即重新檢測
+                        retry_result = self.trigger_ccd1_detection()
+                        if retry_result.operation_success:
+                            # 重新讀取震動後的背景物件數量
+                            retry_case_b = self.read_register(241) or 0
+                            retry_stack = self.read_register(242) or 0
+                            retry_background = retry_case_b + retry_stack
+                            
+                            print(f"[AutoFeeding] 震動後重檢結果:")
+                            print(f"  CASE_F={retry_result.case_f_count}")
+                            print(f"  背景物件={retry_background}")
+                            
+                            retry_coords = self.find_case_f_in_protection_zone(retry_result)
+                            if retry_coords:
+                                self.case_f_found_count += 1
+                                print(f"[AutoFeeding] ✅ 震動後找到CASE_F: {retry_coords}")
+                                self.set_case_f_available(retry_coords)
+                            else:
+                                print(f"[AutoFeeding] 震動後仍無保護區內CASE_F")
             
             self.operation_status = OperationStatus.IDLE
             self.status = AutoFeedingStatus.RUNNING

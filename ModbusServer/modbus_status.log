@@ -1,0 +1,5 @@
+=== 日誌檔案已清空 - 2025-07-18 00:07:50 ===
+{"timestamp":"2025-07-18 00:07:50","server_running":true,"slave_id":1,"total_registers":3000,"changed_registers_count":101,"uptime_seconds":46818,"sample_registers":{"202":9,"203":2,"212":8000,"241":2,"242":6,"244":8,"245":1,"246":1436,"247":788,"248":1069},"memory_usage_mb":18.1}
+{"timestamp":"2025-07-18 00:08:50","server_running":true,"slave_id":1,"total_registers":3000,"changed_registers_count":104,"uptime_seconds":46878,"sample_registers":{"201":16,"202":10,"203":2,"204":1,"205":1,"212":8000,"241":2,"242":6,"244":8,"245":1},"memory_usage_mb":18.1}
+{"timestamp":"2025-07-18 00:09:50","server_running":true,"slave_id":1,"total_registers":3000,"changed_registers_count":104,"uptime_seconds":46938,"sample_registers":{"201":16,"202":10,"203":2,"204":1,"205":1,"212":8000,"241":2,"242":6,"244":8,"245":1},"memory_usage_mb":18.1}
+{"timestamp":"2025-07-18 00:10:50","server_running":true,"slave_id":1,"total_registers":3000,"changed_registers_count":99,"uptime_seconds":46998,"sample_registers":{"201":16,"202":10,"203":2,"204":1,"205":1,"212":8000,"241":1,"242":6,"244":7,"245":1},"memory_usage_mb":18.1}

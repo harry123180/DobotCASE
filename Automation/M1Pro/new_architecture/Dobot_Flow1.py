@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Dobot_Flow1_AutoFeeding_Optimized.py - Flow1 VP視覺抓取流程 (優化版)
-實作所有性能改善方案：
-1. 預先建立AutoFeeding連接
-2. 可選關閉機械臂sync動作 (enable_sync參數)
-3. 減少夾爪等待時間
-4. 優化AutoFeeding讀取邏輯
-5. 減少不必要的print輸出
+Dobot_Flow1_AutoProgram_Interface.py - Flow1 VP視覺抓取流程 (AutoProgram接口版)
+修改交握流程：
+1. Flow1 -> 檢查AutoProgram狀態 -> 向AutoProgram拿座標 -> Flow1執行
+2. 移除與AutoFeeding的直接連接
+3. 統一與AutoProgram模組交握
 """
 
 import time
@@ -43,8 +41,8 @@ class RobotPoint:
     j4: float
 
 
-class OptimizedAutoFeedingInterface:
-    """優化版AutoFeeding座標接口 - 預先建立連接版本"""
+class AutoProgramInterface:
+    """AutoProgram座標接口 - 統一交握版本"""
     
     def __init__(self, modbus_host: str = "127.0.0.1", modbus_port: int = 502):
         self.modbus_host = modbus_host
@@ -54,17 +52,28 @@ class OptimizedAutoFeedingInterface:
         self._connection_retries = 0
         self._max_retries = 3
         
-        # AutoFeeding交握寄存器映射 (基地址900)
+        # AutoProgram交握寄存器映射
         self.REGISTERS = {
-            'AF_MODULE_STATUS': 900,      # AutoFeeding模組狀態
-            'FEEDING_COMPLETE': 940,      # 入料完成標誌
-            'TARGET_X_HIGH': 941,         # 料件座標X高位
-            'TARGET_X_LOW': 942,          # 料件座標X低位
-            'TARGET_Y_HIGH': 943,         # 料件座標Y高位
-            'TARGET_Y_LOW': 944,          # 料件座標Y低位
-            'AUTOPROGRAM_CONFIRM': 945,   # AutoProgram確認讀取
-            'TOTAL_DETECTIONS': 946,      # 檢測結果總數
-            'CASE_F_COUNT': 947,          # CASE_F總數
+            # AutoProgram系統狀態寄存器 (1300-1319)
+            'SYSTEM_STATUS': 1300,           # 系統狀態 (0=停止, 1=運行, 2=Flow1觸發, 3=Flow5完成, 4=錯誤)
+            'PREPARE_DONE': 1301,            # prepare_done狀態 (0=需要取料, 1=已完成取料)
+            'AUTO_PROGRAM_ENABLED': 1302,    # 自動程序啟用狀態
+            'AF_CASE_F_STATUS': 1303,        # AutoFeeding CASE_F狀態
+            'FLOW5_STATUS': 1304,            # Flow5完成狀態
+            
+            # AutoProgram控制寄存器 (1320-1339)  
+            'SYSTEM_CONTROL': 1320,          # 系統控制指令
+            'AUTO_PROGRAM_CONTROL': 1321,    # 自動程序啟用控制
+            
+            # AutoProgram座標寄存器 (1340-1349)
+            'TARGET_X_HIGH': 1340,           # 目標座標X高位
+            'TARGET_X_LOW': 1341,            # 目標座標X低位
+            'TARGET_Y_HIGH': 1342,           # 目標座標Y高位  
+            'TARGET_Y_LOW': 1343,            # 目標座標Y低位
+            
+            # 原始AutoFeeding寄存器 (向下兼容)
+            'AF_CASE_F_AVAILABLE': 940,      # CASE_F可用標誌
+            'AF_COORDS_TAKEN': 945,          # 座標已讀取標誌確認
         }
         
         # 預先建立連接
@@ -75,7 +84,9 @@ class OptimizedAutoFeedingInterface:
         if self.connected and self.modbus_client:
             try:
                 # 快速連接測試
-                test_result = self.modbus_client.read_holding_registers(self.REGISTERS['AF_MODULE_STATUS'], 1, slave=1)
+                test_result = self.modbus_client.read_holding_registers(
+                    self.REGISTERS['SYSTEM_STATUS'], 1, slave=1
+                )
                 if not test_result.isError():
                     return True
             except:
@@ -96,24 +107,24 @@ class OptimizedAutoFeedingInterface:
             self.modbus_client = ModbusTcpClient(
                 host=self.modbus_host,
                 port=self.modbus_port,
-                timeout=1.0  # 從3.0秒縮短到1.0秒
+                timeout=2.0
             )
             
             if self.modbus_client.connect():
                 self.connected = True
                 self._connection_retries = 0
-                print("✓ AutoFeeding連接已建立")
+                print("✓ AutoProgram連接已建立")
                 return True
             else:
                 self.connected = False
                 self._connection_retries += 1
-                print(f"✗ AutoFeeding連接失敗 (嘗試 {self._connection_retries}/{self._max_retries})")
+                print(f"✗ AutoProgram連接失敗 (嘗試 {self._connection_retries}/{self._max_retries})")
                 return False
                 
         except Exception as e:
             self.connected = False
             self._connection_retries += 1
-            print(f"AutoFeeding連接異常: {e}")
+            print(f"AutoProgram連接異常: {e}")
             return False
     
     def disconnect(self):
@@ -158,29 +169,50 @@ class OptimizedAutoFeedingInterface:
             self.connected = False
             return False
     
-    def check_feeding_complete(self) -> bool:
-        """檢查入料是否完成"""
-        feeding_complete = self.read_register('FEEDING_COMPLETE')
-        return feeding_complete == 1
-    
-    def read_target_coordinates_fast(self) -> Optional[Dict[str, float]]:
-        """快速讀取AutoFeeding座標 - 優化版"""
+    def check_autoprogram_ready_and_coordinates(self) -> bool:
+        """檢查AutoProgram狀態並確認座標可用"""
         try:
-            # 快速狀態檢查
-            if not self.check_feeding_complete():
-                return None
+            # 1. 檢查AutoProgram系統狀態(1300) 
+            # 接受 1(運行中) 或 2(Flow1觸發狀態)
+            system_status = self.read_register('SYSTEM_STATUS')
+            if system_status not in [1, 2]:
+                return False
             
-            # 批量讀取座標寄存器 (941-947)
+            # 2. 檢查prepare_done狀態(1301) = 0(需要取料)
+            prepare_done = self.read_register('PREPARE_DONE') 
+            if prepare_done != 0:
+                return False
+                
+            # 3. 檢查座標是否已準備在AutoProgram中
+            # 讀取座標寄存器檢查是否有有效座標
+            x_high = self.read_register('TARGET_X_HIGH') or 0
+            x_low = self.read_register('TARGET_X_LOW') or 0
+            y_high = self.read_register('TARGET_Y_HIGH') or 0
+            y_low = self.read_register('TARGET_Y_LOW') or 0
+            
+            # 檢查座標是否非零(有效)
+            if x_high == 0 and x_low == 0 and y_high == 0 and y_low == 0:
+                return False
+                
+            return True
+            
+        except Exception as e:
+            print(f"檢查AutoProgram狀態異常: {e}")
+            return False
+    
+    def read_target_coordinates_from_autoprogram(self) -> Optional[Dict[str, float]]:
+        """從AutoProgram讀取目標座標"""
+        try:
+            # 批量讀取座標寄存器 (1340-1343)
             try:
                 result = self.modbus_client.read_holding_registers(
-                    self.REGISTERS['TARGET_X_HIGH'], 7, slave=1
+                    self.REGISTERS['TARGET_X_HIGH'], 4, slave=1
                 )
                 if result.isError():
                     return None
                 
                 registers = result.registers
                 x_high, x_low, y_high, y_low = registers[0], registers[1], registers[2], registers[3]
-                total_detections, case_f_count = registers[5], registers[6]
                 
             except Exception:
                 # 批量讀取失敗，回退到單個讀取
@@ -188,8 +220,6 @@ class OptimizedAutoFeedingInterface:
                 x_low = self.read_register('TARGET_X_LOW') or 0
                 y_high = self.read_register('TARGET_Y_HIGH') or 0
                 y_low = self.read_register('TARGET_Y_LOW') or 0
-                total_detections = self.read_register('TOTAL_DETECTIONS') or 0
-                case_f_count = self.read_register('CASE_F_COUNT') or 0
             
             # 32位合併並轉換精度
             world_x_int = (x_high << 16) | x_low
@@ -208,17 +238,32 @@ class OptimizedAutoFeedingInterface:
             return {
                 'x': world_x,
                 'y': world_y,
-                'total_detections': total_detections,
-                'case_f_count': case_f_count
+                'source': 'autoprogram_interface'
             }
             
         except Exception as e:
-            print(f"讀取AutoFeeding目標座標異常: {e}")
+            print(f"讀取AutoProgram目標座標異常: {e}")
             return None
     
-    def confirm_coordinate_read_fast(self) -> bool:
-        """快速確認讀取座標"""
-        return self.write_register('AUTOPROGRAM_CONFIRM', 1)
+    def confirm_coordinate_read(self) -> bool:
+        """確認座標已讀取"""
+        return self.write_register('AF_COORDS_TAKEN', 1)
+    
+    def get_autoprogram_status_info(self) -> Dict[str, Any]:
+        """獲取AutoProgram狀態資訊"""
+        try:
+            return {
+                'system_status': self.read_register('SYSTEM_STATUS'),
+                'prepare_done': self.read_register('PREPARE_DONE'),
+                'auto_program_enabled': self.read_register('AUTO_PROGRAM_ENABLED'),
+                'af_case_f_status': self.read_register('AF_CASE_F_STATUS'),
+                'flow5_status': self.read_register('FLOW5_STATUS'),
+                'af_case_f_available': self.read_register('AF_CASE_F_AVAILABLE'),
+                'connected': self.connected
+            }
+        except Exception as e:
+            print(f"獲取AutoProgram狀態資訊異常: {e}")
+            return {'connected': False, 'error': str(e)}
 
 
 class PointsManager:
@@ -301,10 +346,10 @@ class PointsManager:
 
 
 class Flow1VisionPickExecutor(FlowExecutor):
-    """Flow1: VP視覺抓取流程執行器 - 優化版"""
+    """Flow1: VP視覺抓取流程執行器 - AutoProgram接口版"""
     
     def __init__(self, enable_sync: bool = False):
-        super().__init__(flow_id=1, flow_name="VP視覺抓取流程(優化版)")
+        super().__init__(flow_id=1, flow_name="VP視覺抓取流程(AutoProgram接口版)")
         
         # 性能優化參數
         self.enable_sync = enable_sync  # 是否啟用機械臂sync
@@ -322,8 +367,8 @@ class Flow1VisionPickExecutor(FlowExecutor):
         self.points_manager = PointsManager()
         self.points_loaded = False
         
-        # 預先建立AutoFeeding連接
-        self.autofeeding_interface = OptimizedAutoFeedingInterface()
+        # 預先建立AutoProgram連接 (替代AutoFeeding)
+        self.autoprogram_interface = AutoProgramInterface()
         
         # Flow1需要的點位名稱
         self.REQUIRED_POINTS = [
@@ -336,7 +381,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
         if self.points_loaded:
             self.build_flow_steps()
         
-        print(f"✓ Flow1優化版初始化完成 (sync={'啟用' if enable_sync else '停用'})")
+        print(f"✓ Flow1 AutoProgram接口版初始化完成 (sync={'啟用' if enable_sync else '停用'})")
         
     def _load_and_validate_points(self):
         """載入並驗證點位檔案"""
@@ -357,24 +402,26 @@ class Flow1VisionPickExecutor(FlowExecutor):
         self.points_loaded = True
         
     def build_flow_steps(self):
-        """建構Flow1步驟 - 優化版"""
+        """建構Flow1步驟 - AutoProgram接口版"""
         if not self.points_loaded:
             self.motion_steps = []
             self.total_steps = 0
             return
             
         self.motion_steps = [
-            # 1. 快速讀取AutoFeeding座標
-            {'type': 'read_autofeeding_coordinates_fast', 'params': {}},
+            # 1. 從AutoProgram讀取座標
+            {'type': 'read_autoprogram_coordinates', 'params': {}},
             
             # 2. 初始準備
             {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
+            {'type': 'gripper_close_fast', 'params': {}},
             {'type': 'gripper_close_fast', 'params': {}},
             
             # 3. VP視覺序列
             {'type': 'move_to_point', 'params': {'point_name': 'vp_topside', 'move_type': 'J'}},
             {'type': 'move_to_detected_position_high', 'params': {}},
             {'type': 'move_to_detected_position_low', 'params': {}},
+            {'type': 'gripper_smart_release_fast', 'params': {'position': 470}},
             {'type': 'gripper_smart_release_fast', 'params': {'position': 470}},
             
             # 4. 返回序列
@@ -389,23 +436,25 @@ class Flow1VisionPickExecutor(FlowExecutor):
             
             # 6. 翻轉操作
             {'type': 'gripper_close_fast', 'params': {}},
+            {'type': 'gripper_close_fast', 'params': {}},
             {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'rotate_down', 'move_type': 'J'}},
-            {'type': 'gripper_smart_release_fast', 'params': {'position': 470}},
+            {'type': 'gripper_smart_release_fast', 'params': {'position': 460}},
+            {'type': 'gripper_smart_release_fast', 'params': {'position': 460}},
+            {'type': 'gripper_close_fast', 'params': {}},
             {'type': 'gripper_close_fast', 'params': {}},
             
             # 7. 返回待機
             {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'Goal_CV_top', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'flip_pre', 'move_type': 'J'}},
-            #{'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
         ]
         
         self.total_steps = len(self.motion_steps)
         print(f"✓ Flow1步驟建構完成，共{self.total_steps}步")
     
     def execute(self) -> FlowResult:
-        """執行Flow1主邏輯 - 優化版"""
+        """執行Flow1主邏輯 - AutoProgram接口版"""
         if not self.points_loaded:
             return FlowResult(
                 success=False,
@@ -428,11 +477,11 @@ class Flow1VisionPickExecutor(FlowExecutor):
                 total_steps=self.total_steps
             )
         
-        # 檢查AutoFeeding連接 (快速檢查，不重建)
-        if not self.autofeeding_interface.ensure_connection():
+        # 檢查AutoProgram連接
+        if not self.autoprogram_interface.ensure_connection():
             return FlowResult(
                 success=False,
-                error_message="AutoFeeding連接失效",
+                error_message="AutoProgram連接失效",
                 execution_time=time.time() - self.start_time,
                 steps_completed=self.current_step,
                 total_steps=self.total_steps
@@ -450,13 +499,13 @@ class Flow1VisionPickExecutor(FlowExecutor):
                     break
                 
                 # 減少print輸出，只在關鍵步驟輸出
-                if step['type'] in ['read_autofeeding_coordinates_fast', 'move_to_detected_position_high', 'move_to_detected_position_low']:
+                if step['type'] in ['read_autoprogram_coordinates', 'move_to_detected_position_high', 'move_to_detected_position_low']:
                     print(f"Flow1 關鍵步驟 {self.current_step + 1}/{self.total_steps}: {step['type']}")
                 
                 # 執行步驟
                 success = self._execute_step(step, detected_position)
                 
-                if step['type'] == 'read_autofeeding_coordinates_fast':
+                if step['type'] == 'read_autoprogram_coordinates':
                     detected_position = success  # 特殊處理座標讀取
                     success = detected_position is not None
                 
@@ -511,8 +560,8 @@ class Flow1VisionPickExecutor(FlowExecutor):
             return self._execute_gripper_close_fast()
         elif step_type == 'gripper_smart_release_fast':
             return self._execute_gripper_smart_release_fast(params)
-        elif step_type == 'read_autofeeding_coordinates_fast':
-            return self._execute_read_autofeeding_coordinates_fast()
+        elif step_type == 'read_autoprogram_coordinates':
+            return self._execute_read_autoprogram_coordinates()
         elif step_type == 'move_to_detected_position_high':
             return self._execute_move_to_detected_high_optimized(detected_position)
         elif step_type == 'move_to_detected_position_low':
@@ -521,8 +570,8 @@ class Flow1VisionPickExecutor(FlowExecutor):
             print(f"未知步驟類型: {step_type}")
             return False
     
-    def _execute_read_autofeeding_coordinates_fast(self) -> Optional[Dict[str, float]]:
-        """快速讀取AutoFeeding座標 - 增加重試邏輯版本"""
+    def _execute_read_autoprogram_coordinates(self) -> Optional[Dict[str, float]]:
+        """從AutoProgram讀取座標 - 增加重試邏輯版本"""
         max_retries = 20
         retry_count = 0
         
@@ -532,58 +581,42 @@ class Flow1VisionPickExecutor(FlowExecutor):
                 
                 # 如果不是第一次嘗試，輸出重試資訊
                 if retry_count > 1:
-                    print(f"[AutoFeeding] 座標讀取重試 {retry_count}/{max_retries}")
+                    print(f"[AutoProgram] 座標讀取重試 {retry_count}/{max_retries}")
                 
-                # 快速狀態檢查
-                af_status = self.autofeeding_interface.read_register('AF_MODULE_STATUS')
-                if af_status not in [1, 2]:
-                    print(f"[AutoFeeding] 重試{retry_count}: AutoFeeding模組狀態異常 ({af_status})")
-                    time.sleep(0.1)  # 重試間隔100ms
+                # 1. 檢查AutoProgram狀態並確認座標已準備
+                if not self.autoprogram_interface.check_autoprogram_ready_and_coordinates():
+                    # 輸出詳細狀態資訊
+                    status_info = self.autoprogram_interface.get_autoprogram_status_info()
+                    print(f"[AutoProgram] 重試{retry_count}: AutoProgram狀態未就緒或座標未準備")
+                    print(f"  狀態詳情: {status_info}")
+                    
+                    # 檢查座標是否已存在
+                    x_high = self.autoprogram_interface.read_register('TARGET_X_HIGH') or 0
+                    x_low = self.autoprogram_interface.read_register('TARGET_X_LOW') or 0 
+                    y_high = self.autoprogram_interface.read_register('TARGET_Y_HIGH') or 0
+                    y_low = self.autoprogram_interface.read_register('TARGET_Y_LOW') or 0
+                    print(f"  座標寄存器: X_HIGH={x_high}, X_LOW={x_low}, Y_HIGH={y_high}, Y_LOW={y_low}")
+                    
+                    time.sleep(0.2)  # 重試間隔200ms
                     continue
                 
-                # 快速等待入料完成
-                timeout = 5.0
-                start_time = time.time()
-                feeding_complete = False
-                
-                while time.time() - start_time < timeout:
-                    if self.autofeeding_interface.check_feeding_complete():
-                        feeding_complete = True
-                        break
-                    time.sleep(0.05)  # 50ms檢查間隔
-                
-                if not feeding_complete:
-                    print(f"[AutoFeeding] 重試{retry_count}: 入料未完成")
-                    time.sleep(0.1)
-                    continue
-                
-                # 快速讀取座標
-                coord_data = self.autofeeding_interface.read_target_coordinates_fast()
+                # 2. 讀取座標
+                coord_data = self.autoprogram_interface.read_target_coordinates_from_autoprogram()
                 if not coord_data:
-                    print(f"[AutoFeeding] 重試{retry_count}: 座標資料讀取失敗")
+                    print(f"[AutoProgram] 重試{retry_count}: 座標資料讀取失敗")
                     time.sleep(0.1)
                     continue
                 
-                # 快速確認讀取
-                if not self.autofeeding_interface.confirm_coordinate_read_fast():
-                    print(f"[AutoFeeding] 重試{retry_count}: 確認讀取失敗")
+                # 3. 確認讀取
+                if not self.autoprogram_interface.confirm_coordinate_read():
+                    print(f"[AutoProgram] 重試{retry_count}: 確認讀取失敗")
                     time.sleep(0.1)
                     continue
                 
-                # 快速清除標誌等待
-                clear_start = time.time()
-                flag_cleared = False
-                
-                while time.time() - clear_start < 0.5:
-                    if not self.autofeeding_interface.check_feeding_complete():
-                        flag_cleared = True
-                        break
-                    time.sleep(0.02)  # 20ms檢查間隔
-                
-                # 構建結果座標
+                # 4. 構建結果座標
                 vp_topside_point = self.points_manager.get_point('vp_topside')
                 if not vp_topside_point:
-                    print(f"[AutoFeeding] 重試{retry_count}: vp_topside點位不存在")
+                    print(f"[AutoProgram] 重試{retry_count}: vp_topside點位不存在")
                     time.sleep(0.1)
                     continue
                 
@@ -592,21 +625,21 @@ class Flow1VisionPickExecutor(FlowExecutor):
                     'y': coord_data['y'],
                     'z': vp_topside_point.z,
                     'r': vp_topside_point.r,
-                    'source': 'autofeeding_optimized_retry',
-                    'retry_count': retry_count,
-                    'flag_cleared': flag_cleared
+                    'source': 'autoprogram_interface',
+                    'retry_count': retry_count
                 }
                 
-                print(f"✓ AutoFeeding座標讀取成功 (重試{retry_count}次): ({detected_pos['x']:.2f}, {detected_pos['y']:.2f})")
+                print(f"✓ AutoProgram座標讀取成功 (重試{retry_count}次): ({detected_pos['x']:.2f}, {detected_pos['y']:.2f})")
+                print(f"  AutoProgram狀態: system_status={self.autoprogram_interface.read_register('SYSTEM_STATUS')}, prepare_done={self.autoprogram_interface.read_register('PREPARE_DONE')}")
                 return detected_pos
                 
             except Exception as e:
-                print(f"[AutoFeeding] 重試{retry_count} 異常: {e}")
+                print(f"[AutoProgram] 重試{retry_count} 異常: {e}")
                 time.sleep(0.1)
                 continue
         
         # 所有重試都失敗
-        print(f"✗ AutoFeeding座標讀取失敗，已重試{max_retries}次")
+        print(f"✗ AutoProgram座標讀取失敗，已重試{max_retries}次")
         return None
     
     def _execute_move_to_point_optimized(self, params: Dict[str, Any]) -> bool:
@@ -740,8 +773,8 @@ class Flow1VisionPickExecutor(FlowExecutor):
     
     def cleanup(self):
         """清理資源"""
-        if hasattr(self, 'autofeeding_interface'):
-            self.autofeeding_interface.disconnect()
+        if hasattr(self, 'autoprogram_interface'):
+            self.autoprogram_interface.disconnect()
     
     def pause(self) -> bool:
         """暫停Flow"""
@@ -771,18 +804,6 @@ class Flow1VisionPickExecutor(FlowExecutor):
         """檢查Flow1是否準備好執行"""
         return (self.points_loaded and 
                 self.total_steps > 0 and 
-                self.autofeeding_interface.connected)
+                self.autoprogram_interface.connected)
 
 
-# 使用範例
-if __name__ == "__main__":
-    # 建立Flow1執行器 - 保持原類名
-    # enable_sync=False 表示關閉機械臂sync，提升執行速度
-    # enable_sync=True 表示啟用機械臂sync，確保運動精度
-    
-    flow1_fast = Flow1VisionPickExecutor(enable_sync=False)  # 高速模式
-    #flow1_precise = Flow1VisionPickExecutor(enable_sync=True)  # 精確模式
-    
-    print("Flow1執行器已建立")
-    print(f"高速模式ready: {flow1_fast.is_ready()}")
-    #print(f"精確模式ready: {flow1_precise.is_ready()}")
