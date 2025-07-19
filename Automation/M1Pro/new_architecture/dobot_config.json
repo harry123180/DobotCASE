@@ -4,7 +4,7 @@
     "dashboard_port": 29999,
     "move_port": 30003,
     "default_speed": 100,
-    "default_acceleration": 50,
+    "default_acceleration": 100,
     "enable_collision_detection": true,
     "collision_level": 3
   },
@@ -19,8 +19,8 @@
     "enabled": true,
     "base_address": 520,
     "status_address": 500,
-    "default_force": 50,
-    "default_speed": 80
+    "default_force": 100,
+    "default_speed": 100
   },
   "vision": {
     "ccd1_base_address": 200,

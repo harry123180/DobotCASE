@@ -1,11 +1,11 @@
 {
   "module_id": "夾爪模組",
   "rtu_connection": {
-    "port": "COM7",
+    "port": "COM11",
     "baudrate": 115200,
     "parity": "N",
     "stopbits": 1,
-    "timeout": 1.0
+    "timeout": 0.5
   },
   "tcp_server": {
     "host": "127.0.0.1",
@@ -17,9 +17,9 @@
     "base_address": 500
   },
   "timing": {
-    "fast_loop_interval": 0.05,
+    "fast_loop_interval": 0.01,
     "command_delay": 0.02,
-    "reconnect_interval": 5.0
+    "reconnect_interval": 3.0
   },
   "grippers": {
     "PGC": {

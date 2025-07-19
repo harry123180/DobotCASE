@@ -1,0 +1,68 @@
+2025-07-19 15:40:28 [INFO] GripperHighLevelOptimized:connect:182 - 正在連接Modbus TCP服務器: 127.0.0.1:502
+2025-07-19 15:40:28 [INFO] GripperHighLevelOptimized:connect:192 - PGC夾爪Modbus連接成功
+2025-07-19 15:40:28 [INFO] GripperHighLevelOptimized:initialize:469 - 開始初始化PGC夾爪
+2025-07-19 15:40:34 [INFO] GripperHighLevelOptimized:disconnect:219 - Modbus TCP連接已斷開
+2025-07-19 15:41:02 [INFO] GripperHighLevelOptimized:connect:182 - 正在連接Modbus TCP服務器: 127.0.0.1:502
+2025-07-19 15:41:02 [INFO] GripperHighLevelOptimized:connect:192 - PGC夾爪Modbus連接成功
+2025-07-19 15:41:02 [INFO] GripperHighLevelOptimized:initialize:469 - 開始初始化PGC夾爪
+2025-07-19 15:41:27 [INFO] GripperHighLevelOptimized:smart_release:339 - PGC智能釋放到位置: 470
+2025-07-19 15:41:27 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 智能釋放成功
+2025-07-19 15:41:30 [INFO] GripperHighLevelOptimized:quick_close:323 - PGC快速關閉: 300
+2025-07-19 15:41:30 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 快速關閉成功
+2025-07-19 15:41:33 [INFO] GripperHighLevelOptimized:smart_release:339 - PGC智能釋放到位置: 470
+2025-07-19 15:41:33 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 智能釋放成功
+2025-07-19 15:41:44 [INFO] GripperHighLevelOptimized:quick_close:323 - PGC快速關閉: 300
+2025-07-19 15:41:44 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 快速關閉成功
+2025-07-19 15:41:50 [INFO] GripperHighLevelOptimized:smart_release:339 - PGC智能釋放到位置: 470
+2025-07-19 15:41:50 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 智能釋放成功
+2025-07-19 15:41:53 [INFO] GripperHighLevelOptimized:quick_close:323 - PGC快速關閉: 300
+2025-07-19 15:41:53 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 快速關閉成功
+2025-07-19 15:41:55 [INFO] GripperHighLevelOptimized:smart_release:339 - PGC智能釋放到位置: 470
+2025-07-19 15:41:55 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 智能釋放成功
+2025-07-19 15:43:12 [INFO] GripperHighLevelOptimized:quick_close:323 - PGC快速關閉: 300
+2025-07-19 15:43:12 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 快速關閉成功
+2025-07-19 15:43:21 [INFO] GripperHighLevelOptimized:disconnect:219 - Modbus TCP連接已斷開
+2025-07-19 15:44:14 [INFO] GripperHighLevelOptimized:connect:182 - 正在連接Modbus TCP服務器: 127.0.0.1:502
+2025-07-19 15:44:14 [INFO] GripperHighLevelOptimized:connect:192 - PGC夾爪Modbus連接成功
+2025-07-19 15:44:14 [INFO] GripperHighLevelOptimized:initialize:469 - 開始初始化PGC夾爪
+2025-07-19 15:44:24 [INFO] GripperHighLevelOptimized:smart_release:339 - PGC智能釋放到位置: 470
+2025-07-19 15:44:24 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 智能釋放成功
+2025-07-19 15:44:27 [INFO] GripperHighLevelOptimized:quick_close:323 - PGC快速關閉: 300
+2025-07-19 15:44:27 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 快速關閉成功
+2025-07-19 15:44:30 [INFO] GripperHighLevelOptimized:smart_release:339 - PGC智能釋放到位置: 470
+2025-07-19 15:44:30 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 智能釋放成功
+2025-07-19 15:44:38 [INFO] GripperHighLevelOptimized:quick_close:323 - PGC快速關閉: 300
+2025-07-19 15:44:38 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 快速關閉成功
+2025-07-19 15:44:44 [INFO] GripperHighLevelOptimized:smart_release:339 - PGC智能釋放到位置: 470
+2025-07-19 15:44:44 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 智能釋放成功
+2025-07-19 15:44:47 [INFO] GripperHighLevelOptimized:quick_close:323 - PGC快速關閉: 300
+2025-07-19 15:44:47 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 快速關閉成功
+2025-07-19 15:44:49 [INFO] GripperHighLevelOptimized:smart_release:339 - PGC智能釋放到位置: 470
+2025-07-19 15:44:49 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 智能釋放成功
+2025-07-19 15:44:51 [INFO] GripperHighLevelOptimized:disconnect:219 - Modbus TCP連接已斷開
+2025-07-19 15:55:01 [INFO] GripperHighLevelOptimized:connect:182 - 正在連接Modbus TCP服務器: 127.0.0.1:502
+2025-07-19 15:55:01 [INFO] GripperHighLevelOptimized:connect:192 - PGC夾爪Modbus連接成功
+2025-07-19 15:55:01 [INFO] GripperHighLevelOptimized:initialize:469 - 開始初始化PGC夾爪
+2025-07-19 15:55:27 [INFO] GripperHighLevelOptimized:disconnect:219 - Modbus TCP連接已斷開
+2025-07-19 15:56:16 [INFO] GripperHighLevelOptimized:connect:182 - 正在連接Modbus TCP服務器: 127.0.0.1:502
+2025-07-19 15:56:16 [INFO] GripperHighLevelOptimized:connect:192 - PGC夾爪Modbus連接成功
+2025-07-19 15:56:16 [INFO] GripperHighLevelOptimized:initialize:469 - 開始初始化PGC夾爪
+2025-07-19 15:56:22 [INFO] GripperHighLevelOptimized:smart_release:339 - PGC智能釋放到位置: 470
+2025-07-19 15:56:22 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 智能釋放成功
+2025-07-19 15:56:25 [INFO] GripperHighLevelOptimized:quick_close:323 - PGC快速關閉: 300
+2025-07-19 15:56:25 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 快速關閉成功
+2025-07-19 15:56:27 [INFO] GripperHighLevelOptimized:smart_release:339 - PGC智能釋放到位置: 470
+2025-07-19 15:56:27 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 智能釋放成功
+2025-07-19 15:56:35 [INFO] GripperHighLevelOptimized:quick_close:323 - PGC快速關閉: 300
+2025-07-19 15:56:35 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 快速關閉成功
+2025-07-19 15:56:41 [INFO] GripperHighLevelOptimized:smart_release:339 - PGC智能釋放到位置: 470
+2025-07-19 15:56:41 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 智能釋放成功
+2025-07-19 15:56:44 [INFO] GripperHighLevelOptimized:quick_close:323 - PGC快速關閉: 300
+2025-07-19 15:56:44 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 快速關閉成功
+2025-07-19 15:56:46 [INFO] GripperHighLevelOptimized:smart_release:339 - PGC智能釋放到位置: 470
+2025-07-19 15:56:46 [INFO] GripperHighLevelOptimized:_log_gripper_status:313 - 智能釋放成功
+2025-07-19 15:59:02 [INFO] GripperHighLevelOptimized:disconnect:219 - Modbus TCP連接已斷開
+2025-07-19 16:00:43 [INFO] GripperHighLevelOptimized:connect:182 - 正在連接Modbus TCP服務器: 127.0.0.1:502
+2025-07-19 16:00:43 [INFO] GripperHighLevelOptimized:connect:192 - PGC夾爪Modbus連接成功
+2025-07-19 16:00:43 [INFO] GripperHighLevelOptimized:initialize:469 - 開始初始化PGC夾爪
+2025-07-19 16:00:49 [INFO] GripperHighLevelOptimized:disconnect:219 - Modbus TCP連接已斷開

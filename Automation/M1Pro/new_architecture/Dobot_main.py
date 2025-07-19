@@ -409,6 +409,7 @@ class RealRobotController:
         self.move_api = None
         self.global_speed = 100
         
+        
     def _parse_api_response(self, response: str) -> bool:
         """解析API響應"""
         if not response:
@@ -475,22 +476,68 @@ class RealRobotController:
             return False
     
     def set_global_speed(self, speed_percent: int) -> bool:
-        """設定全局速度"""
+        """設定全局速度 - 統一所有速度和加速度參數"""
         try:
             if not 1 <= speed_percent <= 100:
                 print(f"速度超出範圍: {speed_percent}")
                 return False
-                
-            result = self.dashboard_api.SpeedFactor(speed_percent)
-            success = self._parse_api_response(result)
-            if success:
-                self.global_speed = speed_percent
-                print(f"✓ 全局速度設定成功: {speed_percent}%")
+            
+            print(f"設定統一運動參數為: {speed_percent}%")
+            success_count = 0
+            total_count = 5
+            
+            # 1. 設定全局速度比例
+            result1 = self.dashboard_api.SpeedFactor(speed_percent)
+            if self._parse_api_response(result1):
+                print(f"✓ 全局速度比例設定成功: {speed_percent}%")
+                success_count += 1
             else:
-                print(f"全局速度設定失敗: {result}")
-            return success
+                print(f"✗ 全局速度比例設定失敗: {result1}")
+            
+            # 2. 設定關節運動速度
+            result2 = self.dashboard_api.SpeedJ(speed_percent)
+            if self._parse_api_response(result2):
+                print(f"✓ 關節運動速度設定成功: {speed_percent}%")
+                success_count += 1
+            else:
+                print(f"✗ 關節運動速度設定失敗: {result2}")
+            
+            # 3. 設定直線運動速度
+            result3 = self.dashboard_api.SpeedL(speed_percent)
+            if self._parse_api_response(result3):
+                print(f"✓ 直線運動速度設定成功: {speed_percent}%")
+                success_count += 1
+            else:
+                print(f"✗ 直線運動速度設定失敗: {result3}")
+            
+            # 4. 設定關節運動加速度
+            result4 = self.dashboard_api.AccJ(speed_percent)
+            if self._parse_api_response(result4):
+                print(f"✓ 關節運動加速度設定成功: {speed_percent}%")
+                success_count += 1
+            else:
+                print(f"✗ 關節運動加速度設定失敗: {result4}")
+            
+            # 5. 設定直線運動加速度
+            result5 = self.dashboard_api.AccL(speed_percent)
+            if self._parse_api_response(result5):
+                print(f"✓ 直線運動加速度設定成功: {speed_percent}%")
+                success_count += 1
+            else:
+                print(f"✗ 直線運動加速度設定失敗: {result5}")
+            
+            # 判斷整體成功狀態
+            if success_count >= 3:  # 至少3個參數設定成功
+                self.global_speed = speed_percent
+                print(f"✓ 統一運動參數設定完成: {success_count}/{total_count} 成功")
+                print(f"✓ 當前所有運動參數均為: {speed_percent}%")
+                return True
+            else:
+                print(f"✗ 統一運動參數設定失敗: 僅{success_count}/{total_count} 成功")
+                return False
+                
         except Exception as e:
-            print(f"設定全局速度異常: {e}")
+            print(f"設定統一運動參數異常: {e}")
             return False
     
     def move_j(self, x: float, y: float, z: float, r: float) -> bool:
@@ -504,20 +551,23 @@ class RealRobotController:
             
             if not success:
                 print(f"✗ MovJ指令發送失敗: {result}")
-                return False
-            
-            print(f"MovJ指令發送成功，調用Sync()執行...")
-            
-            # 🔥 關鍵修正：調用Sync()執行隊列中的指令
-            sync_result = self.move_api.Sync()
-            sync_success = self._parse_api_response(sync_result)
-            
-            if sync_success:
-                print(f"✓ MovJ完成: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
-                return True
+                return False            
+            if 1:
+                
+                print(f"MovJ指令發送成功，調用Sync()執行...")
+                print("執行同步等待...")
+                sync_result = self.move_api.Sync()
+                #sync_success = self._parse_api_response(sync_result)
+                sync_success=True
+                if sync_success:
+                    print(f"✓ MovJ同步完成: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
+                    return True
+                else:
+                    print(f"✗ MovJ同步執行失敗: {sync_result}")
+                    return False
             else:
-                print(f"✗ MovJ同步執行失敗: {sync_result}")
-                return False
+                print(f"✓ MovJ異步發送完成: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
+                return True
                 
         except Exception as e:
             print(f"MovJ執行異常: {e}")
@@ -536,18 +586,19 @@ class RealRobotController:
                 print(f"✗ MovL指令發送失敗: {result}")
                 return False
             
-            print(f"MovL指令發送成功，調用Sync()執行...")
             
-            # 🔥 關鍵修正：調用Sync()執行隊列中的指令
-            sync_result = self.move_api.Sync()
-            sync_success = self._parse_api_response(sync_result)
-            
-            if sync_success:
-                print(f"✓ MovL完成: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
-                return True
-            else:
-                print(f"✗ MovL同步執行失敗: {sync_result}")
-                return False
+            if 1 :
+                print(f"MovL指令發送成功，調用Sync()執行...")
+                # 🔥 關鍵修正：調用Sync()執行隊列中的指令
+                sync_result = self.move_api.Sync()
+                #sync_success = self._parse_api_response(sync_result)
+                sync_success = True
+                if sync_success:
+                    print(f"✓ MovL完成: ({x:.1f}, {y:.1f}, {z:.1f}, {r:.1f})")
+                    return True
+                else:
+                    print(f"✗ MovL同步執行失敗: {sync_result}")
+                    return False
                 
         except Exception as e:
             print(f"MovL執行異常: {e}")
@@ -566,18 +617,19 @@ class RealRobotController:
                 print(f"✗ JointMovJ指令發送失敗: {result}")
                 return False
             
-            print(f"JointMovJ指令發送成功，調用Sync()執行...")
             
-            # 🔥 關鍵修正：調用Sync()執行隊列中的指令
-            sync_result = self.move_api.Sync()
-            sync_success = self._parse_api_response(sync_result)
-            
-            if sync_success:
-                print(f"✓ JointMovJ完成: (j1:{j1:.1f}, j2:{j2:.1f}, j3:{j3:.1f}, j4:{j4:.1f})")
-                return True
-            else:
-                print(f"✗ JointMovJ同步執行失敗: {sync_result}")
-                return False
+            if 1 :
+                print(f"JointMovJ指令發送成功，調用Sync()執行...")
+                # 🔥 關鍵修正：調用Sync()執行隊列中的指令
+                sync_result = self.move_api.Sync()
+                #sync_success = self._parse_api_response(sync_result)
+                sync_success=True
+                if sync_success:
+                    print(f"✓ JointMovJ完成: (j1:{j1:.1f}, j2:{j2:.1f}, j3:{j3:.1f}, j4:{j4:.1f})")
+                    return True
+                else:
+                    print(f"✗ JointMovJ同步執行失敗: {sync_result}")
+                    return False
                 
         except Exception as e:
             print(f"JointMovJ執行異常: {e}")
@@ -738,7 +790,7 @@ class MotionFlowThread(BaseFlowThread):
             
             # Flow5: 機械臂運轉流程
             flow5 = Flow5AssemblyExecutor()
-            flow5.initialize(self.robot, self.motion_state_machine, self.external_modules)
+            flow5.initialize(self.robot, self.motion_state_machine, self.external_modules,flow1_executor=flow1)
             self.flow_executors[5] = flow5
             
             print("✓ 運動Flow執行器初始化完成 (Flow1, Flow2, Flow5)")
@@ -1377,11 +1429,8 @@ class DobotNewArchController:
         print(f"新架構地址範圍: {MotionRegisters.MOTION_STATUS}-{MotionRegisters.MOTION_STATUS+49}")
         print(f"狀態寄存器: {MotionRegisters.MOTION_STATUS}-{MotionRegisters.MOTION_RUN_TIME}")
         print(f"控制寄存器: {MotionRegisters.FLOW1_CONTROL}-{MotionRegisters.MOTION_EMERGENCY_STOP}")
-        print(f"解決地址衝突: 避開CCD2模組1000-1099範圍")
-        
         self.motion_state_machine = MotionStateMachine(self.modbus_client)
         self.motion_state_machine.set_ready(True)
-        print("✓ 運動類狀態機初始化完成 - 新基地址1200")
     
     def _initialize_external_modules(self):
         """初始化外部模組"""

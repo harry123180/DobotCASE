@@ -17,7 +17,7 @@ from enum import Enum
 
 # 導入新架構基類
 from flow_base import FlowExecutor, FlowResult, FlowStatus
-
+from AngleHighLevel import AngleHighLevel, AngleOperationResult
 # 導入Modbus TCP Client (適配pymodbus 3.9.2)
 try:
     from pymodbus.client import ModbusTcpClient
@@ -369,7 +369,15 @@ class Flow1VisionPickExecutor(FlowExecutor):
         
         # 預先建立AutoProgram連接 (替代AutoFeeding)
         self.autoprogram_interface = AutoProgramInterface()
-        
+        # 角度檢測相關 - 成員變數供Flow5引用
+        self.angle_detector = None
+        self.target_angle = None
+        self.command_angle = None  # 關鍵：供Flow5引用的角度變數
+
+        # 初始化角度檢測器
+        self.angle_detector = AngleHighLevel()
+        print(f"✓ Flow1 新流程版初始化完成 (sync={'啟用' if enable_sync else '停用'})")
+        print("✓ commandAngle作為成員變數，供Flow5引用")
         # Flow1需要的點位名稱
         self.REQUIRED_POINTS = [
             "standby", "vp_topside", "flip_pre", 
@@ -413,48 +421,65 @@ class Flow1VisionPickExecutor(FlowExecutor):
             {'type': 'read_autoprogram_coordinates', 'params': {}},
             
             # 2. 初始準備
-            {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
-            {'type': 'gripper_close_fast', 'params': {}},
-            {'type': 'gripper_close_fast', 'params': {}},
+            #{'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
+            #{'type': 'gripper_close_fast', 'params': {}},
             
             # 3. VP視覺序列
             {'type': 'move_to_point', 'params': {'point_name': 'vp_topside', 'move_type': 'J'}},
             {'type': 'move_to_detected_position_high', 'params': {}},
             {'type': 'move_to_detected_position_low', 'params': {}},
             {'type': 'gripper_smart_release_fast', 'params': {'position': 470}},
-            {'type': 'gripper_smart_release_fast', 'params': {'position': 470}},
             
             # 4. 返回序列
-            {'type': 'move_to_point', 'params': {'point_name': 'vp_topside', 'move_type': 'L'}},
-            {'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
+            #{'type': 'move_to_point', 'params': {'point_name': 'vp_topside', 'move_type': 'L'}},
+            {'type': 'move_to_detected_position_high', 'params': {}},
             
             # 5. 翻轉序列
-            {'type': 'move_to_point', 'params': {'point_name': 'flip_pre', 'move_type': 'J'}},
-            {'type': 'move_to_point', 'params': {'point_name': 'Goal_CV_top', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'rotate_down', 'move_type': 'J'}},
             
             # 6. 翻轉操作
-            {'type': 'gripper_close_fast', 'params': {}},
-            {'type': 'gripper_close_fast', 'params': {}},
-            {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
-            {'type': 'move_to_point', 'params': {'point_name': 'rotate_down', 'move_type': 'J'}},
-            {'type': 'gripper_smart_release_fast', 'params': {'position': 460}},
-            {'type': 'gripper_smart_release_fast', 'params': {'position': 460}},
-            {'type': 'gripper_close_fast', 'params': {}},
+            #{'type': 'gripper_close_fast', 'params': {}},
+            #{'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
+            #{'type': 'move_to_point', 'params': {'point_name': 'rotate_down', 'move_type': 'J'}},
+            #{'type': 'gripper_smart_release_fast', 'params': {'position': 460}},
             {'type': 'gripper_close_fast', 'params': {}},
             
-            # 7. 返回待機
+            # 7. 前往角度檢測位置
             {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
             {'type': 'move_to_point', 'params': {'point_name': 'Goal_CV_top', 'move_type': 'J'}},
-            {'type': 'move_to_point', 'params': {'point_name': 'flip_pre', 'move_type': 'J'}},
+            
+            # 8. 執行CCD3角度檢測
+            {'type': 'angle_detection', 'params': {}},
+            
+            # 9. 前往組裝位置
+            {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
+            {'type': 'move_to_point', 'params': {'point_name': 'rotate_down', 'move_type': 'J'}},
+            {'type': 'gripper_smart_release_fast', 'params': {'position': 470}},
+            {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
+            #{'type': 'move_to_point', 'params': {
+            #     'point_name': 'put_asm_pre', 
+            #     'move_type': 'J',
+            #     'sync': False,  # 明確指定不同步
+            #     'is_waypoint': True  # 標記為經過點
+            # }},
+            
+            # 10. 移動到put_asm_top (帶commandAngle) - Flow1終點
+            {'type': 'move_to_point_with_angle', 'params': {'point_name': 'put_asm_top', 'move_type': 'J'}},
         ]
         
         self.total_steps = len(self.motion_steps)
-        print(f"✓ Flow1步驟建構完成，共{self.total_steps}步")
+        print(f"✓ Flow1新流程步驟建構完成，共{self.total_steps}步")
+        print("✓ 流程終點: put_asm_top (帶commandAngle)")
     
     def execute(self) -> FlowResult:
-        """執行Flow1主邏輯 - AutoProgram接口版"""
+        """執行Flow1主邏輯 - 新流程版本"""
+        print("\n" + "="*60)
+        print("開始執行Flow1 - VP視覺抓取流程 (新流程版)")
+        print("流程序列: AutoProgram座標 -> VP視覺 -> 翻轉 -> CCD3角度檢測 -> put_asm_top")
+        print("終點: put_asm_top，commandAngle供Flow5使用")
+        print("="*60)
+        
         if not self.points_loaded:
             return FlowResult(
                 success=False,
@@ -467,6 +492,10 @@ class Flow1VisionPickExecutor(FlowExecutor):
         self.status = FlowStatus.RUNNING
         self.start_time = time.time()
         self.current_step = 0
+        
+        # 重置角度檢測參數
+        self.target_angle = None
+        self.command_angle = None
         
         if not self.robot or not self.robot.is_connected:
             return FlowResult(
@@ -498,9 +527,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
                 if self.status == FlowStatus.ERROR:
                     break
                 
-                # 減少print輸出，只在關鍵步驟輸出
-                if step['type'] in ['read_autoprogram_coordinates', 'move_to_detected_position_high', 'move_to_detected_position_low']:
-                    print(f"Flow1 關鍵步驟 {self.current_step + 1}/{self.total_steps}: {step['type']}")
+                print(f"Flow1 步驟 {self.current_step + 1}/{self.total_steps}: {step['type']}")
                 
                 # 執行步驟
                 success = self._execute_step(step, detected_position)
@@ -521,9 +548,8 @@ class Flow1VisionPickExecutor(FlowExecutor):
                 
                 self.current_step += 1
                 
-                # 減少進度更新頻率 (只在重要節點更新)
-                if self.current_step % 3 == 0 or self.current_step == self.total_steps:
-                    self._update_progress_to_1202()
+                # 更新進度
+                self._update_progress_to_1202()
             
             # 流程成功完成
             self.status = FlowStatus.COMPLETED
@@ -531,12 +557,23 @@ class Flow1VisionPickExecutor(FlowExecutor):
             
             self._update_progress_to_1202(100)
             
+            print(f"\n✓ Flow1執行完成！總耗時: {execution_time:.2f}秒")
+            if self.target_angle is not None and self.command_angle is not None:
+                print(f"✓ 角度檢測成功: target_angle={self.target_angle:.2f}°, command_angle={self.command_angle:.2f}°")
+                print(f"✓ commandAngle已保存為成員變數，供Flow5引用")
+            print("✓ 流程已到達put_asm_top位置，等待Flow5接續")
+            print("="*60)
+            
             return FlowResult(
                 success=True,
                 execution_time=execution_time,
                 steps_completed=self.current_step,
                 total_steps=self.total_steps,
-                flow_data={'detected_position': detected_position} if detected_position else None
+                flow_data={
+                    'detected_position': detected_position,
+                    'target_angle': self.target_angle,
+                    'command_angle': self.command_angle
+                } if detected_position else None
             )
             
         except Exception as e:
@@ -556,6 +593,8 @@ class Flow1VisionPickExecutor(FlowExecutor):
         
         if step_type == 'move_to_point':
             return self._execute_move_to_point_optimized(params)
+        elif step_type == 'move_to_point_with_angle':
+            return self._execute_move_to_point_with_angle(params)
         elif step_type == 'gripper_close_fast':
             return self._execute_gripper_close_fast()
         elif step_type == 'gripper_smart_release_fast':
@@ -566,10 +605,115 @@ class Flow1VisionPickExecutor(FlowExecutor):
             return self._execute_move_to_detected_high_optimized(detected_position)
         elif step_type == 'move_to_detected_position_low':
             return self._execute_move_to_detected_low_optimized(detected_position)
+        elif step_type == 'angle_detection':
+            return self._execute_angle_detection()
         else:
             print(f"未知步驟類型: {step_type}")
             return False
+    def _execute_angle_detection(self) -> bool:
+        """執行CCD3角度檢測並計算commandAngle - 參考Flow5實現"""
+        try:
+            print("開始CCD3角度檢測...")
+            time.sleep(0.5)
+            # 檢查角度檢測器是否初始化
+            if not self.angle_detector:
+                self.last_error = "角度檢測器未初始化"
+                print(f"  ✗ 角度檢測失敗: {self.last_error}")
+                return False
+            
+            # 連接到角度檢測模組
+            if not self.angle_detector.connect():
+                self.last_error = "無法連接到角度檢測模組"
+                print(f"  ✗ 角度檢測失敗: {self.last_error}")
+                return False
+            
+            # 執行角度檢測 (使用CASE模式)
+            detection_result = self.angle_detector.detect_angle(detection_mode=0)
+            
+            # 斷開連接
+            self.angle_detector.disconnect()
+            
+            # 檢查檢測結果
+            if detection_result.result != AngleOperationResult.SUCCESS:
+                self.last_error = f"角度檢測失敗: {detection_result.message}"
+                print(f"  ✗ 角度檢測失敗: {self.last_error}")
+                return False
+            
+            # 獲取target_angle並計算command_angle
+            self.target_angle = detection_result.target_angle
+            self.command_angle = self.target_angle + 20  # 參考Flow5的計算方式
+            
+            print(f"  ✓ CCD3角度檢測成功: target_angle={self.target_angle:.2f}°")
+            print(f"  ✓ 計算commandAngle: {self.command_angle:.2f}° (target_angle + 20)")
+            print(f"  ✓ commandAngle已保存為Flow1成員變數，供Flow5引用")
+            
+            return True
+            
+        except Exception as e:
+            self.last_error = f"角度檢測異常: {e}"
+            print(f"  ✗ 角度檢測異常: {self.last_error}")
+            return False
     
+    def _execute_move_to_point_with_angle(self, params: Dict[str, Any]) -> bool:
+        """執行移動到指定點位並使用commandAngle作為第四軸角度"""
+        try:
+            point_name = params['point_name']
+            move_type = params.get('move_type', 'J')
+            
+            # 檢查commandAngle是否已計算
+            if self.command_angle is None:
+                self.last_error = "第四軸補償角度未計算，請先執行角度檢測"
+                print(f"  ✗ 移動操作失敗: {self.last_error}")
+                return False
+            
+            # 檢查點位是否存在
+            point = self.points_manager.get_point(point_name)
+            if not point:
+                self.last_error = f"點位不存在: {point_name}"
+                print(f"  ✗ 移動操作失敗: {self.last_error}")
+                return False
+            
+            print(f"移動到點位 {point_name} (使用commandAngle)")
+            print(f"  原始關節角度: (j1:{point.j1:.1f}, j2:{point.j2:.1f}, j3:{point.j3:.1f}, j4:{point.j4:.1f})")
+            print(f"  補償關節角度: (j1:{point.j1:.1f}, j2:{point.j2:.1f}, j3:{point.j3:.1f}, j4:{self.command_angle:.1f})")
+            
+            # 執行移動 - 使用補償後的第四軸角度
+            success = False
+            if move_type == 'J':
+                success = self.robot.joint_move_j(
+                    point.j1, 
+                    point.j2, 
+                    point.j3, 
+                    self.command_angle  # 使用計算出的補償角度
+                )
+            elif move_type == 'L':
+                success = self.robot.move_l(
+                    point.x, 
+                    point.y, 
+                    point.z, 
+                    self.command_angle  # 使用計算出的補償角度
+                )
+            else:
+                self.last_error = f"未知移動類型: {move_type}"
+                print(f"  ✗ 移動操作失敗: {self.last_error}")
+                return False
+            
+            # 可選的sync控制
+            if success and self.enable_sync:
+                self.robot.sync()
+            
+            if success:
+                print(f"  ✓ 移動到 {point_name} 成功 ({move_type}) - 第四軸: {self.command_angle:.1f}度")
+                return True
+            else:
+                self.last_error = f"移動到 {point_name} 失敗"
+                print(f"  ✗ 移動操作失敗: {self.last_error}")
+                return False
+                
+        except Exception as e:
+            self.last_error = f"移動操作異常: {e}"
+            print(f"  ✗ 移動操作異常: {self.last_error}")
+            return False
     def _execute_read_autoprogram_coordinates(self) -> Optional[Dict[str, float]]:
         """從AutoProgram讀取座標 - 增加重試邏輯版本"""
         max_retries = 20
@@ -643,29 +787,64 @@ class Flow1VisionPickExecutor(FlowExecutor):
         return None
     
     def _execute_move_to_point_optimized(self, params: Dict[str, Any]) -> bool:
-        """執行移動到點位 - 優化版sync控制"""
+        """執行移動到點位 - 增強版sync控制"""
         try:
             point_name = params['point_name']
             move_type = params['move_type']
             
+            # 🔥 新增：step級別的sync控制
+            step_sync = params.get('sync', None)  # step指定的sync設定
+            is_waypoint = params.get('is_waypoint', False)  # 是否為經過點
+            
             point = self.points_manager.get_point(point_name)
             if not point:
+                print(f"✗ 點位不存在: {point_name}")
                 return False
+            
+            print(f"移動到點位: {point_name} ({move_type})", end="")
+            if is_waypoint:
+                print(" [經過點]", end="")
             
             success = False
             if move_type == 'J':
                 success = self.robot.joint_move_j(point.j1, point.j2, point.j3, point.j4)
             elif move_type == 'L':
                 success = self.robot.move_l(point.x, point.y, point.z, point.r)
+            else:
+                print(f"\n✗ 未知移動類型: {move_type}")
+                return False
             
-            # 可選的sync控制
-            if success and self.enable_sync:
-                self.robot.sync()
-                
-            return success
+            if not success:
+                print(f"\n✗ 移動指令發送失敗")
+                return False
+            
+            # 🔥 sync決策邏輯：step設定 > 全域設定
+            should_sync = False
+            
+            if step_sync is not None:
+                # step明確指定sync設定，優先使用
+                should_sync = step_sync
+                sync_reason = "step指定"
+            else:
+                # 使用全域設定
+                should_sync = self.enable_sync
+                sync_reason = "全域設定"
+            
+            # 執行sync（如果需要）
+            if should_sync:
+                sync_success = self.robot.sync()
+                if sync_success:
+                    print(f" -> ✓ 完成+同步 ({sync_reason})")
+                else:
+                    print(f" -> ✗ 同步失敗 ({sync_reason})")
+                    return False
+            else:
+                print(f" -> ✓ 完成-異步 ({sync_reason})")
+            
+            return True
                 
         except Exception as e:
-            print(f"移動到點位失敗: {e}")
+            print(f"\n✗ 移動到點位異常: {e}")
             return False
     
     def _execute_gripper_close_fast(self) -> bool:
@@ -678,7 +857,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
             success = gripper_api.quick_close()
             
             if success:
-                time.sleep(self.GRIPPER_CLOSE_WAIT)  # 0.3秒等待
+                #time.sleep(self.GRIPPER_CLOSE_WAIT)  # 0.3秒等待
                 return True
             return False
                 
@@ -758,7 +937,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
             return False
     
     def _update_progress_to_1202(self, override_progress: Optional[int] = None):
-        """更新進度到寄存器1202 - 優化版減少輸出"""
+        """更新進度到寄存器1202"""
         try:
             if override_progress is not None:
                 progress = override_progress
@@ -769,7 +948,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
                 self.state_machine.set_progress(progress)
                 
         except Exception:
-            pass  # 靜默處理錯誤，避免影響流程
+            pass
     
     def cleanup(self):
         """清理資源"""
@@ -787,13 +966,17 @@ class Flow1VisionPickExecutor(FlowExecutor):
             self.status = FlowStatus.RUNNING
             return True
         return False
-        
+    def get_command_angle(self) -> Optional[float]:
+        """供Flow5調用：獲取commandAngle"""
+        return self.command_angle    
     def stop(self) -> bool:
         """停止Flow"""
         self.status = FlowStatus.ERROR
         self.cleanup()
         return True
-        
+    def has_valid_command_angle(self) -> bool:
+        """供Flow5調用：檢查commandAngle是否有效"""
+        return self.command_angle is not None    
     def get_progress(self) -> int:
         """取得進度百分比"""
         if self.total_steps == 0:
