@@ -78,7 +78,7 @@ class CameraConfig:
     buffer_count: int = 1  # 最小緩存
     use_latest_frame_only: bool = True  # 只保留最新幀
     
-    trigger_mode: CameraMode = CameraMode.CONTINUOUS
+    trigger_mode: CameraMode = CameraMode.SOFTWARE_TRIGGER
     auto_reconnect: bool = True
 
 

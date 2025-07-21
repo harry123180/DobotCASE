@@ -611,6 +611,7 @@ class RealRobotController:
             
             # 發送關節運動指令到隊列
             result = self.move_api.JointMovJ(j1, j2, j3, j4)
+                                
             success = self._parse_api_response(result)
             
             if not success:
@@ -790,7 +791,20 @@ class MotionFlowThread(BaseFlowThread):
             
             # Flow5: 機械臂運轉流程
             flow5 = Flow5AssemblyExecutor()
-            flow5.initialize(self.robot, self.motion_state_machine, self.external_modules,flow1_executor=flow1)
+
+            # 2. 設置共用資源 (參照Flow1格式)
+            flow5.robot = self.robot
+            flow5.state_machine = self.motion_state_machine
+            flow5.external_modules = self.external_modules
+
+            # 3. 設置Flow1執行器引用
+            flow5.set_flow1_executor(flow1)
+
+            # 4. 檢查是否準備就緒
+            if flow5.is_ready():
+                print("✓ Flow5準備完成")
+            else:
+                print("✗ Flow5未準備就緒")
             self.flow_executors[5] = flow5
             
             print("✓ 運動Flow執行器初始化完成 (Flow1, Flow2, Flow5)")

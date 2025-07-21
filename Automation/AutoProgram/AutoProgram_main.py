@@ -87,15 +87,15 @@ class AutoProgramController:
         """載入配置檔案"""
         default_config = {
             "autoprogram": {
-                "coordination_interval": 0.2,      # 協調週期間隔(更快響應)
+                "coordination_interval": 0.02,      # 協調週期間隔(更快響應)
                 "auto_program_enabled": True,      # 自動程序啟用
                 "flow1_trigger_delay": 0.1,        # Flow1觸發延遲
                 "coords_confirm_delay": 0.1,       # 座標確認延遲
             },
             "monitoring": {
-                "case_f_check_interval": 0.1,      # CASE_F檢查間隔
-                "flow5_check_interval": 0.2,       # Flow5檢查間隔
-                "status_update_interval": 1.0,     # 狀態更新間隔
+                "case_f_check_interval": 0.01,      # CASE_F檢查間隔
+                "flow5_check_interval": 0.02,       # Flow5檢查間隔
+                "status_update_interval": 0.1,     # 狀態更新間隔
             },
             "timing": {
                 "register_clear_delay": 0.05,      # 寄存器清除延遲

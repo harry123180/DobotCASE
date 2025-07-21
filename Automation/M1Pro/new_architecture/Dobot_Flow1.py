@@ -357,7 +357,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
         
         # 流程高度參數
         self.VP_DETECT_HEIGHT = 244.65
-        self.PICKUP_HEIGHT = 160
+        self.PICKUP_HEIGHT = 158
         
         # 優化的等待時間參數
         self.GRIPPER_CLOSE_WAIT = 0.3  # 從1.0秒減少到0.3秒
@@ -425,18 +425,18 @@ class Flow1VisionPickExecutor(FlowExecutor):
             #{'type': 'gripper_close_fast', 'params': {}},
             
             # 3. VP視覺序列
-            {'type': 'move_to_point', 'params': {'point_name': 'vp_topside', 'move_type': 'J'}},
-            {'type': 'move_to_detected_position_high', 'params': {}},
-            {'type': 'move_to_detected_position_low', 'params': {}},
-            {'type': 'gripper_smart_release_fast', 'params': {'position': 470}},
+            {'type': 'move_to_point', 'params': {'point_name': 'vp_topside', 'move_type': 'JointMovJ','sync': False}},
+            {'type': 'move_to_detected_position_high', 'params': {'sync': False}},
+            {'type': 'move_to_detected_position_low', 'params': {'sync': True}},
+            {'type': 'gripper_smart_release_fast', 'params': {'position': 460}},
             
             # 4. 返回序列
-            #{'type': 'move_to_point', 'params': {'point_name': 'vp_topside', 'move_type': 'L'}},
-            {'type': 'move_to_detected_position_high', 'params': {}},
+            {'type': 'move_to_point', 'params': {'point_name': 'vp_topside', 'move_type': 'L','sync': False}},
+            {'type': 'move_to_detected_position_high', 'params': {'sync': False}},
             
             # 5. 翻轉序列
-            {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
-            {'type': 'move_to_point', 'params': {'point_name': 'rotate_down', 'move_type': 'J'}},
+            {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'JointMovJ'}},
+            {'type': 'move_to_point', 'params': {'point_name': 'rotate_down', 'move_type': 'JointMovJ','sync': True }},
             
             # 6. 翻轉操作
             #{'type': 'gripper_close_fast', 'params': {}},
@@ -446,26 +446,26 @@ class Flow1VisionPickExecutor(FlowExecutor):
             {'type': 'gripper_close_fast', 'params': {}},
             
             # 7. 前往角度檢測位置
-            {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
-            {'type': 'move_to_point', 'params': {'point_name': 'Goal_CV_top', 'move_type': 'J'}},
+            {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'JointMovJ'}},
+            {'type': 'move_to_point', 'params': {'point_name': 'Goal_CV_top', 'move_type': 'JointMovJ','sync': True }},
             
             # 8. 執行CCD3角度檢測
             {'type': 'angle_detection', 'params': {}},
             
             # 9. 前往組裝位置
-            {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
-            {'type': 'move_to_point', 'params': {'point_name': 'rotate_down', 'move_type': 'J'}},
-            {'type': 'gripper_smart_release_fast', 'params': {'position': 470}},
-            {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'J'}},
-            #{'type': 'move_to_point', 'params': {
-            #     'point_name': 'put_asm_pre', 
-            #     'move_type': 'J',
-            #     'sync': False,  # 明確指定不同步
-            #     'is_waypoint': True  # 標記為經過點
-            # }},
+            {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'JointMovJ'}},
+            {'type': 'move_to_point', 'params': {'point_name': 'rotate_down', 'move_type': 'JointMovJ','sync': True}},
+            {'type': 'gripper_smart_release_fast', 'params': {'position': 460}},
+            {'type': 'move_to_point', 'params': {'point_name': 'rotate_top', 'move_type': 'JointMovJ'}},
+        #     {'type': 'move_to_point', 'params': {
+        #     'point_name': 'put_asm_pre', 
+        #     'move_type': 'J',
+        #     'sync': False,  # 明確指定不同步
+        #     'is_waypoint': True  # 標記為經過點
+        # }},
             
             # 10. 移動到put_asm_top (帶commandAngle) - Flow1終點
-            {'type': 'move_to_point_with_angle', 'params': {'point_name': 'put_asm_top', 'move_type': 'J'}},
+            {'type': 'move_to_point_with_angle', 'params': {'point_name': 'put_asm_top', 'move_type': 'JointMovJ'}},
         ]
         
         self.total_steps = len(self.motion_steps)
@@ -587,14 +587,16 @@ class Flow1VisionPickExecutor(FlowExecutor):
             )
     
     def _execute_step(self, step: Dict, detected_position: Optional[Dict]) -> Any:
-        """執行單個步驟 - 統一入口"""
+        """執行單個步驟 - 增強版支援可選參數"""
         step_type = step['type']
         params = step.get('params', {})
         
         if step_type == 'move_to_point':
-            return self._execute_move_to_point_optimized(params)
+            return self._execute_move_to_point_with_parameters(params)
         elif step_type == 'move_to_point_with_angle':
-            return self._execute_move_to_point_with_angle(params)
+            return self._execute_move_to_point_with_angle_with_parameters(params)
+        elif step_type == 'set_arm_orientation':
+            return self._execute_set_arm_orientation(params)
         elif step_type == 'gripper_close_fast':
             return self._execute_gripper_close_fast()
         elif step_type == 'gripper_smart_release_fast':
@@ -602,29 +604,421 @@ class Flow1VisionPickExecutor(FlowExecutor):
         elif step_type == 'read_autoprogram_coordinates':
             return self._execute_read_autoprogram_coordinates()
         elif step_type == 'move_to_detected_position_high':
-            return self._execute_move_to_detected_high_optimized(detected_position)
+            params['target_height'] = self.VP_DETECT_HEIGHT
+            return self._execute_move_to_detected_position_with_parameters(detected_position, params)
         elif step_type == 'move_to_detected_position_low':
-            return self._execute_move_to_detected_low_optimized(detected_position)
+            params['target_height'] = self.PICKUP_HEIGHT
+            return self._execute_move_to_detected_position_with_parameters(detected_position, params)
         elif step_type == 'angle_detection':
             return self._execute_angle_detection()
         else:
             print(f"未知步驟類型: {step_type}")
             return False
+    def _execute_move_to_point_with_parameters(self, params: Dict[str, Any]) -> bool:
+        """執行移動到點位 - 支援可選參數版本"""
+        try:
+            point_name = params['point_name']
+            move_type = params['move_type']
+            
+            # 獲取點位
+            point = self.points_manager.get_point(point_name)
+            if not point:
+                self.last_error = f"點位不存在: {point_name}"
+                print(f"  ✗ 移動操作失敗: {self.last_error}")
+                return False
+            
+            # 構建動態參數列表 - 按照dobot_api.py的 *dynParams 格式
+            dyn_params = []
+            
+            # 根據運動類型添加對應參數
+            if move_type in ['MovJ']:
+                # MovJ: dynParams順序 (User, Tool, SpeedJ, AccJ, CP等)
+                if 'user' in params:
+                    dyn_params.append(params['user'])
+                if 'tool' in params:
+                    dyn_params.append(params['tool'])
+                if 'speed_j' in params:
+                    dyn_params.append(params['speed_j'])
+                if 'acc_j' in params:
+                    dyn_params.append(params['acc_j'])
+                if 'cp' in params:
+                    dyn_params.append(params['cp'])
+                    
+            elif move_type in ['MovL']:
+                # MovL: dynParams順序 (User, Tool, SpeedL, AccL, CP等)
+                if 'user' in params:
+                    dyn_params.append(params['user'])
+                if 'tool' in params:
+                    dyn_params.append(params['tool'])
+                if 'speed_l' in params:
+                    dyn_params.append(params['speed_l'])
+                if 'acc_l' in params:
+                    dyn_params.append(params['acc_l'])
+                if 'cp' in params:
+                    dyn_params.append(params['cp'])
+                    
+            elif move_type in ['JointMovJ']:
+                # JointMovJ: dynParams順序 (SpeedJ, AccJ, CP等)
+                if 'speed_j' in params:
+                    dyn_params.append(params['speed_j'])
+                if 'acc_j' in params:
+                    dyn_params.append(params['acc_j'])
+                if 'cp' in params:
+                    dyn_params.append(params['cp'])
+            
+            # 顯示執行資訊
+            param_info = f"參數: {dyn_params}" if dyn_params else "無參數"
+            print(f"移動到點位 {point_name} ({move_type}) - {param_info}")
+            
+            # 執行移動 - 根據move_type選擇對應的API方法
+            success = False
+            try:
+                if move_type == 'MovJ':
+                    if hasattr(self.robot, 'move_api') and self.robot.move_api:
+                        result = self.robot.move_api.MovJ(point.x, point.y, point.z, point.r, *dyn_params)
+                        success = self._parse_api_response(result) if hasattr(self, '_parse_api_response') else True
+                    else:
+                        # 回退到簡化API
+                        success = self.robot.move_j(point.x, point.y, point.z, point.r) if hasattr(self.robot, 'move_j') else False
+                        
+                elif move_type == 'MovL':
+                    if hasattr(self.robot, 'move_api') and self.robot.move_api:
+                        result = self.robot.move_api.MovL(point.x, point.y, point.z, point.r, *dyn_params)
+                        success = self._parse_api_response(result) if hasattr(self, '_parse_api_response') else True
+                    else:
+                        # 回退到簡化API
+                        success = self.robot.move_l(point.x, point.y, point.z, point.r) if hasattr(self.robot, 'move_l') else False
+                        
+                elif move_type == 'JointMovJ':
+                    if hasattr(self.robot, 'move_api') and self.robot.move_api:
+                        result = self.robot.move_api.JointMovJ(point.j1, point.j2, point.j3, point.j4, *dyn_params)
+                        success = self._parse_api_response(result) if hasattr(self, '_parse_api_response') else True
+                    else:
+                        # 回退到簡化API
+                        success = self.robot.joint_move_j(point.j1, point.j2, point.j3, point.j4) if hasattr(self.robot, 'joint_move_j') else False
+                        
+                # 向下兼容的簡化類型
+                elif move_type == 'J':
+                    success = self.robot.joint_move_j(point.j1, point.j2, point.j3, point.j4) if hasattr(self.robot, 'joint_move_j') else False
+                elif move_type == 'L':
+                    success = self.robot.move_l(point.x, point.y, point.z, point.r) if hasattr(self.robot, 'move_l') else False
+                else:
+                    self.last_error = f"未知移動類型: {move_type}"
+                    print(f"  ✗ 移動操作失敗: {self.last_error}")
+                    return False
+            
+            except Exception as e:
+                print(f"  ⚠ API調用異常，嘗試回退: {e}")
+                # 回退到基本運動
+                if move_type in ['MovJ', 'J']:
+                    success = self.robot.joint_move_j(point.j1, point.j2, point.j3, point.j4) if hasattr(self.robot, 'joint_move_j') else False
+                elif move_type in ['MovL', 'L']:
+                    success = self.robot.move_l(point.x, point.y, point.z, point.r) if hasattr(self.robot, 'move_l') else False
+                elif move_type == 'JointMovJ':
+                    success = self.robot.joint_move_j(point.j1, point.j2, point.j3, point.j4) if hasattr(self.robot, 'joint_move_j') else False
+            
+            # Sync控制 - 支援三種方式
+            sync_enabled = False
+            if 'sync' in params:
+                sync_enabled = params['sync']  # 步驟級別的sync設定
+            elif hasattr(self, 'enable_sync'):
+                sync_enabled = self.enable_sync  # 全局sync設定
+            
+            if success and sync_enabled:
+                try:
+                    if hasattr(self.robot, 'move_api') and self.robot.move_api:
+                        self.robot.move_api.Sync()
+                    elif hasattr(self.robot, 'sync'):
+                        self.robot.sync()
+                except Exception as e:
+                    print(f"  ⚠ Sync調用異常: {e}")
+            
+            if success:
+                sync_info = " (含Sync)" if sync_enabled else ""
+                print(f"  ✓ 移動到 {point_name} 成功 ({move_type}){sync_info}")
+                return True
+            else:
+                self.last_error = f"移動到 {point_name} 失敗"
+                print(f"  ✗ 移動操作失敗: {self.last_error}")
+                return False
+                
+        except Exception as e:
+            self.last_error = f"移動操作異常: {e}"
+            print(f"  ✗ 移動操作異常: {self.last_error}")
+            return False
+    def _execute_move_to_point_with_angle_with_parameters(self, params: Dict[str, Any]) -> bool:
+        """執行移動到指定點位並使用commandAngle作為第四軸角度 - 支援參數版本"""
+        try:
+            point_name = params['point_name']
+            move_type = params.get('move_type', 'JointMovJ')
+            
+            # 檢查commandAngle是否已計算
+            if self.command_angle is None:
+                self.last_error = "第四軸補償角度未計算，請先執行角度檢測"
+                print(f"  ✗ 移動操作失敗: {self.last_error}")
+                return False
+            
+            # 檢查點位是否存在
+            point = self.points_manager.get_point(point_name)
+            if not point:
+                self.last_error = f"點位不存在: {point_name}"
+                print(f"  ✗ 移動操作失敗: {self.last_error}")
+                return False
+            
+            # 構建動態參數列表
+            dyn_params = []
+            if move_type in ['JointMovJ']:
+                if 'speed_j' in params:
+                    dyn_params.append(params['speed_j'])
+                if 'acc_j' in params:
+                    dyn_params.append(params['acc_j'])
+                if 'cp' in params:
+                    dyn_params.append(params['cp'])
+            elif move_type in ['MovJ']:
+                if 'user' in params:
+                    dyn_params.append(params['user'])
+                if 'tool' in params:
+                    dyn_params.append(params['tool'])
+                if 'speed_j' in params:
+                    dyn_params.append(params['speed_j'])
+                if 'acc_j' in params:
+                    dyn_params.append(params['acc_j'])
+            elif move_type in ['MovL']:
+                if 'user' in params:
+                    dyn_params.append(params['user'])
+                if 'tool' in params:
+                    dyn_params.append(params['tool'])
+                if 'speed_l' in params:
+                    dyn_params.append(params['speed_l'])
+                if 'acc_l' in params:
+                    dyn_params.append(params['acc_l'])
+            
+            param_info = f"參數: {dyn_params}" if dyn_params else "無參數"
+            print(f"移動到點位 {point_name} (使用commandAngle={self.command_angle:.1f}°) - {param_info}")
+            print(f"  原始關節角度: (j1:{point.j1:.1f}, j2:{point.j2:.1f}, j3:{point.j3:.1f}, j4:{point.j4:.1f})")
+            print(f"  補償關節角度: (j1:{point.j1:.1f}, j2:{point.j2:.1f}, j3:{point.j3:.1f}, j4:{self.command_angle:.1f})")
+            
+            # 執行移動 - 使用補償後的第四軸角度
+            success = False
+            try:
+                if move_type == 'JointMovJ':
+                    if hasattr(self.robot, 'move_api') and self.robot.move_api:
+                        result = self.robot.move_api.JointMovJ(point.j1, point.j2, point.j3, self.command_angle, *dyn_params)
+                        success = self._parse_api_response(result) if hasattr(self, '_parse_api_response') else True
+                    else:
+                        success = self.robot.joint_move_j(point.j1, point.j2, point.j3, self.command_angle) if hasattr(self.robot, 'joint_move_j') else False
+                        
+                elif move_type == 'MovJ':
+                    if hasattr(self.robot, 'move_api') and self.robot.move_api:
+                        result = self.robot.move_api.MovJ(point.x, point.y, point.z, self.command_angle, *dyn_params)
+                        success = self._parse_api_response(result) if hasattr(self, '_parse_api_response') else True
+                    else:
+                        success = self.robot.move_j(point.x, point.y, point.z, self.command_angle) if hasattr(self.robot, 'move_j') else False
+                        
+                elif move_type == 'MovL':
+                    if hasattr(self.robot, 'move_api') and self.robot.move_api:
+                        result = self.robot.move_api.MovL(point.x, point.y, point.z, self.command_angle, *dyn_params)
+                        success = self._parse_api_response(result) if hasattr(self, '_parse_api_response') else True
+                    else:
+                        success = self.robot.move_l(point.x, point.y, point.z, self.command_angle) if hasattr(self.robot, 'move_l') else False
+                else:
+                    self.last_error = f"未知移動類型: {move_type}"
+                    print(f"  ✗ 移動操作失敗: {self.last_error}")
+                    return False
+                    
+            except Exception as e:
+                print(f"  ⚠ API調用異常，嘗試回退: {e}")
+                # 回退到基本運動
+                success = self.robot.joint_move_j(point.j1, point.j2, point.j3, self.command_angle) if hasattr(self.robot, 'joint_move_j') else False
+            
+            # Sync控制
+            sync_enabled = params.get('sync', self.enable_sync if hasattr(self, 'enable_sync') else False)
+            if success and sync_enabled:
+                try:
+                    if hasattr(self.robot, 'move_api') and self.robot.move_api:
+                        self.robot.move_api.Sync()
+                    elif hasattr(self.robot, 'sync'):
+                        self.robot.sync()
+                except Exception as e:
+                    print(f"  ⚠ Sync調用異常: {e}")
+            
+            if success:
+                sync_info = " (含Sync)" if sync_enabled else ""
+                print(f"  ✓ 移動到 {point_name} 成功 ({move_type}) - 第四軸: {self.command_angle:.1f}度{sync_info}")
+                return True
+            else:
+                self.last_error = f"移動到 {point_name} 失敗"
+                print(f"  ✗ 移動操作失敗: {self.last_error}")
+                return False
+                
+        except Exception as e:
+            self.last_error = f"移動操作異常: {e}"
+            print(f"  ✗ 移動操作異常: {self.last_error}")
+            return False
+    def _execute_move_to_detected_position_with_parameters(self, detected_position: Optional[Dict[str, float]], params: Dict[str, Any]) -> bool:
+        """移動到檢測位置 - 支援參數版本"""
+        try:
+            if not detected_position:
+                self.last_error = "檢測位置資料無效"
+                print(f"  ✗ 移動操作失敗: {self.last_error}")
+                return False
+            
+            move_type = params.get('move_type', 'MovL')
+            target_height = params.get('target_height', self.VP_DETECT_HEIGHT)
+            
+            # 構建動態參數列表
+            dyn_params = []
+            if move_type == 'MovL':
+                if 'user' in params:
+                    dyn_params.append(params['user'])
+                if 'tool' in params:
+                    dyn_params.append(params['tool'])
+                if 'speed_l' in params:
+                    dyn_params.append(params['speed_l'])
+                if 'acc_l' in params:
+                    dyn_params.append(params['acc_l'])
+                if 'cp' in params:
+                    dyn_params.append(params['cp'])
+            elif move_type == 'MovJ':
+                if 'user' in params:
+                    dyn_params.append(params['user'])
+                if 'tool' in params:
+                    dyn_params.append(params['tool'])
+                if 'speed_j' in params:
+                    dyn_params.append(params['speed_j'])
+                if 'acc_j' in params:
+                    dyn_params.append(params['acc_j'])
+            
+            param_info = f"參數: {dyn_params}" if dyn_params else "無參數"
+            print(f"移動到檢測位置 ({move_type}) - Z:{target_height} - {param_info}")
+
+            
+            # 快速切換座標系 (如果需要)
+            if 'arm_orientation' in params:
+                try:
+                    if hasattr(self.robot, 'dashboard_api') and self.robot.dashboard_api:
+                        self.robot.dashboard_api.SetArmOrientation(params['arm_orientation'])
+                except Exception as e:
+                    print(f"  ⚠ 設定手系失敗: {e}")
+            elif hasattr(self.robot, 'dashboard_api') and self.robot.dashboard_api:
+                try:
+                    self.robot.dashboard_api.SetArmOrientation(0)  # 預設左手系
+                except:
+                    pass
+            
+            # 執行移動
+            success = False
+            try:
+                if move_type == 'MovL':
+                    if hasattr(self.robot, 'move_api') and self.robot.move_api:
+                        result = self.robot.move_api.MovL(
+                            detected_position['x'],
+                            detected_position['y'],
+                            target_height,
+                            detected_position['r'],
+                            *dyn_params
+                        )
+                        success = self._parse_api_response(result) if hasattr(self, '_parse_api_response') else True
+                    else:
+                        success = self.robot.move_l(
+                            detected_position['x'],
+                            detected_position['y'],
+                            target_height,
+                            detected_position['r']
+                        ) if hasattr(self.robot, 'move_l') else False
+                        
+                elif move_type == 'MovJ':
+                    if hasattr(self.robot, 'move_api') and self.robot.move_api:
+                        result = self.robot.move_api.MovJ(
+                            detected_position['x'],
+                            detected_position['y'],
+                            target_height,
+                            detected_position['r'],
+                            *dyn_params
+                        )
+                        success = self._parse_api_response(result) if hasattr(self, '_parse_api_response') else True
+                    else:
+                        success = self.robot.move_j(
+                            detected_position['x'],
+                            detected_position['y'],
+                            target_height,
+                            detected_position['r']
+                        ) if hasattr(self.robot, 'move_j') else False
+                        
+            except Exception as e:
+                print(f"  ⚠ API調用異常，嘗試回退: {e}")
+                # 回退到基本運動
+                success = self.robot.move_l(
+                    detected_position['x'],
+                    detected_position['y'],
+                    target_height,
+                    detected_position['r']
+                ) if hasattr(self.robot, 'move_l') else False
+            
+            # Sync控制
+            sync_enabled = params.get('sync', self.enable_sync if hasattr(self, 'enable_sync') else False)
+            if success and sync_enabled:
+                try:
+                    if hasattr(self.robot, 'move_api') and self.robot.move_api:
+                        self.robot.move_api.Sync()
+                    elif hasattr(self.robot, 'sync'):
+                        self.robot.sync()
+                except Exception as e:
+                    print(f"  ⚠ Sync調用異常: {e}")
+            
+            if success:
+                sync_info = " (含Sync)" if sync_enabled else ""
+                print(f"  ✓ 移動到檢測位置成功 ({move_type}) - Z:{target_height}{sync_info}")
+                return True
+            else:
+                self.last_error = f"移動到檢測位置失敗"
+                print(f"  ✗ 移動操作失敗: {self.last_error}")
+                return False
+                
+        except Exception as e:
+            self.last_error = f"移動到檢測位置異常: {e}"
+            print(f"  ✗ 移動操作異常: {self.last_error}")
+            return False
+
+
+    def _execute_set_arm_orientation(self, params: Dict[str, Any]) -> bool:
+        """執行設定機械臂手系"""
+        try:
+            orientation = params.get('orientation', 0)  # 0=左手系, 1=右手系
+            
+            if hasattr(self.robot, 'dashboard_api') and self.robot.dashboard_api:
+                result = self.robot.dashboard_api.SetArmOrientation(orientation)
+                success = self._parse_api_response(result) if hasattr(self, '_parse_api_response') else True
+                
+                if success:
+                    orientation_name = "左手系" if orientation == 0 else "右手系"
+                    print(f"  ✓ 設定機械臂手系: {orientation} ({orientation_name})")
+                    return True
+                else:
+                    print(f"  ✗ 設定機械臂手系失敗: {result}")
+                    return False
+            else:
+                print("  ✗ dashboard_api未連接，無法設定手系")
+                return False
+                
+        except Exception as e:
+            print(f"設定機械臂手系異常: {e}")
+            return False
     def _execute_angle_detection(self) -> bool:
         """執行CCD3角度檢測並計算commandAngle - 參考Flow5實現"""
         try:
             print("開始CCD3角度檢測...")
-            time.sleep(0.5)
+            time.sleep(0.05)
             # 檢查角度檢測器是否初始化
             if not self.angle_detector:
                 self.last_error = "角度檢測器未初始化"
-                print(f"  ✗ 角度檢測失敗: {self.last_error}")
+                #print(f"  ✗ 角度檢測失敗: {self.last_error}")
                 return False
             
             # 連接到角度檢測模組
             if not self.angle_detector.connect():
                 self.last_error = "無法連接到角度檢測模組"
-                print(f"  ✗ 角度檢測失敗: {self.last_error}")
+                #print(f"  ✗ 角度檢測失敗: {self.last_error}")
                 return False
             
             # 執行角度檢測 (使用CASE模式)
@@ -636,22 +1030,22 @@ class Flow1VisionPickExecutor(FlowExecutor):
             # 檢查檢測結果
             if detection_result.result != AngleOperationResult.SUCCESS:
                 self.last_error = f"角度檢測失敗: {detection_result.message}"
-                print(f"  ✗ 角度檢測失敗: {self.last_error}")
+                #print(f"  ✗ 角度檢測失敗: {self.last_error}")
                 return False
             
             # 獲取target_angle並計算command_angle
             self.target_angle = detection_result.target_angle
             self.command_angle = self.target_angle + 20  # 參考Flow5的計算方式
             
-            print(f"  ✓ CCD3角度檢測成功: target_angle={self.target_angle:.2f}°")
-            print(f"  ✓ 計算commandAngle: {self.command_angle:.2f}° (target_angle + 20)")
-            print(f"  ✓ commandAngle已保存為Flow1成員變數，供Flow5引用")
+            # print(f"  ✓ CCD3角度檢測成功: target_angle={self.target_angle:.2f}°")
+            # print(f"  ✓ 計算commandAngle: {self.command_angle:.2f}° (target_angle + 20)")
+            # print(f"  ✓ commandAngle已保存為Flow1成員變數，供Flow5引用")
             
             return True
             
         except Exception as e:
-            self.last_error = f"角度檢測異常: {e}"
-            print(f"  ✗ 角度檢測異常: {self.last_error}")
+            #self.last_error = f"角度檢測異常: {e}"
+            #print(f"  ✗ 角度檢測異常: {self.last_error}")
             return False
     
     def _execute_move_to_point_with_angle(self, params: Dict[str, Any]) -> bool:
@@ -787,64 +1181,29 @@ class Flow1VisionPickExecutor(FlowExecutor):
         return None
     
     def _execute_move_to_point_optimized(self, params: Dict[str, Any]) -> bool:
-        """執行移動到點位 - 增強版sync控制"""
+        """執行移動到點位 - 優化版sync控制"""
         try:
             point_name = params['point_name']
             move_type = params['move_type']
             
-            # 🔥 新增：step級別的sync控制
-            step_sync = params.get('sync', None)  # step指定的sync設定
-            is_waypoint = params.get('is_waypoint', False)  # 是否為經過點
-            
             point = self.points_manager.get_point(point_name)
             if not point:
-                print(f"✗ 點位不存在: {point_name}")
                 return False
-            
-            print(f"移動到點位: {point_name} ({move_type})", end="")
-            if is_waypoint:
-                print(" [經過點]", end="")
             
             success = False
             if move_type == 'J':
                 success = self.robot.joint_move_j(point.j1, point.j2, point.j3, point.j4)
             elif move_type == 'L':
                 success = self.robot.move_l(point.x, point.y, point.z, point.r)
-            else:
-                print(f"\n✗ 未知移動類型: {move_type}")
-                return False
             
-            if not success:
-                print(f"\n✗ 移動指令發送失敗")
-                return False
-            
-            # 🔥 sync決策邏輯：step設定 > 全域設定
-            should_sync = False
-            
-            if step_sync is not None:
-                # step明確指定sync設定，優先使用
-                should_sync = step_sync
-                sync_reason = "step指定"
-            else:
-                # 使用全域設定
-                should_sync = self.enable_sync
-                sync_reason = "全域設定"
-            
-            # 執行sync（如果需要）
-            if should_sync:
-                sync_success = self.robot.sync()
-                if sync_success:
-                    print(f" -> ✓ 完成+同步 ({sync_reason})")
-                else:
-                    print(f" -> ✗ 同步失敗 ({sync_reason})")
-                    return False
-            else:
-                print(f" -> ✓ 完成-異步 ({sync_reason})")
-            
-            return True
+            # 可選的sync控制
+            if success and self.enable_sync:
+                self.robot.sync()
+                
+            return success
                 
         except Exception as e:
-            print(f"\n✗ 移動到點位異常: {e}")
+            print(f"移動到點位失敗: {e}")
             return False
     
     def _execute_gripper_close_fast(self) -> bool:
@@ -877,7 +1236,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
             success = gripper_api.smart_release(position)
             
             if success:
-                time.sleep(self.GRIPPER_RELEASE_WAIT)  # 1.0秒等待
+                time.sleep(0.3)  # 1.0秒等待
                 return True
             return False
                 
