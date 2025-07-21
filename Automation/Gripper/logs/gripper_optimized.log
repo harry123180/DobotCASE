@@ -7676,3 +7676,1560 @@ AttributeError: 'NoneType' object has no attribute 'inWaiting'
 2025-07-21 11:55:25 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=155000, 平均耗時=7.4ms, 最大耗時=33.7ms, 指令數=4
 2025-07-21 11:55:45 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=156000, 平均耗時=7.4ms, 最大耗時=33.7ms, 指令數=4
 2025-07-21 11:56:06 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=157000, 平均耗時=6.1ms, 最大耗時=33.7ms, 指令數=4
+2025-07-21 17:01:12 [INFO] GripperOptimized:__init__:66 - 夾爪模組啟動 - 優化版本 - 基地址: 500-539
+2025-07-21 17:01:12 [INFO] GripperOptimized:__init__:67 - 性能參數: 主循環=20.0ms, 狀態更新=10.0ms
+2025-07-21 17:01:12 [INFO] GripperOptimized:fast_loop:438 - 夾爪主循環啟動 - 高性能模式
+2025-07-21 17:01:12 [INFO] GripperOptimized:start:509 - 夾爪模組已啟動 - 高性能模式
+2025-07-21 17:01:12 [INFO] GripperOptimized:connect_main_server:158 - 主服務器連接成功: 127.0.0.1:502
+2025-07-21 17:01:12 [INFO] GripperOptimized:connect_rtu_devices:183 - RTU設備連接成功: COM11
+2025-07-21 17:01:12 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=1, 參數1=0, 參數2=0, ID=1
+2025-07-21 17:01:12 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:01:13 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 49.0ms
+2025-07-21 17:01:33 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=1000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=1
+2025-07-21 17:01:51 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=250, 參數2=0, ID=64095
+2025-07-21 17:01:51 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:01:51 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.9ms
+2025-07-21 17:01:54 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=2000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=2
+2025-07-21 17:01:56 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=2
+2025-07-21 17:01:56 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:01:56 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.1ms
+2025-07-21 17:01:59 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=3
+2025-07-21 17:01:59 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:01:59 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.8ms
+2025-07-21 17:02:10 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=4
+2025-07-21 17:02:10 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:02:10 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.2ms
+2025-07-21 17:02:15 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=3000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=5
+2025-07-21 17:02:36 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=4000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=5
+2025-07-21 17:02:56 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=5000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=5
+2025-07-21 17:03:17 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=6000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=5
+2025-07-21 17:03:38 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=7000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=5
+2025-07-21 17:03:59 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=8000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=5
+2025-07-21 17:04:19 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=9000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=5
+2025-07-21 17:04:38 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=5
+2025-07-21 17:04:38 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:04:38 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.1ms
+2025-07-21 17:04:40 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=10000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=6
+2025-07-21 17:04:41 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=6
+2025-07-21 17:04:41 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:04:41 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.0ms
+2025-07-21 17:04:44 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=7
+2025-07-21 17:04:44 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:04:44 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.2ms
+2025-07-21 17:04:55 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=8
+2025-07-21 17:04:55 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:04:55 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.6ms
+2025-07-21 17:05:01 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=11000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:05:22 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=12000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:05:42 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=13000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:06:03 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=14000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:06:24 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=15000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:06:45 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=16000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:07:06 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=17000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:07:26 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=18000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:07:47 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=19000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:08:08 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=20000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:08:29 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=21000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:08:49 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=22000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:09:10 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=23000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:09:31 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=24000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:09:51 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=25000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:10:12 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=26000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:10:33 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=27000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:10:54 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=28000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:11:14 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=29000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:11:35 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=30000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:11:56 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=31000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:12:17 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=32000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:12:37 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=33000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:12:58 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=34000, 平均耗時=7.0ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:13:19 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=35000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:13:40 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=36000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:14:00 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=37000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:14:21 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=38000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:14:42 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=39000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:15:02 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=40000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:15:23 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=41000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:15:44 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=42000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:16:05 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=43000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:16:26 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=44000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:16:46 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=45000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:17:07 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=46000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:17:28 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=47000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:17:49 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=48000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:18:09 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=49000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:18:30 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=50000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:18:51 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=51000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:19:12 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=52000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:19:32 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=53000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:19:53 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=54000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:20:14 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=55000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:20:35 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=56000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:20:55 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=57000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:21:16 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=58000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:21:37 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=59000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:21:58 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=60000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:22:18 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=61000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:22:39 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=62000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:23:00 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=63000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:23:21 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=64000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:23:41 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=65000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:24:02 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=66000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:24:23 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=67000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:24:44 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=68000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:25:04 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=69000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:25:25 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=70000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:25:46 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=71000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:26:07 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=72000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:26:27 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=73000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=9
+2025-07-21 17:26:43 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=9
+2025-07-21 17:26:43 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:26:43 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 44.8ms
+2025-07-21 17:26:46 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=10
+2025-07-21 17:26:46 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:26:47 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.2ms
+2025-07-21 17:26:48 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=74000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=11
+2025-07-21 17:26:49 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=11
+2025-07-21 17:26:49 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:26:49 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.9ms
+2025-07-21 17:26:51 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=12
+2025-07-21 17:26:51 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:26:51 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.8ms
+2025-07-21 17:27:08 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=13
+2025-07-21 17:27:08 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:27:08 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.2ms
+2025-07-21 17:27:09 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=75000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=14
+2025-07-21 17:27:12 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=14
+2025-07-21 17:27:12 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:27:12 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.9ms
+2025-07-21 17:27:14 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=15
+2025-07-21 17:27:14 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:27:14 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.8ms
+2025-07-21 17:27:16 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=16
+2025-07-21 17:27:16 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:27:16 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.8ms
+2025-07-21 17:27:30 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=76000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=17
+2025-07-21 17:27:33 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=17
+2025-07-21 17:27:33 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:27:33 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.7ms
+2025-07-21 17:27:37 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=18
+2025-07-21 17:27:37 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:27:37 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.7ms
+2025-07-21 17:27:39 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=19
+2025-07-21 17:27:39 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:27:39 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.7ms
+2025-07-21 17:27:41 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=20
+2025-07-21 17:27:41 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:27:41 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.4ms
+2025-07-21 17:27:51 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=77000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:28:11 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=78000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:28:32 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=79000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:28:53 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=80000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:29:14 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=81000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:29:34 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=82000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:29:55 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=83000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:30:16 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=84000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:30:37 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=85000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:30:57 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=86000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:31:18 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=87000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:31:39 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=88000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:32:00 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=89000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:32:21 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=90000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:32:41 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=91000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:33:02 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=92000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:33:23 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=93000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:33:44 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=94000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:34:04 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=95000, 平均耗時=6.9ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:34:25 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=96000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:34:46 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=97000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:35:07 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=98000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:35:27 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=99000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:35:48 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=100000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:36:09 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=101000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:36:30 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=102000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:36:50 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=103000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=21
+2025-07-21 17:36:52 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=21
+2025-07-21 17:36:52 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:36:52 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.2ms
+2025-07-21 17:36:55 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=22
+2025-07-21 17:36:55 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:36:55 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.0ms
+2025-07-21 17:36:58 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=23
+2025-07-21 17:36:58 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:36:58 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.2ms
+2025-07-21 17:37:00 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=24
+2025-07-21 17:37:00 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:37:00 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.6ms
+2025-07-21 17:37:07 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=25
+2025-07-21 17:37:07 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:37:07 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.8ms
+2025-07-21 17:37:11 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=26
+2025-07-21 17:37:11 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:37:11 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.2ms
+2025-07-21 17:37:11 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=104000, 平均耗時=8.1ms, 最大耗時=49.0ms, 指令數=27
+2025-07-21 17:37:13 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=27
+2025-07-21 17:37:13 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:37:13 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.0ms
+2025-07-21 17:37:15 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=28
+2025-07-21 17:37:15 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:37:15 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.3ms
+2025-07-21 17:37:18 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=29
+2025-07-21 17:37:18 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:37:18 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.2ms
+2025-07-21 17:37:22 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=30
+2025-07-21 17:37:22 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:37:22 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.9ms
+2025-07-21 17:37:24 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=31
+2025-07-21 17:37:24 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:37:24 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.8ms
+2025-07-21 17:37:26 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=32
+2025-07-21 17:37:26 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:37:26 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.8ms
+2025-07-21 17:37:28 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=33
+2025-07-21 17:37:28 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:37:28 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.9ms
+2025-07-21 17:37:32 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=105000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=34
+2025-07-21 17:37:34 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=34
+2025-07-21 17:37:34 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:37:34 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.0ms
+2025-07-21 17:37:37 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=35
+2025-07-21 17:37:37 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:37:37 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.1ms
+2025-07-21 17:37:38 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=36
+2025-07-21 17:37:38 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:37:38 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.0ms
+2025-07-21 17:37:42 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=37
+2025-07-21 17:37:42 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:37:42 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.5ms
+2025-07-21 17:37:45 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=38
+2025-07-21 17:37:45 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:37:45 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.1ms
+2025-07-21 17:37:46 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=39
+2025-07-21 17:37:46 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:37:46 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.1ms
+2025-07-21 17:37:53 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=106000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=40
+2025-07-21 17:38:05 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=40
+2025-07-21 17:38:05 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:38:05 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.8ms
+2025-07-21 17:38:14 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=107000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=41
+2025-07-21 17:38:34 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=108000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=41
+2025-07-21 17:38:55 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=109000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=41
+2025-07-21 17:39:16 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=110000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=41
+2025-07-21 17:39:28 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=1, 參數1=0, 參數2=0, ID=1
+2025-07-21 17:39:28 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:39:28 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.5ms
+2025-07-21 17:39:37 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=111000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=42
+2025-07-21 17:39:39 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=2
+2025-07-21 17:39:39 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:39:39 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.4ms
+2025-07-21 17:39:42 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=3
+2025-07-21 17:39:42 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:39:42 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.7ms
+2025-07-21 17:39:53 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=4
+2025-07-21 17:39:53 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:39:54 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.0ms
+2025-07-21 17:39:57 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=5
+2025-07-21 17:39:57 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:39:57 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.3ms
+2025-07-21 17:39:57 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=112000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=46
+2025-07-21 17:39:59 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=6
+2025-07-21 17:39:59 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:40:00 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.7ms
+2025-07-21 17:40:11 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=7
+2025-07-21 17:40:11 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:40:11 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.9ms
+2025-07-21 17:40:18 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=113000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=48
+2025-07-21 17:40:38 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=1000, 參數2=0, ID=32035
+2025-07-21 17:40:38 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:40:38 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.9ms
+2025-07-21 17:40:39 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=114000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=49
+2025-07-21 17:40:39 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=250, 參數2=0, ID=33468
+2025-07-21 17:40:39 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:40:39 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.3ms
+2025-07-21 17:40:42 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=0, 參數2=0, ID=36189
+2025-07-21 17:40:42 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:40:42 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.8ms
+2025-07-21 17:40:44 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=1000, 參數2=0, ID=37706
+2025-07-21 17:40:44 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:40:44 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.0ms
+2025-07-21 17:40:46 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=250, 參數2=0, ID=39939
+2025-07-21 17:40:46 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:40:46 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.4ms
+2025-07-21 17:40:46 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=500, 參數2=0, ID=40223
+2025-07-21 17:40:46 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:40:46 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.9ms
+2025-07-21 17:40:46 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=250, 參數2=0, ID=40556
+2025-07-21 17:40:46 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:40:46 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.2ms
+2025-07-21 17:40:47 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=500, 參數2=0, ID=40778
+2025-07-21 17:40:47 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:40:47 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.8ms
+2025-07-21 17:40:47 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=250, 參數2=0, ID=41038
+2025-07-21 17:40:47 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:40:47 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.6ms
+2025-07-21 17:40:47 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=500, 參數2=0, ID=41289
+2025-07-21 17:40:47 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:40:47 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.3ms
+2025-07-21 17:40:47 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=250, 參數2=0, ID=41535
+2025-07-21 17:40:47 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:40:47 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.4ms
+2025-07-21 17:40:48 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=500, 參數2=0, ID=41747
+2025-07-21 17:40:48 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:40:48 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.9ms
+2025-07-21 17:40:48 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=250, 參數2=0, ID=41987
+2025-07-21 17:40:48 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:40:48 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.2ms
+2025-07-21 17:40:48 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=500, 參數2=0, ID=42221
+2025-07-21 17:40:48 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:40:48 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.2ms
+2025-07-21 17:40:48 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=250, 參數2=0, ID=42488
+2025-07-21 17:40:48 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:40:48 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.4ms
+2025-07-21 17:41:00 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=115000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=63
+2025-07-21 17:41:04 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=8
+2025-07-21 17:41:04 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:41:04 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.1ms
+2025-07-21 17:41:07 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=9
+2025-07-21 17:41:07 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:41:07 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.6ms
+2025-07-21 17:41:10 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=10
+2025-07-21 17:41:10 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:41:10 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.0ms
+2025-07-21 17:41:11 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=11
+2025-07-21 17:41:11 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:41:11 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.3ms
+2025-07-21 17:41:15 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=12
+2025-07-21 17:41:15 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:41:15 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.3ms
+2025-07-21 17:41:17 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=13
+2025-07-21 17:41:17 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:41:17 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.0ms
+2025-07-21 17:41:19 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=14
+2025-07-21 17:41:19 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:41:19 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.7ms
+2025-07-21 17:41:21 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=116000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=70
+2025-07-21 17:41:42 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=117000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=70
+2025-07-21 17:41:47 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=15
+2025-07-21 17:41:47 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:41:47 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.1ms
+2025-07-21 17:41:50 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=16
+2025-07-21 17:41:50 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:41:50 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.8ms
+2025-07-21 17:41:53 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=17
+2025-07-21 17:41:53 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:41:53 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.9ms
+2025-07-21 17:41:55 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=18
+2025-07-21 17:41:55 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:41:55 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.3ms
+2025-07-21 17:41:59 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=19
+2025-07-21 17:41:59 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:41:59 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.2ms
+2025-07-21 17:42:02 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=20
+2025-07-21 17:42:02 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:42:02 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.0ms
+2025-07-21 17:42:03 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=118000, 平均耗時=7.9ms, 最大耗時=49.0ms, 指令數=76
+2025-07-21 17:42:05 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=21
+2025-07-21 17:42:05 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:42:05 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.9ms
+2025-07-21 17:42:06 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=22
+2025-07-21 17:42:06 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:42:06 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.0ms
+2025-07-21 17:42:09 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=23
+2025-07-21 17:42:09 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:42:09 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.1ms
+2025-07-21 17:42:18 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=24
+2025-07-21 17:42:18 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:42:18 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.8ms
+2025-07-21 17:42:21 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=25
+2025-07-21 17:42:21 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:42:21 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.5ms
+2025-07-21 17:42:22 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=26
+2025-07-21 17:42:22 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:42:22 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.6ms
+2025-07-21 17:42:23 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=119000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=82
+2025-07-21 17:42:26 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=27
+2025-07-21 17:42:26 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:42:26 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.3ms
+2025-07-21 17:42:29 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=28
+2025-07-21 17:42:29 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:42:29 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.5ms
+2025-07-21 17:42:31 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=29
+2025-07-21 17:42:31 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:42:31 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.8ms
+2025-07-21 17:42:36 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=30
+2025-07-21 17:42:36 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:42:36 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.4ms
+2025-07-21 17:42:39 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=31
+2025-07-21 17:42:39 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:42:39 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.7ms
+2025-07-21 17:42:42 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=32
+2025-07-21 17:42:42 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:42:42 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.7ms
+2025-07-21 17:42:44 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=120000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=88
+2025-07-21 17:42:53 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=33
+2025-07-21 17:42:53 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:42:53 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.5ms
+2025-07-21 17:43:05 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=121000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=89
+2025-07-21 17:43:26 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=122000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=89
+2025-07-21 17:43:47 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=123000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=89
+2025-07-21 17:44:01 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=34
+2025-07-21 17:44:01 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:44:01 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.4ms
+2025-07-21 17:44:04 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=35
+2025-07-21 17:44:04 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:44:04 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.2ms
+2025-07-21 17:44:07 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=36
+2025-07-21 17:44:07 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:44:07 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=124000, 平均耗時=10.2ms, 最大耗時=49.0ms, 指令數=92
+2025-07-21 17:44:07 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.1ms
+2025-07-21 17:44:09 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=37
+2025-07-21 17:44:09 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:44:09 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.3ms
+2025-07-21 17:44:13 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=38
+2025-07-21 17:44:13 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:44:13 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.7ms
+2025-07-21 17:44:15 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=39
+2025-07-21 17:44:15 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:44:15 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.5ms
+2025-07-21 17:44:17 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=40
+2025-07-21 17:44:17 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 17:44:17 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.1ms
+2025-07-21 17:44:28 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=125000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:44:49 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=126000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:45:10 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=127000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:45:30 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=128000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:45:51 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=129000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:46:12 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=130000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:46:33 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=131000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:46:53 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=132000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:47:14 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=133000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:47:35 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=134000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:47:55 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=135000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:48:16 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=136000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:48:37 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=137000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:48:57 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=138000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:49:18 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=139000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:49:39 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=140000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:50:00 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=141000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:50:20 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=142000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:50:41 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=143000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:51:02 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=144000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:51:22 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=145000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:51:43 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=146000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:52:04 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=147000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:52:24 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=148000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:52:45 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=149000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:53:06 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=150000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:53:27 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=151000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:53:47 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=152000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:54:08 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=153000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:54:29 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=154000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:54:49 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=155000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:55:10 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=156000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:55:31 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=157000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:55:52 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=158000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:56:12 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=159000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:56:33 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=160000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:56:54 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=161000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:57:14 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=162000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:57:35 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=163000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:57:56 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=164000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:58:16 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=165000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:58:37 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=166000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:58:58 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=167000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:59:19 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=168000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 17:59:39 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=169000, 平均耗時=7.9ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 18:00:00 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=170000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 18:00:21 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=171000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 18:00:41 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=172000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 18:01:02 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=173000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 18:01:23 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=174000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=96
+2025-07-21 18:01:26 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=41
+2025-07-21 18:01:26 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:01:27 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.5ms
+2025-07-21 18:01:44 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=175000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=97
+2025-07-21 18:02:05 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=176000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=97
+2025-07-21 18:02:25 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=177000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=97
+2025-07-21 18:02:46 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=178000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=97
+2025-07-21 18:03:07 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=179000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=97
+2025-07-21 18:03:28 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=180000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=97
+2025-07-21 18:03:28 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=42
+2025-07-21 18:03:28 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:03:28 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.0ms
+2025-07-21 18:03:30 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=43
+2025-07-21 18:03:30 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:03:30 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.0ms
+2025-07-21 18:03:32 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=44
+2025-07-21 18:03:32 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:03:32 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.5ms
+2025-07-21 18:03:46 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=45
+2025-07-21 18:03:46 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:03:46 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.6ms
+2025-07-21 18:03:48 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=181000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=101
+2025-07-21 18:04:09 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=182000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=101
+2025-07-21 18:04:30 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=183000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=101
+2025-07-21 18:04:51 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=184000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=101
+2025-07-21 18:05:11 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=185000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=101
+2025-07-21 18:05:32 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=186000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=101
+2025-07-21 18:05:53 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=187000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=101
+2025-07-21 18:06:14 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=188000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=101
+2025-07-21 18:06:34 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=189000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=101
+2025-07-21 18:06:55 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=190000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=101
+2025-07-21 18:07:16 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=191000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=101
+2025-07-21 18:07:37 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=192000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=101
+2025-07-21 18:07:58 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=193000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=101
+2025-07-21 18:08:19 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=194000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=101
+2025-07-21 18:08:39 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=195000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=101
+2025-07-21 18:09:00 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=196000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=101
+2025-07-21 18:09:21 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=197000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=101
+2025-07-21 18:09:42 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=198000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=101
+2025-07-21 18:10:01 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=8, 參數1=0, 參數2=0, ID=25991
+2025-07-21 18:10:01 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:10:01 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.2ms
+2025-07-21 18:10:03 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=199000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=102
+2025-07-21 18:10:17 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=1, 參數1=0, 參數2=0, ID=1
+2025-07-21 18:10:17 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:10:17 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.5ms
+2025-07-21 18:10:23 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=200000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=103
+2025-07-21 18:10:39 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=2
+2025-07-21 18:10:39 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:10:39 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.1ms
+2025-07-21 18:10:41 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=3
+2025-07-21 18:10:41 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:10:41 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.4ms
+2025-07-21 18:10:44 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=201000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=105
+2025-07-21 18:10:53 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=4
+2025-07-21 18:10:53 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:10:53 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.0ms
+2025-07-21 18:11:05 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=202000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=106
+2025-07-21 18:11:26 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=203000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=106
+2025-07-21 18:11:46 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=204000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=106
+2025-07-21 18:12:07 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=205000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=106
+2025-07-21 18:12:20 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=5
+2025-07-21 18:12:20 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:12:20 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.1ms
+2025-07-21 18:12:28 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=206000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=107
+2025-07-21 18:12:49 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=207000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=107
+2025-07-21 18:13:09 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=208000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=107
+2025-07-21 18:13:30 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=209000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=107
+2025-07-21 18:13:51 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=210000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=107
+2025-07-21 18:14:12 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=211000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=107
+2025-07-21 18:14:33 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=212000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=107
+2025-07-21 18:14:54 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=213000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=107
+2025-07-21 18:15:14 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=214000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=107
+2025-07-21 18:15:26 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=1, 參數1=0, 參數2=0, ID=1
+2025-07-21 18:15:26 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:15:26 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.9ms
+2025-07-21 18:15:28 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=2
+2025-07-21 18:15:28 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:15:28 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.1ms
+2025-07-21 18:15:31 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=3
+2025-07-21 18:15:31 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:15:31 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.4ms
+2025-07-21 18:15:35 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=215000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=110
+2025-07-21 18:15:42 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=4
+2025-07-21 18:15:42 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:15:42 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.6ms
+2025-07-21 18:15:47 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=5
+2025-07-21 18:15:47 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:15:47 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.1ms
+2025-07-21 18:15:55 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=6
+2025-07-21 18:15:55 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:15:55 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.3ms
+2025-07-21 18:15:56 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=216000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=113
+2025-07-21 18:15:57 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=7
+2025-07-21 18:15:57 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:15:57 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 38.0ms
+2025-07-21 18:15:59 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=8
+2025-07-21 18:15:59 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:15:59 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.9ms
+2025-07-21 18:16:09 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=9
+2025-07-21 18:16:09 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:16:09 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.3ms
+2025-07-21 18:16:17 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=217000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=116
+2025-07-21 18:16:38 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=218000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=116
+2025-07-21 18:16:58 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=219000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=116
+2025-07-21 18:17:19 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=220000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=116
+2025-07-21 18:17:40 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=221000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=116
+2025-07-21 18:18:00 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=222000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=116
+2025-07-21 18:18:21 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=223000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=116
+2025-07-21 18:18:42 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=224000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=116
+2025-07-21 18:19:03 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=225000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=116
+2025-07-21 18:19:24 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=226000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=116
+2025-07-21 18:19:44 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=227000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=116
+2025-07-21 18:20:05 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=228000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=116
+2025-07-21 18:20:26 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=229000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=116
+2025-07-21 18:20:35 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=1, 參數1=0, 參數2=0, ID=1
+2025-07-21 18:20:35 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:20:35 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.7ms
+2025-07-21 18:20:42 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=2
+2025-07-21 18:20:42 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:20:42 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.1ms
+2025-07-21 18:20:45 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=3
+2025-07-21 18:20:45 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:20:45 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.4ms
+2025-07-21 18:20:47 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=230000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=119
+2025-07-21 18:20:56 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=4
+2025-07-21 18:20:56 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:20:56 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.4ms
+2025-07-21 18:21:01 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=5
+2025-07-21 18:21:01 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:21:01 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.1ms
+2025-07-21 18:21:04 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=6
+2025-07-21 18:21:04 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:21:05 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 39.0ms
+2025-07-21 18:21:07 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=7
+2025-07-21 18:21:07 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:21:07 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.0ms
+2025-07-21 18:21:08 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=231000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=123
+2025-07-21 18:21:09 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=8
+2025-07-21 18:21:09 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:21:09 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.4ms
+2025-07-21 18:21:19 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=9
+2025-07-21 18:21:19 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:21:19 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.6ms
+2025-07-21 18:21:20 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 48.7ms
+2025-07-21 18:21:23 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=10
+2025-07-21 18:21:23 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:21:23 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.5ms
+2025-07-21 18:21:25 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=11
+2025-07-21 18:21:25 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:21:25 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.1ms
+2025-07-21 18:21:27 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=12
+2025-07-21 18:21:27 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:21:27 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.9ms
+2025-07-21 18:21:28 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=232000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=128
+2025-07-21 18:21:47 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=13
+2025-07-21 18:21:47 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:21:47 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.7ms
+2025-07-21 18:21:49 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=233000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=129
+2025-07-21 18:21:51 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=14
+2025-07-21 18:21:51 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:21:51 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.9ms
+2025-07-21 18:21:53 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=15
+2025-07-21 18:21:53 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:21:53 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.1ms
+2025-07-21 18:21:55 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=16
+2025-07-21 18:21:55 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:21:55 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.2ms
+2025-07-21 18:22:10 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=234000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=132
+2025-07-21 18:22:31 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=235000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=132
+2025-07-21 18:22:52 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=236000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=132
+2025-07-21 18:23:12 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=237000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=132
+2025-07-21 18:23:33 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=238000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=132
+2025-07-21 18:23:54 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=239000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=132
+2025-07-21 18:24:15 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=240000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=132
+2025-07-21 18:24:35 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=241000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=132
+2025-07-21 18:24:56 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=242000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=132
+2025-07-21 18:25:17 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=243000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=132
+2025-07-21 18:25:22 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=17
+2025-07-21 18:25:22 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:25:22 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.6ms
+2025-07-21 18:25:26 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=18
+2025-07-21 18:25:26 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:25:26 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.6ms
+2025-07-21 18:25:28 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=19
+2025-07-21 18:25:28 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:25:28 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.9ms
+2025-07-21 18:25:30 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=20
+2025-07-21 18:25:30 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:25:30 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.9ms
+2025-07-21 18:25:38 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=244000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=136
+2025-07-21 18:25:58 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=245000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=136
+2025-07-21 18:26:19 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=246000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=136
+2025-07-21 18:26:36 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=21
+2025-07-21 18:26:36 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:26:36 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.2ms
+2025-07-21 18:26:39 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=22
+2025-07-21 18:26:39 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:26:39 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.2ms
+2025-07-21 18:26:40 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=247000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=138
+2025-07-21 18:26:42 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=23
+2025-07-21 18:26:42 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:26:42 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.2ms
+2025-07-21 18:26:43 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=24
+2025-07-21 18:26:43 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:26:43 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.2ms
+2025-07-21 18:27:01 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=248000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:27:21 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=249000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:27:42 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=250000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:28:03 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=251000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:28:24 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=252000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:28:44 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=253000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:29:05 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=254000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:29:26 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=255000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:29:46 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=256000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:30:07 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=257000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:30:28 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=258000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:30:49 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=259000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:31:10 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=260000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:31:30 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=261000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:31:51 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=262000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:32:12 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=263000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:32:33 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=264000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:32:53 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=265000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:33:14 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=266000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:33:35 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=267000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:33:56 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=268000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:34:17 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=269000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:34:37 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=270000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:34:58 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=271000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:35:19 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=272000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:35:40 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=273000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:36:00 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=274000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:36:21 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=275000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:36:42 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=276000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:37:03 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=277000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:37:23 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=278000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:37:44 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=279000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:38:05 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=280000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:38:26 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=281000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=140
+2025-07-21 18:38:46 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=25
+2025-07-21 18:38:46 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:38:46 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=282000, 平均耗時=10.1ms, 最大耗時=49.0ms, 指令數=141
+2025-07-21 18:38:46 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.5ms
+2025-07-21 18:39:07 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=283000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=141
+2025-07-21 18:39:28 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=284000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=141
+2025-07-21 18:39:49 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=285000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=141
+2025-07-21 18:40:09 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=286000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=141
+2025-07-21 18:40:30 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=287000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=141
+2025-07-21 18:40:51 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=288000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=141
+2025-07-21 18:41:12 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=289000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=141
+2025-07-21 18:41:32 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=290000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=141
+2025-07-21 18:41:53 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=291000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=141
+2025-07-21 18:42:14 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=292000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=141
+2025-07-21 18:42:35 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=293000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=141
+2025-07-21 18:42:56 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=294000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=141
+2025-07-21 18:43:16 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=295000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=141
+2025-07-21 18:43:37 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=296000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=141
+2025-07-21 18:43:58 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=297000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=141
+2025-07-21 18:44:19 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=298000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=141
+2025-07-21 18:44:39 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=299000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=141
+2025-07-21 18:45:00 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=300000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=141
+2025-07-21 18:45:21 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=301000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=141
+2025-07-21 18:45:28 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=26
+2025-07-21 18:45:28 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:45:29 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.8ms
+2025-07-21 18:45:31 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=27
+2025-07-21 18:45:31 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:45:31 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.7ms
+2025-07-21 18:45:33 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=28
+2025-07-21 18:45:33 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:45:33 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.3ms
+2025-07-21 18:45:42 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=302000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=144
+2025-07-21 18:45:46 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=29
+2025-07-21 18:45:46 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:45:46 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.7ms
+2025-07-21 18:45:50 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=30
+2025-07-21 18:45:50 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:45:50 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.3ms
+2025-07-21 18:45:52 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=31
+2025-07-21 18:45:52 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:45:52 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.1ms
+2025-07-21 18:45:54 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=32
+2025-07-21 18:45:54 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:45:54 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.4ms
+2025-07-21 18:46:03 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=303000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=148
+2025-07-21 18:46:23 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=304000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=148
+2025-07-21 18:46:44 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=305000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=148
+2025-07-21 18:47:05 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=306000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=148
+2025-07-21 18:47:26 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=307000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=148
+2025-07-21 18:47:46 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=308000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=148
+2025-07-21 18:48:07 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=309000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=148
+2025-07-21 18:48:28 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=310000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=148
+2025-07-21 18:48:49 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=311000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=148
+2025-07-21 18:49:09 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=312000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=148
+2025-07-21 18:49:10 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=33
+2025-07-21 18:49:10 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:49:10 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.7ms
+2025-07-21 18:49:14 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=34
+2025-07-21 18:49:14 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:49:14 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.6ms
+2025-07-21 18:49:17 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=35
+2025-07-21 18:49:17 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:49:17 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.1ms
+2025-07-21 18:49:18 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=36
+2025-07-21 18:49:18 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:49:18 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.0ms
+2025-07-21 18:49:30 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=313000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=152
+2025-07-21 18:49:51 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=314000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=152
+2025-07-21 18:50:12 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=315000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=152
+2025-07-21 18:50:33 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=316000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=152
+2025-07-21 18:50:53 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=317000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=152
+2025-07-21 18:51:14 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=318000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=152
+2025-07-21 18:51:35 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=319000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=152
+2025-07-21 18:51:55 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=320000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=152
+2025-07-21 18:52:16 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=321000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=152
+2025-07-21 18:52:37 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=322000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=152
+2025-07-21 18:52:58 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=323000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=152
+2025-07-21 18:53:19 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=324000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=152
+2025-07-21 18:53:37 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=37
+2025-07-21 18:53:37 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:53:37 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.4ms
+2025-07-21 18:53:39 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=325000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=153
+2025-07-21 18:53:40 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=38
+2025-07-21 18:53:40 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:53:40 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 44.9ms
+2025-07-21 18:53:43 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=39
+2025-07-21 18:53:43 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:53:43 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.3ms
+2025-07-21 18:53:45 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=40
+2025-07-21 18:53:45 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:53:45 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 33.3ms
+2025-07-21 18:53:48 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=41
+2025-07-21 18:53:48 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:53:48 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.3ms
+2025-07-21 18:53:52 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=42
+2025-07-21 18:53:52 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:53:52 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.2ms
+2025-07-21 18:53:55 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=43
+2025-07-21 18:53:55 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:53:55 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.7ms
+2025-07-21 18:53:56 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=44
+2025-07-21 18:53:56 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:53:56 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.0ms
+2025-07-21 18:54:00 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=326000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=160
+2025-07-21 18:54:21 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=327000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=160
+2025-07-21 18:54:42 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=328000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=160
+2025-07-21 18:55:02 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=329000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=160
+2025-07-21 18:55:23 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=330000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=160
+2025-07-21 18:55:44 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=331000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=160
+2025-07-21 18:55:55 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=45
+2025-07-21 18:55:55 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:55:55 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.1ms
+2025-07-21 18:55:58 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=46
+2025-07-21 18:55:58 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:55:58 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.2ms
+2025-07-21 18:56:01 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=47
+2025-07-21 18:56:01 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:56:01 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.2ms
+2025-07-21 18:56:02 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=48
+2025-07-21 18:56:02 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:56:02 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.7ms
+2025-07-21 18:56:05 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=332000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=164
+2025-07-21 18:56:25 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=333000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=164
+2025-07-21 18:56:46 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=334000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=164
+2025-07-21 18:57:07 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=335000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=164
+2025-07-21 18:57:28 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=336000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=164
+2025-07-21 18:57:39 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=49
+2025-07-21 18:57:39 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:57:39 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.3ms
+2025-07-21 18:57:43 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=50
+2025-07-21 18:57:43 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:57:43 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 33.4ms
+2025-07-21 18:57:46 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=51
+2025-07-21 18:57:46 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:57:46 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.0ms
+2025-07-21 18:57:47 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=52
+2025-07-21 18:57:47 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:57:47 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.6ms
+2025-07-21 18:57:48 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=337000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=168
+2025-07-21 18:57:51 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=53
+2025-07-21 18:57:51 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:57:51 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.5ms
+2025-07-21 18:57:54 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=54
+2025-07-21 18:57:54 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:57:54 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.3ms
+2025-07-21 18:57:57 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=55
+2025-07-21 18:57:57 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:57:57 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.3ms
+2025-07-21 18:57:59 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=56
+2025-07-21 18:57:59 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:57:59 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.4ms
+2025-07-21 18:58:03 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=57
+2025-07-21 18:58:03 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:58:03 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.7ms
+2025-07-21 18:58:06 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=58
+2025-07-21 18:58:06 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:58:06 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.4ms
+2025-07-21 18:58:09 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=59
+2025-07-21 18:58:09 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:58:09 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.6ms
+2025-07-21 18:58:09 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=338000, 平均耗時=8.5ms, 最大耗時=49.0ms, 指令數=175
+2025-07-21 18:58:11 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=60
+2025-07-21 18:58:11 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:58:11 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.9ms
+2025-07-21 18:58:14 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=61
+2025-07-21 18:58:14 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:58:14 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.1ms
+2025-07-21 18:58:18 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=62
+2025-07-21 18:58:18 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:58:18 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.4ms
+2025-07-21 18:58:20 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=63
+2025-07-21 18:58:20 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:58:20 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.7ms
+2025-07-21 18:58:22 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=64
+2025-07-21 18:58:22 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:58:22 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.8ms
+2025-07-21 18:58:24 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=65
+2025-07-21 18:58:25 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:58:25 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.7ms
+2025-07-21 18:58:28 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=66
+2025-07-21 18:58:28 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:58:28 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.9ms
+2025-07-21 18:58:30 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=339000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=182
+2025-07-21 18:58:30 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=67
+2025-07-21 18:58:31 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:58:31 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.2ms
+2025-07-21 18:58:32 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=68
+2025-07-21 18:58:32 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:58:32 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.4ms
+2025-07-21 18:58:35 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=69
+2025-07-21 18:58:35 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:58:35 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.9ms
+2025-07-21 18:58:39 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=70
+2025-07-21 18:58:39 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:58:39 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.9ms
+2025-07-21 18:58:42 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=71
+2025-07-21 18:58:42 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:58:42 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.7ms
+2025-07-21 18:58:43 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=72
+2025-07-21 18:58:43 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:58:43 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.2ms
+2025-07-21 18:58:47 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=73
+2025-07-21 18:58:47 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:58:47 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.5ms
+2025-07-21 18:58:51 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=340000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=189
+2025-07-21 18:58:55 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=74
+2025-07-21 18:58:55 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:58:55 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.2ms
+2025-07-21 18:58:58 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=75
+2025-07-21 18:58:58 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:58:58 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.5ms
+2025-07-21 18:58:59 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=76
+2025-07-21 18:58:59 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:59:00 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.8ms
+2025-07-21 18:59:04 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=77
+2025-07-21 18:59:04 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:59:04 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.2ms
+2025-07-21 18:59:07 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=78
+2025-07-21 18:59:07 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:59:07 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.9ms
+2025-07-21 18:59:10 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=79
+2025-07-21 18:59:10 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:59:10 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.0ms
+2025-07-21 18:59:12 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=80
+2025-07-21 18:59:12 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:59:12 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.7ms
+2025-07-21 18:59:12 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=341000, 平均耗時=8.7ms, 最大耗時=49.0ms, 指令數=196
+2025-07-21 18:59:18 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=81
+2025-07-21 18:59:18 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:59:19 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.9ms
+2025-07-21 18:59:22 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=82
+2025-07-21 18:59:22 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:59:22 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.2ms
+2025-07-21 18:59:25 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=83
+2025-07-21 18:59:25 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:59:25 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.1ms
+2025-07-21 18:59:26 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=84
+2025-07-21 18:59:26 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:59:26 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.1ms
+2025-07-21 18:59:29 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=85
+2025-07-21 18:59:29 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:59:29 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.4ms
+2025-07-21 18:59:33 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=342000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=201
+2025-07-21 18:59:33 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=86
+2025-07-21 18:59:33 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:59:33 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.5ms
+2025-07-21 18:59:35 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=87
+2025-07-21 18:59:35 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:59:36 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.6ms
+2025-07-21 18:59:37 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=88
+2025-07-21 18:59:37 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 18:59:37 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.9ms
+2025-07-21 18:59:53 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=343000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=204
+2025-07-21 19:00:14 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=344000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=204
+2025-07-21 19:00:35 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=345000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=204
+2025-07-21 19:00:53 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=89
+2025-07-21 19:00:53 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:00:53 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.1ms
+2025-07-21 19:00:55 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=346000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=205
+2025-07-21 19:00:56 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=90
+2025-07-21 19:00:56 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:00:56 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.3ms
+2025-07-21 19:00:59 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=91
+2025-07-21 19:00:59 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:00:59 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.7ms
+2025-07-21 19:01:01 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=92
+2025-07-21 19:01:01 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:01:01 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.1ms
+2025-07-21 19:01:16 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=347000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=208
+2025-07-21 19:01:24 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=93
+2025-07-21 19:01:24 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:01:24 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.0ms
+2025-07-21 19:01:27 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=94
+2025-07-21 19:01:27 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:01:28 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.7ms
+2025-07-21 19:01:30 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=95
+2025-07-21 19:01:30 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:01:30 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.0ms
+2025-07-21 19:01:32 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=96
+2025-07-21 19:01:32 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:01:32 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.8ms
+2025-07-21 19:01:34 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=97
+2025-07-21 19:01:34 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:01:34 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.8ms
+2025-07-21 19:01:37 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=348000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=213
+2025-07-21 19:01:37 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=98
+2025-07-21 19:01:37 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:01:37 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 33.7ms
+2025-07-21 19:01:40 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=99
+2025-07-21 19:01:40 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:01:40 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.0ms
+2025-07-21 19:01:42 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=100
+2025-07-21 19:01:42 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:01:42 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.8ms
+2025-07-21 19:01:45 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=101
+2025-07-21 19:01:45 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:01:45 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.9ms
+2025-07-21 19:01:48 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=102
+2025-07-21 19:01:48 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:01:48 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.4ms
+2025-07-21 19:01:51 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=103
+2025-07-21 19:01:51 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:01:51 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.2ms
+2025-07-21 19:01:53 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=104
+2025-07-21 19:01:53 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:01:53 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.8ms
+2025-07-21 19:01:55 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=105
+2025-07-21 19:01:55 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:01:55 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.0ms
+2025-07-21 19:01:58 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=349000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=221
+2025-07-21 19:01:58 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=106
+2025-07-21 19:01:58 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:01:58 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.3ms
+2025-07-21 19:02:01 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=107
+2025-07-21 19:02:01 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:01 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.8ms
+2025-07-21 19:02:02 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=108
+2025-07-21 19:02:02 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:02 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.7ms
+2025-07-21 19:02:05 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=109
+2025-07-21 19:02:05 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:05 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 33.5ms
+2025-07-21 19:02:08 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=110
+2025-07-21 19:02:08 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:08 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.0ms
+2025-07-21 19:02:11 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=111
+2025-07-21 19:02:11 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:11 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.6ms
+2025-07-21 19:02:12 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=112
+2025-07-21 19:02:12 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:12 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 33.7ms
+2025-07-21 19:02:14 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=113
+2025-07-21 19:02:14 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:14 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.2ms
+2025-07-21 19:02:18 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=114
+2025-07-21 19:02:18 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:18 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.3ms
+2025-07-21 19:02:19 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=350000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=230
+2025-07-21 19:02:21 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=115
+2025-07-21 19:02:21 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:21 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.5ms
+2025-07-21 19:02:22 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=116
+2025-07-21 19:02:22 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:22 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.3ms
+2025-07-21 19:02:24 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=117
+2025-07-21 19:02:24 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:25 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.8ms
+2025-07-21 19:02:28 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=118
+2025-07-21 19:02:28 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:28 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.4ms
+2025-07-21 19:02:31 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=119
+2025-07-21 19:02:31 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:31 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.9ms
+2025-07-21 19:02:33 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=120
+2025-07-21 19:02:33 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:33 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.8ms
+2025-07-21 19:02:35 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=121
+2025-07-21 19:02:35 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:35 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.7ms
+2025-07-21 19:02:39 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=122
+2025-07-21 19:02:39 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:39 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.2ms
+2025-07-21 19:02:39 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=351000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=238
+2025-07-21 19:02:41 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=123
+2025-07-21 19:02:41 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:41 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.8ms
+2025-07-21 19:02:43 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=124
+2025-07-21 19:02:43 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:43 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.2ms
+2025-07-21 19:02:45 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=125
+2025-07-21 19:02:45 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:45 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 37.8ms
+2025-07-21 19:02:49 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=126
+2025-07-21 19:02:49 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:49 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.8ms
+2025-07-21 19:02:52 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=127
+2025-07-21 19:02:52 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:52 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.9ms
+2025-07-21 19:02:53 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=128
+2025-07-21 19:02:53 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:53 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.2ms
+2025-07-21 19:02:55 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=129
+2025-07-21 19:02:55 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:55 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.8ms
+2025-07-21 19:02:59 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=130
+2025-07-21 19:02:59 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:02:59 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 34.1ms
+2025-07-21 19:03:00 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=352000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=246
+2025-07-21 19:03:01 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=300, 參數2=0, ID=131
+2025-07-21 19:03:01 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:03:01 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 35.3ms
+2025-07-21 19:03:03 [INFO] GripperOptimized:process_commands:412 - 收到PGC指令: 代碼=3, 參數1=460, 參數2=0, ID=132
+2025-07-21 19:03:03 [INFO] GripperOptimized:process_commands:418 - PGC指令執行成功
+2025-07-21 19:03:03 [WARNING] GripperOptimized:fast_loop:492 - 主循環執行時間過長: 36.7ms
+2025-07-21 19:03:21 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=353000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:03:42 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=354000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:04:02 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=355000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:04:23 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=356000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:04:44 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=357000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:05:05 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=358000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:05:25 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=359000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:05:46 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=360000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:06:07 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=361000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:06:27 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=362000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:06:48 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=363000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:07:09 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=364000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:07:30 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=365000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:07:50 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=366000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:08:11 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=367000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:08:32 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=368000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:08:52 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=369000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:09:13 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=370000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:09:34 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=371000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:09:54 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=372000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:10:15 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=373000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:10:36 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=374000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:10:57 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=375000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:11:17 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=376000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:11:38 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=377000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:11:59 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=378000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:12:19 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=379000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:12:40 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=380000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:13:01 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=381000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:13:22 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=382000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:13:42 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=383000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:14:03 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=384000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:14:24 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=385000, 平均耗時=7.0ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:14:44 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=386000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:15:05 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=387000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:15:26 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=388000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:15:46 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=389000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:16:07 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=390000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:16:28 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=391000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:16:49 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=392000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:17:09 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=393000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:17:30 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=394000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:17:51 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=395000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:18:11 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=396000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:18:32 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=397000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:18:53 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=398000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:19:14 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=399000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:19:34 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=400000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:19:55 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=401000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:20:16 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=402000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:20:36 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=403000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:20:57 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=404000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:21:18 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=405000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:21:39 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=406000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:21:59 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=407000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:22:20 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=408000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:22:41 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=409000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:23:01 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=410000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:23:22 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=411000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:23:43 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=412000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:24:04 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=413000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:24:24 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=414000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:24:45 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=415000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:25:06 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=416000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:25:26 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=417000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:25:47 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=418000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:26:08 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=419000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:26:28 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=420000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:26:49 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=421000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:27:10 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=422000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:27:31 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=423000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:27:51 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=424000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:28:12 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=425000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:28:33 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=426000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:28:53 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=427000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:29:14 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=428000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:29:35 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=429000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:29:56 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=430000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:30:16 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=431000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:30:37 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=432000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:30:58 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=433000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:31:18 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=434000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:31:39 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=435000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:32:00 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=436000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:32:20 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=437000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:32:41 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=438000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:33:02 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=439000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:33:23 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=440000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:33:43 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=441000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:34:04 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=442000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:34:25 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=443000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:34:45 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=444000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:35:06 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=445000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:35:27 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=446000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:35:48 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=447000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:36:08 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=448000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:36:29 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=449000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:36:50 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=450000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:37:10 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=451000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:37:31 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=452000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:37:52 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=453000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:38:12 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=454000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:38:33 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=455000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:38:54 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=456000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:39:15 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=457000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:39:35 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=458000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:39:56 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=459000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:40:17 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=460000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:40:37 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=461000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:40:58 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=462000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:41:19 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=463000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:41:40 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=464000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:42:00 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=465000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:42:21 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=466000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:42:42 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=467000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:43:02 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=468000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:43:23 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=469000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:43:44 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=470000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:44:05 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=471000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:44:25 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=472000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:44:46 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=473000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:45:07 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=474000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:45:27 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=475000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:45:48 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=476000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:46:09 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=477000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:46:30 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=478000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:46:50 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=479000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:47:11 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=480000, 平均耗時=7.0ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:47:32 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=481000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:47:52 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=482000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:48:13 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=483000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:48:34 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=484000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:48:54 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=485000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:49:15 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=486000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:49:36 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=487000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:49:57 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=488000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:50:17 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=489000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:50:38 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=490000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:50:59 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=491000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:51:19 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=492000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:51:40 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=493000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:52:01 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=494000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:52:22 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=495000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:52:42 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=496000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:53:03 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=497000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:53:24 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=498000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:53:44 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=499000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:54:05 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=500000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:54:26 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=501000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:54:47 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=502000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:55:07 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=503000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:55:28 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=504000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:55:49 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=505000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:56:09 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=506000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:56:30 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=507000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:56:51 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=508000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:57:12 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=509000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:57:32 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=510000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:57:53 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=511000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:58:14 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=512000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:58:34 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=513000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:58:55 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=514000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:59:16 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=515000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:59:36 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=516000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 19:59:57 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=517000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:00:18 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=518000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:00:39 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=519000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:00:59 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=520000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:01:20 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=521000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:01:41 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=522000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:02:01 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=523000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:02:22 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=524000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:02:43 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=525000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:03:04 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=526000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:03:24 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=527000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:03:45 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=528000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:04:06 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=529000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:04:26 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=530000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:04:47 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=531000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:05:08 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=532000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:05:29 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=533000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:05:49 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=534000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:06:10 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=535000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:06:31 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=536000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:06:51 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=537000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:07:12 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=538000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:07:33 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=539000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:07:53 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=540000, 平均耗時=8.0ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:08:14 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=541000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:08:35 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=542000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:08:56 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=543000, 平均耗時=7.9ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:09:17 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=544000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:09:38 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=545000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:09:58 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=546000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:10:19 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=547000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:10:40 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=548000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:11:01 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=549000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:11:22 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=550000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:11:43 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=551000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:12:03 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=552000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:12:24 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=553000, 平均耗時=7.9ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:12:45 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=554000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:13:06 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=555000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:13:27 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=556000, 平均耗時=8.1ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:13:48 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=557000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:14:08 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=558000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:14:29 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=559000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:14:50 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=560000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:15:11 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=561000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:15:32 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=562000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:15:52 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=563000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:16:13 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=564000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:16:34 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=565000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:16:55 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=566000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:17:15 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=567000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:17:36 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=568000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:17:57 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=569000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:18:18 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=570000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:18:38 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=571000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:18:59 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=572000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:19:20 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=573000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:19:41 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=574000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:20:01 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=575000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:20:22 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=576000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:20:43 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=577000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:21:04 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=578000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:21:24 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=579000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:21:45 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=580000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:22:06 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=581000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:22:27 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=582000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:22:48 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=583000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:23:08 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=584000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:23:29 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=585000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:23:50 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=586000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:24:11 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=587000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:24:32 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=588000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:24:52 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=589000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:25:13 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=590000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:25:34 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=591000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:25:55 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=592000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:26:16 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=593000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:26:36 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=594000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:26:57 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=595000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:27:18 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=596000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:27:39 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=597000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:28:00 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=598000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:28:21 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=599000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:28:41 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=600000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:29:02 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=601000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:29:23 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=602000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:29:44 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=603000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:30:04 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=604000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:30:25 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=605000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:30:46 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=606000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:31:07 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=607000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:31:27 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=608000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:31:48 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=609000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:32:09 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=610000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:32:29 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=611000, 平均耗時=7.9ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:32:50 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=612000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:33:11 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=613000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:33:32 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=614000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:33:53 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=615000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:34:13 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=616000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:34:34 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=617000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:34:55 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=618000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:35:16 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=619000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:35:36 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=620000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:35:57 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=621000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:36:18 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=622000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:36:39 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=623000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:36:59 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=624000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:37:20 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=625000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:37:41 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=626000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:38:01 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=627000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:38:22 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=628000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:38:43 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=629000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:39:04 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=630000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:39:24 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=631000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:39:45 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=632000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:40:06 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=633000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:40:27 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=634000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:40:47 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=635000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:41:08 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=636000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:41:29 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=637000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:41:50 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=638000, 平均耗時=7.9ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:42:10 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=639000, 平均耗時=7.9ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:42:31 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=640000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:42:52 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=641000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:43:13 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=642000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:43:33 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=643000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:43:54 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=644000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:44:15 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=645000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:44:36 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=646000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:44:56 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=647000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:45:17 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=648000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:45:38 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=649000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:45:58 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=650000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:46:19 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=651000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:46:40 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=652000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:47:01 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=653000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:47:21 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=654000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:47:42 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=655000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:48:03 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=656000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:48:24 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=657000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:48:44 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=658000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:49:05 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=659000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:49:26 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=660000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:49:47 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=661000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:50:07 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=662000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:50:28 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=663000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:50:49 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=664000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:51:10 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=665000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:51:30 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=666000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:51:51 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=667000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:52:12 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=668000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:52:33 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=669000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:52:53 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=670000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:53:14 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=671000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:53:35 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=672000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:53:55 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=673000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:54:16 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=674000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:54:37 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=675000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:54:58 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=676000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:55:18 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=677000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:55:39 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=678000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:56:00 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=679000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:56:21 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=680000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:56:41 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=681000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:57:02 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=682000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:57:23 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=683000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:57:44 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=684000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:58:04 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=685000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:58:25 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=686000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:58:46 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=687000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:59:07 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=688000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:59:27 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=689000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 20:59:48 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=690000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:00:09 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=691000, 平均耗時=7.9ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:00:30 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=692000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:00:50 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=693000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:01:11 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=694000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:01:32 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=695000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:01:53 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=696000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:02:13 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=697000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:02:34 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=698000, 平均耗時=7.9ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:02:55 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=699000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:03:16 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=700000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:03:36 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=701000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:03:57 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=702000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:04:18 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=703000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:04:38 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=704000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:04:59 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=705000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:05:20 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=706000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:05:41 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=707000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:06:01 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=708000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:06:22 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=709000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:06:43 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=710000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:07:04 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=711000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:07:24 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=712000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:07:45 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=713000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:08:06 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=714000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:08:27 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=715000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:08:47 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=716000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:09:08 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=717000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:09:29 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=718000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:09:50 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=719000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:10:10 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=720000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:10:31 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=721000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:10:52 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=722000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:11:12 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=723000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:11:33 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=724000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:11:54 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=725000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:12:15 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=726000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:12:35 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=727000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:12:56 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=728000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:13:17 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=729000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:13:38 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=730000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:13:58 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=731000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:14:19 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=732000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:14:40 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=733000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:15:01 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=734000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:15:21 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=735000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:15:42 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=736000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:16:03 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=737000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:16:24 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=738000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:16:44 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=739000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:17:05 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=740000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:17:26 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=741000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:17:47 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=742000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:18:07 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=743000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:18:28 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=744000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:18:49 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=745000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:19:09 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=746000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:19:30 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=747000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:19:51 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=748000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:20:12 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=749000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:20:32 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=750000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:20:53 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=751000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:21:14 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=752000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:21:35 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=753000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:21:55 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=754000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:22:16 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=755000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:22:37 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=756000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:22:58 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=757000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:23:18 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=758000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:23:39 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=759000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:24:00 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=760000, 平均耗時=7.2ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:24:21 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=761000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:24:41 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=762000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:25:02 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=763000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:25:23 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=764000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:25:44 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=765000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:26:04 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=766000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:26:25 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=767000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:26:46 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=768000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:27:06 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=769000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:27:27 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=770000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:27:48 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=771000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:28:09 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=772000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:28:29 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=773000, 平均耗時=7.1ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:28:50 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=774000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:29:11 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=775000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:29:32 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=776000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:29:52 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=777000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:30:13 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=778000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:30:34 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=779000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:30:55 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=780000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:31:15 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=781000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:31:36 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=782000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:31:57 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=783000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:32:18 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=784000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:32:38 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=785000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:32:59 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=786000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:33:20 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=787000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:33:41 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=788000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:34:01 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=789000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:34:22 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=790000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:34:43 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=791000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:35:04 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=792000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:35:24 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=793000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:35:45 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=794000, 平均耗時=7.6ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:36:06 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=795000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:36:27 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=796000, 平均耗時=7.3ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:36:47 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=797000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:37:08 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=798000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:37:29 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=799000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:37:49 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=800000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:38:10 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=801000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:38:31 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=802000, 平均耗時=7.8ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:38:52 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=803000, 平均耗時=7.7ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:39:12 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=804000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:39:33 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=805000, 平均耗時=7.4ms, 最大耗時=49.0ms, 指令數=248
+2025-07-21 21:39:54 [INFO] GripperOptimized:fast_loop:484 - 性能統計: 循環=806000, 平均耗時=7.5ms, 最大耗時=49.0ms, 指令數=248

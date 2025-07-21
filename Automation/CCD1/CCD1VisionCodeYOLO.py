@@ -2090,7 +2090,7 @@ class CCD1VisionController:
             }
     
     def initialize_camera(self, ip_address: str = None) -> bool:
-        """初始化相機連接"""
+        """初始化相機連接 - 軟體觸發模式"""
         try:
             if ip_address:
                 self.camera_ip = ip_address
@@ -2104,25 +2104,24 @@ class CCD1VisionController:
                 finally:
                     self.camera_manager = None
             
-            # 創建相機配置 - 使用新版本的配置參數
+            # 創建相機配置 - 軟體觸發模式
             camera_config = CameraConfig(
                 name="ccd1_camera",
                 ip=self.camera_ip,
-                exposure_time=5000.0,  # 增加曝光時間配合5FPS
+                exposure_time=20000.0,  # 20ms曝光時間
                 gain=200.0,
-                frame_rate=5.0,  # 修改為5FPS
+                frame_rate=5.0,
                 pixel_format=PixelFormat.BAYER_GR8,
                 width=2592,
                 height=1944,
-                trigger_mode=CameraMode.CONTINUOUS,
+                trigger_mode=CameraMode.SOFTWARE_TRIGGER,  # 軟體觸發模式
                 auto_reconnect=True,
-                # 新增頻寬控制參數
-                bandwidth_limit_mbps=200,  # 200Mbps頻寬限制
-                use_latest_frame_only=True,  # 啟用最新幀模式
-                buffer_count=1  # 最小緩存
+                bandwidth_limit_mbps=200,
+                use_latest_frame_only=True,
+                buffer_count=1
             )
             
-            print(f"🔄 初始化相機: {self.camera_ip} (5FPS, 200Mbps)")
+            self.logger.info(f"初始化相機: {self.camera_ip} (軟體觸發模式, 5FPS, 200Mbps)")
             self.camera_manager = OptimizedCameraManager()
             
             # 添加相機
@@ -2135,7 +2134,7 @@ class CCD1VisionController:
             if not connect_result:
                 raise Exception("相機連接失敗")
             
-            # 開始串流
+            # 軟體觸發模式也需要開始串流以接收觸發後的圖像
             stream_result = self.camera_manager.start_streaming(["ccd1_camera"])
             if not stream_result.get("ccd1_camera", False):
                 raise Exception("開始串流失敗")
@@ -2146,86 +2145,88 @@ class CCD1VisionController:
             self.state_machine.set_initialized(True)
             self.state_machine.set_alarm(False)
             self.state_machine.set_ready(True)
-            print(f"✅ 相機初始化成功: {self.camera_ip} (頻寬控制: 200Mbps, 5FPS)")
+            
+            self.logger.info(f"相機初始化成功: {self.camera_ip} (軟體觸發模式)")
             return True
                 
         except Exception as e:
             self.state_machine.set_alarm(True)
             self.state_machine.set_initialized(False)
             self.state_machine.set_ready(False)
-            print(f"❌ 相機初始化失敗: {e}")
+            self.logger.error(f"相機初始化失敗: {e}")
             return False
     
     def capture_image(self) -> Tuple[Optional[np.ndarray], float]:
-        """拍照"""
-        print(f"📸 開始拍照程序...")
+        """軟體觸發拍照"""
+        self.logger.info("開始軟體觸發拍照程序...")
         
         if not self.camera_manager:
-            print(f"❌ 相機管理器不存在")
+            self.logger.error("相機管理器不存在")
             return None, 0.0
-        # 檢查串流狀態
-        try:
-            if "ccd1_camera" not in self.camera_manager.cameras:
-                print(f"❌ 相機 ccd1_camera 不在管理器中")
+        
+        # 檢查相機存在性
+        if "ccd1_camera" not in self.camera_manager.cameras:
+            self.logger.error("相機 ccd1_camera 不在管理器中")
+            return None, 0.0
+        
+        camera = self.camera_manager.cameras["ccd1_camera"]
+        
+        # 檢查相機連接和串流狀態
+        if not camera.is_streaming:
+            self.logger.warning("相機未在串流中，嘗試重新啟動串流...")
+            restart_result = self.camera_manager.start_streaming(["ccd1_camera"])
+            if not restart_result.get("ccd1_camera", False):
+                self.logger.error("重新啟動串流失敗")
                 return None, 0.0
-            
-            camera = self.camera_manager.cameras["ccd1_camera"]
-            if not camera.is_streaming:
-                print(f"❌ 相機未在串流中，嘗試重新啟動串流...")
-                restart_result = self.camera_manager.start_streaming(["ccd1_camera"])
-                if not restart_result.get("ccd1_camera", False):
-                    print(f"❌ 重新啟動串流失敗")
-                    return None, 0.0
-                else:
-                    print(f"✅ 重新啟動串流成功")
-                    time.sleep(0.5)  # 等待串流穩定
-            
-        except Exception as stream_check_error:
-            print(f"❌ 檢查串流狀態失敗: {stream_check_error}")
-            return None, 0.0
-        # 檢查相機連接狀態
-        try:
-            camera_status = self.camera_manager.get_camera_status("ccd1_camera")
-            print(f"📊 相機狀態檢查: {camera_status}")
-        except Exception as status_error:
-            print(f"⚠️ 無法獲取相機狀態: {status_error}")
+            else:
+                self.logger.info("重新啟動串流成功")
+                time.sleep(0.5)  # 等待串流穩定
         
         capture_start = time.time()
         
         try:
-            print(f"🔄 調用 capture_new_frame，超時時間: 100ms")
-            frame_data = self.camera_manager.capture_new_frame("ccd1_camera", timeout=1000)
+            # 步驟1：執行軟體觸發
+            self.logger.info("執行軟體觸發...")
+            trigger_result = self.camera_manager.trigger_software(["ccd1_camera"])
+            self.logger.info(f"觸發結果: {trigger_result}")
+            
+            if not trigger_result.get("ccd1_camera", False):
+                self.logger.error("軟體觸發失敗")
+                return None, 0.0
+            
+            # 步驟2：等待並捕獲觸發後的幀
+            self.logger.info("等待並捕獲觸發後的幀...")
+            # 軟體觸發後需要稍微等待讓相機準備
+            time.sleep(0.1)
+            
+            frame_data = self.camera_manager.capture_new_frame("ccd1_camera", timeout=2000)
             
             if frame_data is None:
-                print(f"❌ capture_new_frame 返回 None")
-                print(f"💡 可能原因:")
-                print(f"   - 相機串流未啟動")
-                print(f"   - 網路連接問題")
-                print(f"   - 超時時間過短 (100ms)")
-                print(f"   - 相機幀率問題 (設置5FPS，實際4.13FPS)")
+                self.logger.error("軟體觸發後無法捕獲幀")
                 return None, 0.0
             
             capture_time = time.time() - capture_start
-            print(f"✅ 成功捕獲幀，耗時: {capture_time*1000:.2f}ms")
+            self.logger.info(f"軟體觸發拍照成功，耗時: {capture_time*1000:.2f}ms")
             
             image_array = frame_data.data
-            print(f"📊 圖像數據: 形狀={image_array.shape}, 類型={image_array.dtype}")
+            self.logger.info(f"圖像數據: 形狀={image_array.shape}, 類型={image_array.dtype}")
             
+            # 根據像素格式處理圖像
             if len(image_array.shape) == 2:
+                # 灰度圖像轉BGR
                 display_image = cv2.cvtColor(image_array, cv2.COLOR_GRAY2BGR)
-                print(f"🔄 轉換灰度圖像為BGR格式")
+                self.logger.info("轉換灰度圖像為BGR格式")
             else:
                 display_image = image_array
-                print(f"📊 使用原始BGR圖像")
+                self.logger.info("使用原始BGR圖像")
             
             return display_image, capture_time
             
         except Exception as e:
             capture_time = time.time() - capture_start
-            print(f"❌ 拍照異常: {e}")
-            print(f"❌ 異常類型: {type(e).__name__}")
+            self.logger.error(f"軟體觸發拍照異常: {e}")
             import traceback
-            print(f"詳細錯誤堆疊: {traceback.format_exc()}")
+            self.logger.error(f"詳細錯誤堆疊: {traceback.format_exc()}")
             return None, capture_time
     
     def capture_and_detect(self) -> YOLODetectionResult:
@@ -2529,28 +2530,72 @@ def disconnect_modbus():
 
 
 @app.route('/api/initialize_camera', methods=['POST'])
-def initialize_camera():
-    """初始化相機"""
-    if not controller:
-        return jsonify({'success': False, 'error': '控制器未初始化'})
-    
+def initialize_camera(self, ip_address: str = None) -> bool:
+    """初始化相機連接 - 軟體觸發模式"""
     try:
-        data = request.get_json() if request.get_json() else {}
-        ip = data.get('ip', controller.camera_ip)
+        if ip_address:
+            self.camera_ip = ip_address
         
-        success = controller.initialize_camera(ip)
+        # 安全關閉現有相機管理器
+        if self.camera_manager:
+            try:
+                self.camera_manager.shutdown()
+            except:
+                pass
+            finally:
+                self.camera_manager = None
         
-        result = {
-            'success': success,
-            'message': f'相機初始化{"成功" if success else "失敗"}: {ip}',
-            'camera_ip': ip
-        }
+        # 創建相機配置 - 軟體觸發模式
+        camera_config = CameraConfig(
+            name="ccd1_camera",
+            ip=self.camera_ip,
+            exposure_time=20000.0,  # 20ms曝光時間
+            gain=200.0,
+            frame_rate=5.0,
+            pixel_format=PixelFormat.BAYER_GR8,
+            width=2592,
+            height=1944,
+            trigger_mode=CameraMode.SOFTWARE_TRIGGER,  # 軟體觸發模式
+            auto_reconnect=True,
+            bandwidth_limit_mbps=200,
+            use_latest_frame_only=True,
+            buffer_count=1
+        )
         
-        socketio.emit('status_update', controller.get_status())
-        return jsonify(result)
+        self.logger.info(f"初始化相機: {self.camera_ip} (軟體觸發模式, 5FPS, 200Mbps)")
+        self.camera_manager = OptimizedCameraManager()
         
+        # 添加相機
+        success = self.camera_manager.add_camera("ccd1_camera", camera_config)
+        if not success:
+            raise Exception("添加相機失敗")
+        
+        # 連接相機
+        connect_result = self.camera_manager.connect_camera("ccd1_camera")
+        if not connect_result:
+            raise Exception("相機連接失敗")
+        
+        # 軟體觸發模式也需要開始串流以接收觸發後的圖像
+        stream_result = self.camera_manager.start_streaming(["ccd1_camera"])
+        if not stream_result.get("ccd1_camera", False):
+            raise Exception("開始串流失敗")
+        
+        # 等待相機穩定
+        time.sleep(1.0)
+        
+        self.state_machine.set_initialized(True)
+        self.state_machine.set_alarm(False)
+        self.state_machine.set_ready(True)
+        
+        self.logger.info(f"相機初始化成功: {self.camera_ip} (軟體觸發模式)")
+        return True
+            
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        self.state_machine.set_alarm(True)
+        self.state_machine.set_initialized(False)
+        self.state_machine.set_ready(False)
+        self.logger.error(f"相機初始化失敗: {e}")
+        return False
 
 @app.route('/api/modbus/completion', methods=['GET'])
 def get_completion_status():

@@ -22,7 +22,7 @@ from flask_socketio import SocketIO, emit
 
 # Import camera manager
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'API'))
-from camera_manager import OptimizedCamera, CameraConfig
+from camera_manager import OptimizedCamera, CameraConfig, CameraMode, PixelFormat
 
 # 設置logger
 logging.basicConfig(level=logging.INFO)
@@ -452,16 +452,16 @@ class CCD3AngleDetectionService:
         self.default_params_written = False
 
     def initialize_camera(self, ip_address: str = "192.168.1.10") -> bool:
-        """初始化相機 - 適配新版camera_manager API"""
+        """初始化相機 - 軟體觸發模式"""
         try:
-            print(f"正在初始化相機，IP地址: {ip_address}")
+            print(f"正在初始化相機，IP地址: {ip_address} (軟體觸發模式)")
             
             if self.camera:
                 print("關閉現有相機連接...")
                 self.camera.disconnect()
                 self.camera = None
             
-            # 使用新版CameraConfig，增加頻寬控制參數
+            # 修正：使用軟體觸發模式的CameraConfig
             config = CameraConfig(
                 name="ccd3_camera",
                 ip=ip_address,
@@ -470,37 +470,56 @@ class CCD3AngleDetectionService:
                 frame_rate=30.0,
                 width=2592,
                 height=1944,
-                bandwidth_limit_mbps=200,  # 新增：200 MB/s頻寬限制
-                enable_bandwidth_control=True,  # 新增：啟用頻寬控制
-                packet_size=1500,  # 新增：設置包大小
-                packet_delay=5000,  # 新增：包間延遲
-                buffer_count=1,    # 新增：最小緩存
-                use_latest_frame_only=True  # 新增：只保留最新幀
+                # 觸發模式修正
+                trigger_mode=CameraMode.SOFTWARE_TRIGGER,  # 🔥 修正：使用軟體觸發模式
+                # 頻寬控制參數
+                bandwidth_limit_mbps=200,
+                enable_bandwidth_control=True,
+                packet_size=1500,
+                packet_delay=5000,
+                buffer_count=1,
+                use_latest_frame_only=True
             )
             
             self.camera = OptimizedCamera(config, logger)
             
             if self.camera.connect():
                 print(f"CCD3相機已成功連接: {ip_address}")
+                print(f"觸發模式: 軟體觸發")
                 print(f"頻寬限制已設置為: {config.bandwidth_limit_mbps} MB/s")
                 
+                # 修正：軟體觸發模式也需要啟動串流以接收觸發後的圖像
                 if self.camera.start_streaming():
-                    print("相機串流啟動成功")
+                    print("軟體觸發模式串流啟動成功")
                     
+                    # 測試軟體觸發功能
                     try:
-                        # 使用新版API方法名稱
-                        test_image = self.camera.capture_latest_frame()
-                        if test_image is not None:
-                            print(f"相機測試成功，圖像尺寸: {test_image.data.shape}")
-                            self.state_machine.set_initialized(True)
-                            self.state_machine.set_alarm(False)
-                            return True
+                        print("測試軟體觸發功能...")
+                        # 執行軟體觸發
+                        trigger_success = self.camera.trigger_software()
+                        if trigger_success:
+                            print("✓ 軟體觸發測試成功")
+                            
+                            # 等待觸發後的圖像
+                            time.sleep(0.1)
+                            test_frame = self.camera.capture_latest_frame(timeout=2000)
+                            
+                            if test_frame is not None:
+                                print(f"✓ 軟體觸發圖像捕獲成功，尺寸: {test_frame.data.shape}")
+                                self.state_machine.set_initialized(True)
+                                self.state_machine.set_alarm(False)
+                                return True
+                            else:
+                                print("✗ 軟體觸發後無法捕獲圖像")
+                                self.state_machine.set_alarm(True)
+                                return False
                         else:
-                            print("相機測試失敗: 無法捕獲圖像")
+                            print("✗ 軟體觸發測試失敗")
                             self.state_machine.set_alarm(True)
                             return False
+                            
                     except Exception as e:
-                        print(f"相機測試異常: {e}")
+                        print(f"軟體觸發測試異常: {e}")
                         self.state_machine.set_alarm(True)
                         return False
                 else:
@@ -518,7 +537,7 @@ class CCD3AngleDetectionService:
             return False
 
     def capture_and_detect_angle(self, mode: int = 0) -> AngleResult:
-        """修改版拍照並檢測角度 - 適配新版camera_manager API"""
+        """軟體觸發拍照並檢測角度"""
         if not self.camera:
             return AngleResult(
                 success=False, center=None, angle=None,
@@ -538,14 +557,27 @@ class CCD3AngleDetectionService:
         capture_start = time.perf_counter()
         
         try:
-            # 使用新版API方法名稱
-            frame_data = self.camera.capture_latest_frame()
+            print("開始軟體觸發拍照...")
+            
+            # 步驟1：執行軟體觸發
+            trigger_success = self.camera.trigger_software()
+            if not trigger_success:
+                raise Exception("軟體觸發失敗")
+            
+            print("✓ 軟體觸發成功，等待圖像...")
+            
+            # 步驟2：等待並捕獲觸發後的圖像
+            time.sleep(0.1)  # 短暫等待讓相機準備
+            frame_data = self.camera.capture_latest_frame(timeout=2000)
             
             if frame_data is None:
-                raise Exception("Image capture failed")
+                raise Exception("軟體觸發後圖像捕獲失敗")
             
             image = frame_data.data
             capture_time = (time.perf_counter() - capture_start) * 1000
+            
+            print(f"✓ 軟體觸發圖像捕獲成功，耗時: {capture_time:.2f}ms")
+            print(f"圖像尺寸: {image.shape}")
             
             # 參數快取機制
             detection_params = self.read_detection_parameters_cached()
@@ -599,45 +631,63 @@ class CCD3AngleDetectionService:
             
             if result.success:
                 self.operation_count += 1
-                print(f"角度檢測成功: 中心{result.center}, 角度{result.angle:.2f}度")
+                print(f"軟體觸發角度檢測成功: 中心{result.center}, 角度{result.angle:.2f}度")
             else:
                 self.error_count += 1
-                print(f"角度檢測失敗: {result.error_message}")
+                print(f"軟體觸發角度檢測失敗: {result.error_message}")
             
             return result
             
         except Exception as e:
             self.error_count += 1
+            capture_time = (time.perf_counter() - capture_start) * 1000
+            print(f"軟體觸發拍照異常: {e}")
             return AngleResult(
                 success=False, center=None, angle=None,
                 major_axis=None, minor_axis=None, rect_width=None, rect_height=None,
                 contour_area=None, processing_time=0,
-                capture_time=(time.perf_counter() - capture_start) * 1000,
-                total_time=(time.perf_counter() - capture_start) * 1000,
-                error_message=str(e)
+                capture_time=capture_time,
+                total_time=capture_time,
+                error_message=f"軟體觸發失敗: {str(e)}"
             )
 
+
     def _execute_command_async(self, command: int):
-        """異步執行指令 - 適配新版camera_manager API"""
+        """異步執行指令 - 軟體觸發版本"""
         try:
             print(f"開始執行指令: {command}")
             
             if command == 8:
-                print("執行拍照指令...")
+                print("執行軟體觸發拍照指令...")
                 if self.camera and getattr(self.camera, 'is_streaming', False):
-                    # 使用新版API方法名稱
-                    frame_data = self.camera.capture_latest_frame()
-                    if frame_data is not None:
-                        print(f"拍照完成，圖像尺寸: {frame_data.data.shape}")
-                    else:
-                        print("拍照失敗")
+                    try:
+                        # 執行軟體觸發
+                        trigger_success = self.camera.trigger_software()
+                        if trigger_success:
+                            print("✓ 軟體觸發成功")
+                            
+                            # 等待並捕獲圖像
+                            time.sleep(0.1)
+                            frame_data = self.camera.capture_latest_frame(timeout=2000)
+                            
+                            if frame_data is not None:
+                                print(f"✓ 軟體觸發拍照完成，圖像尺寸: {frame_data.data.shape}")
+                            else:
+                                print("✗ 軟體觸發後圖像捕獲失敗")
+                                self.error_count += 1
+                        else:
+                            print("✗ 軟體觸發失敗")
+                            self.error_count += 1
+                            
+                    except Exception as trigger_e:
+                        print(f"軟體觸發異常: {trigger_e}")
                         self.error_count += 1
                 else:
-                    print("拍照失敗: 相機未初始化")
+                    print("拍照失敗: 相機未初始化或串流未啟動")
                     self.error_count += 1
-                        
+                    
             elif command == 16:
-                print("執行拍照+增強調試版角度檢測指令...")
+                print("執行軟體觸發拍照+增強調試版角度檢測指令...")
                 
                 # 讀取檢測模式
                 mode_result = self.modbus_client.read_holding_registers(
@@ -653,19 +703,19 @@ class CCD3AngleDetectionService:
                 self.write_detection_result(result)
                 
                 if result.success:
-                    print(f"增強調試版角度檢測完成: 中心{result.center}, 角度{result.angle:.2f}度")
+                    print(f"✓ 軟體觸發增強調試版角度檢測完成: 中心{result.center}, 角度{result.angle:.2f}度")
                     print(f"調試圖像已保存，包含完整的可視化效果")
                 else:
-                    print(f"增強調試版角度檢測失敗: {result.error_message}")
+                    print(f"✗ 軟體觸發增強調試版角度檢測失敗: {result.error_message}")
                     
             elif command == 32:
                 print("執行重新初始化指令...")
                 success = self.initialize_camera()
                 if success:
-                    print("重新初始化成功")
+                    print("✓ 重新初始化成功")
                     self.default_params_written = False
                 else:
-                    print("重新初始化失敗")
+                    print("✗ 重新初始化失敗")
             else:
                 print(f"未知指令: {command}")
                 

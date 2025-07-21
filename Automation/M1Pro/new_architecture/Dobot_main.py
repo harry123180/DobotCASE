@@ -856,38 +856,196 @@ class MotionFlowThread(BaseFlowThread):
             print(f"[Motion] {self.last_error}")
     
     def _execute_flow1(self):
-        """執行Flow1 - VP視覺抓取"""
+        """執行Flow1 - VP視覺抓取 (增強錯誤調試版)"""
         try:
+            print("\n" + "="*60)
             print("[Motion] 開始執行Flow1 - VP視覺抓取")
+            print("="*60)
+            
+            # 設置運動狀態機
             self.motion_state_machine.set_running(True)
             self.motion_state_machine.set_current_flow(1)
             self.motion_state_machine.set_progress(0)
             
+            # 獲取Flow1執行器
             flow1 = self.flow_executors.get(1)
-            if flow1:
-                result = flow1.execute()
-                
-                if result.success:
-                    print("[Motion] ✓ Flow1執行成功")
-                    self.motion_state_machine.set_flow_complete(1, True)
-                    self.motion_state_machine.set_progress(100)
-                    self.motion_state_machine.set_running(False)
-                    self.motion_state_machine.set_current_flow(0)
-                    self.motion_state_machine.set_ready(True)
-                else:
-                    print(f"[Motion] ✗ Flow1執行失敗: {result.error_message}")
-                    self.motion_state_machine.set_alarm(True)
-                    self.motion_state_machine.set_running(False)
-                    self.motion_state_machine.set_current_flow(0)
-            else:
-                print("[Motion] ✗ Flow1執行器未初始化")
+            if not flow1:
+                error_msg = "Flow1執行器未找到或未初始化"
+                print(f"[Motion] ✗ Flow1執行失敗: {error_msg}")
                 self.motion_state_machine.set_alarm(True)
+                self.motion_state_machine.set_running(False)
+                self.motion_state_machine.set_current_flow(0)
+                return
+            
+            print(f"[Motion] Flow1執行器狀態檢查:")
+            print(f"  - 執行器類型: {type(flow1).__name__}")
+            print(f"  - 是否就緒: {flow1.is_ready() if hasattr(flow1, 'is_ready') else '未知'}")
+            print(f"  - 總步驟數: {flow1.total_steps if hasattr(flow1, 'total_steps') else '未知'}")
+            print(f"  - 點位載入狀態: {flow1.points_loaded if hasattr(flow1, 'points_loaded') else '未知'}")
+            
+            # 檢查AutoProgram連接（如果是AutoProgram版本）
+            if hasattr(flow1, 'autoprogram_interface'):
+                ap_connected = flow1.autoprogram_interface.connected if flow1.autoprogram_interface else False
+                print(f"  - AutoProgram連接: {ap_connected}")
+                if ap_connected and hasattr(flow1.autoprogram_interface, 'get_autoprogram_status_info'):
+                    try:
+                        ap_status = flow1.autoprogram_interface.get_autoprogram_status_info()
+                        print(f"  - AutoProgram狀態: {ap_status}")
+                    except Exception as e:
+                        print(f"  - AutoProgram狀態讀取失敗: {e}")
+            
+            # 檢查機械臂連接
+            if hasattr(flow1, 'robot'):
+                robot_connected = flow1.robot.is_connected if flow1.robot else False
+                print(f"  - 機械臂連接: {robot_connected}")
+            
+            print(f"[Motion] 開始執行Flow1...")
+            
+            # 執行Flow1
+            result = flow1.execute()
+            
+            print(f"\n[Motion] Flow1執行結果:")
+            print(f"  - 成功: {result.success}")
+            print(f"  - 執行時間: {result.execution_time:.2f}秒")
+            print(f"  - 完成步驟: {result.steps_completed}/{result.total_steps}")
+            
+            if result.success:
+                print("[Motion] ✓ Flow1執行成功")
                 
+                # 顯示Flow1結果數據
+                if hasattr(result, 'flow_data') and result.flow_data:
+                    print(f"[Motion] Flow1結果數據:")
+                    for key, value in result.flow_data.items():
+                        if key == 'detected_position' and isinstance(value, dict):
+                            print(f"  - 檢測位置: ({value.get('x', 0):.2f}, {value.get('y', 0):.2f})")
+                            print(f"  - 座標來源: {value.get('source', '未知')}")
+                        elif key in ['target_angle', 'command_angle']:
+                            print(f"  - {key}: {value:.2f}°" if value is not None else f"  - {key}: 未設置")
+                        else:
+                            print(f"  - {key}: {value}")
+                
+                # 檢查commandAngle是否正確設置
+                if hasattr(flow1, 'command_angle'):
+                    if flow1.command_angle is not None:
+                        print(f"[Motion] ✓ commandAngle已設置: {flow1.command_angle:.2f}°")
+                    else:
+                        print(f"[Motion] ⚠ commandAngle未設置")
+                
+                # 設置成功狀態
+                self.motion_state_machine.set_flow_complete(1, True)
+                self.motion_state_machine.set_progress(100)
+                self.motion_state_machine.set_running(False)
+                self.motion_state_machine.set_current_flow(0)
+                self.motion_state_machine.set_ready(True)
+                
+                print("[Motion] ✓ Flow1狀態機更新完成")
+                
+            else:
+                # 詳細的失敗分析
+                print(f"[Motion] ✗ Flow1執行失敗")
+                print(f"[Motion] 錯誤訊息: {result.error_message}")
+                print(f"[Motion] 失敗詳細分析:")
+                print(f"  - 執行時間: {result.execution_time:.2f}秒")
+                print(f"  - 完成步驟: {result.steps_completed}/{result.total_steps}")
+                
+                # 分析失敗原因
+                if result.steps_completed == 0:
+                    print(f"  - 失敗類型: 初始化失敗")
+                    print(f"  - 可能原因: 連接問題、點位未載入、參數錯誤")
+                elif "read_autoprogram_coordinates" in result.error_message:
+                    print(f"  - 失敗類型: AutoProgram座標讀取失敗")
+                    print(f"  - 可能原因: AutoProgram未準備好、座標未設置、通訊問題")
+                    
+                    # 檢查AutoProgram具體狀態
+                    if hasattr(flow1, 'autoprogram_interface') and flow1.autoprogram_interface:
+                        try:
+                            ap_status = flow1.autoprogram_interface.get_autoprogram_status_info()
+                            print(f"  - AutoProgram詳細狀態:")
+                            for key, value in ap_status.items():
+                                print(f"    * {key}: {value}")
+                        except Exception as e:
+                            print(f"  - AutoProgram狀態檢查失敗: {e}")
+                            
+                elif result.steps_completed > 0:
+                    print(f"  - 失敗類型: 執行中途失敗")
+                    print(f"  - 失敗步驟: 第{result.steps_completed + 1}步")
+                    
+                    # 嘗試獲取當前執行的步驟資訊
+                    if hasattr(flow1, 'motion_steps') and flow1.motion_steps:
+                        if result.steps_completed < len(flow1.motion_steps):
+                            failed_step = flow1.motion_steps[result.steps_completed]
+                            print(f"  - 失敗步驟詳情: {failed_step}")
+                    
+                    # 檢查機械臂狀態
+                    if hasattr(flow1, 'robot') and flow1.robot:
+                        try:
+                            if hasattr(flow1.robot, 'is_connected'):
+                                print(f"  - 機械臂連接狀態: {flow1.robot.is_connected}")
+                            if hasattr(flow1.robot, 'get_pose'):
+                                current_pose = flow1.robot.get_pose()
+                                print(f"  - 當前機械臂位置: {current_pose}")
+                        except Exception as e:
+                            print(f"  - 機械臂狀態檢查失敗: {e}")
+                
+                # 檢查Flow1的最後錯誤
+                if hasattr(flow1, 'last_error') and flow1.last_error:
+                    print(f"  - Flow1內部錯誤: {flow1.last_error}")
+                
+                # 檢查外部模組狀態
+                if hasattr(flow1, 'external_modules'):
+                    print(f"  - 外部模組狀態:")
+                    for module_name, module in flow1.external_modules.items():
+                        if module:
+                            connected = getattr(module, 'connected', '未知')
+                            print(f"    * {module_name}: 連接={connected}")
+                        else:
+                            print(f"    * {module_name}: 未初始化")
+                
+                # 設置失敗狀態
+                self.motion_state_machine.set_alarm(True)
+                self.motion_state_machine.set_running(False)
+                self.motion_state_machine.set_current_flow(0)
+                
+                print("[Motion] ✗ Flow1狀態機設置為Alarm狀態")
+            
+            print("="*60)
+            
         except Exception as e:
-            print(f"[Motion] Flow1執行異常: {e}")
-            self.motion_state_machine.set_alarm(True)
-            self.motion_state_machine.set_running(False)
-            self.motion_state_machine.set_current_flow(0)
+            error_msg = f"Flow1執行異常: {str(e)}"
+            print(f"[Motion] ✗ {error_msg}")
+            
+            # 異常詳細分析
+            print(f"[Motion] 異常詳細資訊:")
+            print(f"  - 異常類型: {type(e).__name__}")
+            print(f"  - 異常訊息: {str(e)}")
+            
+            # 輸出堆疊追蹤
+            import traceback
+            traceback_str = traceback.format_exc()
+            print(f"  - 堆疊追蹤:")
+            for line in traceback_str.split('\n'):
+                if line.strip():
+                    print(f"    {line}")
+            
+            # 檢查當前狀態
+            try:
+                print(f"[Motion] 當前系統狀態:")
+                print(f"  - 運動狀態機運行: {self.motion_state_machine.running if hasattr(self.motion_state_machine, 'running') else '未知'}")
+                print(f"  - 當前Flow: {self.motion_state_machine.current_flow if hasattr(self.motion_state_machine, 'current_flow') else '未知'}")
+                print(f"  - 準備狀態: {self.motion_state_machine.ready if hasattr(self.motion_state_machine, 'ready') else '未知'}")
+            except Exception as status_e:
+                print(f"  - 狀態檢查失敗: {status_e}")
+            
+            # 設置異常狀態
+            try:
+                self.motion_state_machine.set_alarm(True)
+                self.motion_state_machine.set_running(False)
+                self.motion_state_machine.set_current_flow(0)
+                print("[Motion] ✗ 已設置系統為Alarm狀態")
+            except Exception as state_e:
+                print(f"[Motion] ✗ 狀態機設置失敗: {state_e}")
+            
+            print("="*60)
     
     def _execute_flow2(self):
         """執行Flow2 - CV出料流程"""

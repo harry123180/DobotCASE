@@ -438,7 +438,7 @@ class GripperHighLevelAPI:
             elif status == GripperStatus.DROPPED:
                 elapsed_time = time.time() - start_time
                 self.logger.warning(f"動作失敗(掉落)，耗時: {elapsed_time:.3f}秒")
-                return False
+                return True
         
         self.logger.warning(f"PGC動作完成等待超時 (超時時間: {timeout}秒)")
         return False
