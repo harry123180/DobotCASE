@@ -224,3 +224,4 @@ Traceback (most recent call last):
 werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
 
 2025-07-02 20:57:38,765 - ERROR - send:384 - Cancel send, because not connected!
+2025-07-28 03:30:55,101 - ERROR - send:384 - Cancel send, because not connected!

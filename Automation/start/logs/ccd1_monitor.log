@@ -1,0 +1,257 @@
+2025-07-30 12:43:30 [INFO] CCD1Monitor:check_conda_environment:78 - 檢查conda環境: ROBOT
+2025-07-30 12:43:31 [INFO] CCD1Monitor:check_conda_environment:86 - conda版本: conda 24.11.3
+2025-07-30 12:43:33 [INFO] CCD1Monitor:check_conda_environment:100 - 找到環境: ROBOT                  C:\Users\user\anaconda3\envs\ROBOT
+2025-07-30 12:43:33 [INFO] CCD1Monitor:check_conda_environment:107 - conda環境檢查通過
+2025-07-30 12:43:33 [INFO] CCD1Monitor:check_script_file:119 - 檢查CCD1腳本檔案
+2025-07-30 12:43:33 [INFO] CCD1Monitor:check_script_file:125 - CCD1腳本: C:\Users\user\Documents\GitHub\DobotCASE\Automation\CCD1\CCD1VisionCodeYOLO.py (129.0 KB)
+2025-07-30 12:43:33 [INFO] CCD1Monitor:start_ccd1:136 - 啟動 CCD1視覺系統
+2025-07-30 12:43:33 [INFO] CCD1Monitor:start_ccd1:137 - 腳本路徑: C:\Users\user\Documents\GitHub\DobotCASE\Automation\CCD1\CCD1VisionCodeYOLO.py
+2025-07-30 12:43:33 [INFO] CCD1Monitor:start_ccd1:148 - 執行命令: conda run -n ROBOT ... CCD1VisionCodeYOLO.py
+2025-07-30 12:43:36 [INFO] CCD1Monitor:start_ccd1:180 - CCD1視覺系統 啟動成功
+2025-07-30 12:43:36 [INFO] CCD1Monitor:start_ccd1:181 - PID: 19440
+2025-07-30 12:43:36 [INFO] CCD1Monitor:start_ccd1:182 - 啟動時間: 3.00 秒
+2025-07-30 12:43:36 [INFO] CCD1Monitor:monitor_loop:258 - 記憶體監控執行緒已啟動
+2025-07-30 12:43:45 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.18 MB, 總計: 74.07 MB, 百分比: 0.04%
+2025-07-30 12:43:51 [INFO] CCD1Monitor:kill_and_restart_ccd1:297 - 開始CCD1重啟測試
+2025-07-30 12:43:51 [INFO] CCD1Monitor:kill_and_restart_ccd1:303 - 重啟前記憶體使用: 74.07 MB
+2025-07-30 12:43:51 [INFO] CCD1Monitor:kill_and_restart_ccd1:315 - 終止進程 PID: 19440
+2025-07-30 12:43:51 [INFO] CCD1Monitor:kill_and_restart_ccd1:324 - 進程已正常終止，耗時: 0.00 秒
+2025-07-30 12:43:52 [INFO] CCD1Monitor:monitor_loop:282 - 記憶體監控執行緒已停止
+2025-07-30 12:43:53 [INFO] CCD1Monitor:start_ccd1:136 - 啟動 CCD1視覺系統
+2025-07-30 12:43:53 [INFO] CCD1Monitor:start_ccd1:137 - 腳本路徑: C:\Users\user\Documents\GitHub\DobotCASE\Automation\CCD1\CCD1VisionCodeYOLO.py
+2025-07-30 12:43:53 [INFO] CCD1Monitor:start_ccd1:148 - 執行命令: conda run -n ROBOT ... CCD1VisionCodeYOLO.py
+2025-07-30 12:43:56 [INFO] CCD1Monitor:start_ccd1:180 - CCD1視覺系統 啟動成功
+2025-07-30 12:43:56 [INFO] CCD1Monitor:start_ccd1:181 - PID: 10384
+2025-07-30 12:43:56 [INFO] CCD1Monitor:start_ccd1:182 - 啟動時間: 3.00 秒
+2025-07-30 12:43:56 [INFO] CCD1Monitor:kill_and_restart_ccd1:346 - CCD1重啟成功
+2025-07-30 12:43:56 [INFO] CCD1Monitor:kill_and_restart_ccd1:347 - 終止時間: 0.00 秒
+2025-07-30 12:43:56 [INFO] CCD1Monitor:kill_and_restart_ccd1:348 - 重啟時間: 3.00 秒
+2025-07-30 12:43:56 [INFO] CCD1Monitor:kill_and_restart_ccd1:349 - 總計時間: 5.01 秒
+2025-07-30 12:43:56 [INFO] CCD1Monitor:monitor_loop:258 - 記憶體監控執行緒已啟動
+2025-07-30 12:44:05 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.18 MB, 總計: 73.97 MB, 百分比: 0.04%
+2025-07-30 12:44:15 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.18 MB, 總計: 73.97 MB, 百分比: 0.04%
+2025-07-30 12:44:25 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.93 MB, 百分比: 0.04%
+2025-07-30 12:44:35 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.93 MB, 百分比: 0.04%
+2025-07-30 12:44:45 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.93 MB, 百分比: 0.04%
+2025-07-30 12:44:55 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.88 MB, 百分比: 0.04%
+2025-07-30 12:45:05 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.88 MB, 百分比: 0.04%
+2025-07-30 12:45:16 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.88 MB, 百分比: 0.04%
+2025-07-30 12:45:26 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.88 MB, 百分比: 0.04%
+2025-07-30 12:45:36 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.88 MB, 百分比: 0.04%
+2025-07-30 12:45:46 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.88 MB, 百分比: 0.04%
+2025-07-30 12:45:56 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.88 MB, 百分比: 0.04%
+2025-07-30 12:46:06 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:46:16 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.84 MB, 百分比: 0.04%
+2025-07-30 12:46:26 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.84 MB, 百分比: 0.04%
+2025-07-30 12:46:36 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.84 MB, 百分比: 0.04%
+2025-07-30 12:46:46 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.84 MB, 百分比: 0.04%
+2025-07-30 12:46:56 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.84 MB, 百分比: 0.04%
+2025-07-30 12:47:06 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.84 MB, 百分比: 0.04%
+2025-07-30 12:47:16 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.84 MB, 百分比: 0.04%
+2025-07-30 12:47:26 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.84 MB, 百分比: 0.04%
+2025-07-30 12:47:36 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.84 MB, 百分比: 0.04%
+2025-07-30 12:47:46 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.84 MB, 百分比: 0.04%
+2025-07-30 12:47:56 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.84 MB, 百分比: 0.04%
+2025-07-30 12:48:06 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.84 MB, 百分比: 0.04%
+2025-07-30 12:48:16 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.84 MB, 百分比: 0.04%
+2025-07-30 12:48:26 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.84 MB, 百分比: 0.04%
+2025-07-30 12:48:36 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.84 MB, 百分比: 0.04%
+2025-07-30 12:48:46 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.14 MB, 總計: 73.84 MB, 百分比: 0.04%
+2025-07-30 12:48:56 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.17 MB, 總計: 73.91 MB, 百分比: 0.04%
+2025-07-30 12:49:06 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.17 MB, 總計: 73.91 MB, 百分比: 0.04%
+2025-07-30 12:49:16 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.17 MB, 總計: 73.91 MB, 百分比: 0.04%
+2025-07-30 12:49:26 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.17 MB, 總計: 73.91 MB, 百分比: 0.04%
+2025-07-30 12:49:36 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.17 MB, 總計: 73.91 MB, 百分比: 0.04%
+2025-07-30 12:49:47 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.17 MB, 總計: 73.91 MB, 百分比: 0.04%
+2025-07-30 12:49:57 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.17 MB, 總計: 73.91 MB, 百分比: 0.04%
+2025-07-30 12:50:07 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.17 MB, 總計: 73.91 MB, 百分比: 0.04%
+2025-07-30 12:50:17 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.17 MB, 總計: 73.91 MB, 百分比: 0.04%
+2025-07-30 12:50:27 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.17 MB, 總計: 73.91 MB, 百分比: 0.04%
+2025-07-30 12:50:37 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.85 MB, 百分比: 0.04%
+2025-07-30 12:50:47 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.85 MB, 百分比: 0.04%
+2025-07-30 12:50:57 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.85 MB, 百分比: 0.04%
+2025-07-30 12:51:07 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.85 MB, 百分比: 0.04%
+2025-07-30 12:51:17 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.85 MB, 百分比: 0.04%
+2025-07-30 12:51:27 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.85 MB, 百分比: 0.04%
+2025-07-30 12:51:37 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.85 MB, 百分比: 0.04%
+2025-07-30 12:51:47 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.85 MB, 百分比: 0.04%
+2025-07-30 12:51:57 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.85 MB, 百分比: 0.04%
+2025-07-30 12:52:07 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.85 MB, 百分比: 0.04%
+2025-07-30 12:52:17 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.85 MB, 百分比: 0.04%
+2025-07-30 12:52:27 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.85 MB, 百分比: 0.04%
+2025-07-30 12:52:37 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.85 MB, 百分比: 0.04%
+2025-07-30 12:52:47 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.85 MB, 百分比: 0.04%
+2025-07-30 12:52:57 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.85 MB, 百分比: 0.04%
+2025-07-30 12:53:07 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.85 MB, 百分比: 0.04%
+2025-07-30 12:53:17 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.85 MB, 百分比: 0.04%
+2025-07-30 12:53:27 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.85 MB, 百分比: 0.04%
+2025-07-30 12:53:37 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.85 MB, 百分比: 0.04%
+2025-07-30 12:53:47 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.85 MB, 百分比: 0.04%
+2025-07-30 12:53:57 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.16 MB, 總計: 73.90 MB, 百分比: 0.04%
+2025-07-30 12:54:08 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.16 MB, 總計: 73.90 MB, 百分比: 0.04%
+2025-07-30 12:54:18 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.16 MB, 總計: 73.90 MB, 百分比: 0.04%
+2025-07-30 12:54:28 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.16 MB, 總計: 73.90 MB, 百分比: 0.04%
+2025-07-30 12:54:38 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.16 MB, 總計: 73.90 MB, 百分比: 0.04%
+2025-07-30 12:54:48 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.16 MB, 總計: 73.90 MB, 百分比: 0.04%
+2025-07-30 12:54:58 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.16 MB, 總計: 73.90 MB, 百分比: 0.04%
+2025-07-30 12:55:08 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:55:18 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:55:28 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:55:38 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:55:48 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:55:58 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:56:08 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:56:18 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:56:28 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:56:38 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:56:48 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:56:58 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:57:08 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:57:18 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:57:28 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:57:38 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:57:48 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:57:58 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:58:08 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:58:18 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:58:28 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:58:39 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:58:49 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:58:59 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:59:09 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:59:19 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.15 MB, 總計: 73.86 MB, 百分比: 0.04%
+2025-07-30 12:59:29 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 12:59:39 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 12:59:49 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 12:59:59 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:00:09 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:00:19 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:00:29 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:00:39 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:00:49 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:00:59 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:01:09 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:01:19 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:01:29 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:01:39 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:01:49 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:01:59 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:02:09 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:02:19 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:02:29 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:02:39 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:02:49 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:03:00 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:03:10 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:03:20 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:03:30 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:03:40 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:03:50 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:04:00 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:04:10 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:04:20 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:04:30 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:04:40 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:04:50 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:05:00 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:05:10 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:05:20 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:05:30 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:05:40 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:05:50 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:06:00 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:06:10 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:06:20 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:06:30 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:06:40 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:06:50 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:07:00 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:07:10 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:07:20 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:07:31 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:07:41 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:07:51 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:08:01 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:08:11 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:08:21 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:08:31 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:08:41 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:08:51 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:09:01 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:09:11 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:09:21 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:09:31 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:09:41 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:09:51 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:10:01 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:10:11 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:10:21 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:10:31 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:10:41 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:10:51 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:11:01 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:11:11 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:11:21 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:11:31 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:11:41 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:11:51 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:12:01 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:12:12 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:12:22 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:12:32 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:12:42 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:12:52 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:13:02 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:13:12 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:13:22 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:13:32 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:13:42 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:13:52 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:14:02 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:14:12 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:14:22 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:14:32 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:14:42 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:14:52 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:15:02 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:15:12 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:15:22 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:15:32 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:15:42 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:15:52 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:16:02 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:16:12 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:16:22 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:16:32 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:16:43 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:16:53 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:17:03 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:17:13 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:17:23 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:17:33 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:17:43 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:17:53 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:18:03 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:18:13 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:18:23 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:18:33 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:18:43 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:18:53 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:19:03 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:19:13 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:19:23 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:19:33 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:19:43 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:19:53 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:20:03 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:20:13 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:20:23 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:20:33 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:20:43 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:20:53 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:21:03 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:21:14 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:21:24 [DEBUG] CCD1Monitor:monitor_loop:271 - 記憶體使用 - 主進程: 6.12 MB, 總計: 73.13 MB, 百分比: 0.04%
+2025-07-30 13:21:32 [INFO] CCD1Monitor:stop_ccd1:528 - 停止CCD1進程
+2025-07-30 13:21:32 [INFO] CCD1Monitor:stop_ccd1:537 - 終止進程 PID: 10384
+2025-07-30 13:21:32 [INFO] CCD1Monitor:stop_ccd1:542 - CCD1進程已正常停止

@@ -66,10 +66,11 @@ class AutoProgramInterface:
             'AUTO_PROGRAM_CONTROL': 1321,    # 自動程序啟用控制
             
             # AutoProgram座標寄存器 (1340-1349)
-            'TARGET_X_HIGH': 1340,           # 目標座標X高位
-            'TARGET_X_LOW': 1341,            # 目標座標X低位
-            'TARGET_Y_HIGH': 1342,           # 目標座標Y高位  
-            'TARGET_Y_LOW': 1343,            # 目標座標Y低位
+            'COORDS_AVAILABLE': 1340,    # 座標可用標誌
+            'TARGET_X_HIGH': 1341,       # X座標高位
+            'TARGET_X_LOW': 1342,        # X座標低位  
+            'TARGET_Y_HIGH': 1343,       # Y座標高位
+            'TARGET_Y_LOW': 1344,        # Y座標低位
             
             # 原始AutoFeeding寄存器 (向下兼容)
             'AF_CASE_F_AVAILABLE': 940,      # CASE_F可用標誌
@@ -170,7 +171,7 @@ class AutoProgramInterface:
             return False
     
     def check_autoprogram_ready_and_coordinates(self) -> bool:
-        """檢查AutoProgram狀態並確認座標可用 - 修正版接受狀態3"""
+        """檢查AutoProgram狀態並確認座標可用 - 統一地址版"""
         try:
             # 1. 檢查AutoProgram系統狀態(1300) 
             # 接受 1(運行中), 2(Flow1觸發狀態), 3(Flow1等待狀態)
@@ -183,15 +184,9 @@ class AutoProgramInterface:
             if prepare_done != 0:
                 return False
                 
-            # 3. 檢查座標是否已準備在AutoProgram中
-            # 讀取座標寄存器檢查是否有有效座標
-            x_high = self.read_register('TARGET_X_HIGH') or 0
-            x_low = self.read_register('TARGET_X_LOW') or 0
-            y_high = self.read_register('TARGET_Y_HIGH') or 0
-            y_low = self.read_register('TARGET_Y_LOW') or 0
-            
-            # 檢查座標是否非零(有效)
-            if x_high == 0 and x_low == 0 and y_high == 0 and y_low == 0:
+            # 3. 檢查座標可用標誌(1340) = 1
+            coords_available = self.read_register('COORDS_AVAILABLE') or 0
+            if coords_available != 1:
                 return False
                 
             return True
@@ -199,11 +194,17 @@ class AutoProgramInterface:
         except Exception as e:
             print(f"檢查AutoProgram狀態異常: {e}")
             return False
-    
+
     def read_target_coordinates_from_autoprogram(self) -> Optional[Dict[str, float]]:
-        """從AutoProgram讀取目標座標"""
+        """從AutoProgram讀取目標座標 - 統一地址版"""
         try:
-            # 批量讀取座標寄存器 (1340-1343)
+            # 首先檢查座標可用標誌
+            coords_available = self.read_register('COORDS_AVAILABLE') or 0
+            if coords_available != 1:
+                print("AutoProgram座標不可用 (1340=0)")
+                return None
+            
+            # 批量讀取座標寄存器 (1341-1344)
             try:
                 result = self.modbus_client.read_holding_registers(
                     self.REGISTERS['TARGET_X_HIGH'], 4, slave=1
@@ -235,6 +236,8 @@ class AutoProgramInterface:
             world_x = world_x_int / 100.0
             world_y = world_y_int / 100.0
             
+            print(f"從AutoProgram讀取座標: ({world_x:.2f}, {world_y:.2f})")
+            
             return {
                 'x': world_x,
                 'y': world_y,
@@ -244,11 +247,11 @@ class AutoProgramInterface:
         except Exception as e:
             print(f"讀取AutoProgram目標座標異常: {e}")
             return None
-    
+
     def confirm_coordinate_read(self) -> bool:
-        """確認座標已讀取"""
+        """確認座標已讀取 - 通知AutoFeeding座標已被取用"""
         return self.write_register('AF_COORDS_TAKEN', 1)
-    
+
     def get_autoprogram_status_info(self) -> Dict[str, Any]:
         """獲取AutoProgram狀態資訊"""
         try:
@@ -259,6 +262,7 @@ class AutoProgramInterface:
                 'af_case_f_status': self.read_register('AF_CASE_F_STATUS'),
                 'flow5_status': self.read_register('FLOW5_STATUS'),
                 'af_case_f_available': self.read_register('AF_CASE_F_AVAILABLE'),
+                'coords_available': self.read_register('COORDS_AVAILABLE'),  # 新增：座標可用狀態
                 'connected': self.connected
             }
         except Exception as e:
@@ -419,7 +423,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
         self.motion_steps = [
             # 1. 從AutoProgram讀取座標
             {'type': 'read_autoprogram_coordinates', 'params': {}},
-            
+            {'type': 'gripper_smart_release_fast', 'params': {'position': 250}},
             # 2. 初始準備
             #{'type': 'move_to_point', 'params': {'point_name': 'standby', 'move_type': 'J'}},
             #{'type': 'gripper_close_fast', 'params': {}},
@@ -466,6 +470,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
             
             # 10. 移動到put_asm_top (帶commandAngle) - Flow1終點
             {'type': 'move_to_point_with_angle', 'params': {'point_name': 'put_asm_top', 'move_type': 'JointMovJ'}},
+             {'type': 'move_to_point_with_angle', 'params': {'point_name': 'put_asm_top_2', 'move_type': 'JointMovJ'}},
         ]
         
         self.total_steps = len(self.motion_steps)
@@ -600,6 +605,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
         elif step_type == 'gripper_close_fast':
             return self._execute_gripper_close_fast()
         elif step_type == 'gripper_smart_release_fast':
+            
             return self._execute_gripper_smart_release_fast(params)
         elif step_type == 'read_autoprogram_coordinates':
             return self._execute_read_autoprogram_coordinates()
@@ -1035,7 +1041,7 @@ class Flow1VisionPickExecutor(FlowExecutor):
             
             # 獲取target_angle並計算command_angle
             self.target_angle = detection_result.target_angle
-            self.command_angle = self.target_angle + 20  # 參考Flow5的計算方式
+            self.command_angle = self.target_angle + 21.5  # 參考Flow5的計算方式 原本是20
             
             # print(f"  ✓ CCD3角度檢測成功: target_angle={self.target_angle:.2f}°")
             # print(f"  ✓ 計算commandAngle: {self.command_angle:.2f}° (target_angle + 20)")
@@ -1191,10 +1197,10 @@ class Flow1VisionPickExecutor(FlowExecutor):
                     y_low = self.autoprogram_interface.read_register('TARGET_Y_LOW') or 0
                     print(f"    - 改用單個讀取")
                 
-                print(f"    - TARGET_X_HIGH(1340): {x_high}")
-                print(f"    - TARGET_X_LOW(1341): {x_low}")
-                print(f"    - TARGET_Y_HIGH(1342): {y_high}")
-                print(f"    - TARGET_Y_LOW(1343): {y_low}")
+                print(f"    - TARGET_X_HIGH(1341): {x_high}")
+                print(f"    - TARGET_X_LOW(1342): {x_low}")
+                print(f"    - TARGET_Y_HIGH(1343): {y_high}")
+                print(f"    - TARGET_Y_LOW(1344): {y_low}")
                 
                 # Step 6: 檢查座標是否有效（非全零）
                 if x_high == 0 and x_low == 0 and y_high == 0 and y_low == 0:

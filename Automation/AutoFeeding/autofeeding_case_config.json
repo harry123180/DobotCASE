@@ -1,0 +1,47 @@
+{
+  "autofeeding": {
+    "cycle_interval": 1.0,
+    "ccd1_timeout": 5.0,
+    "flow4_consecutive_limit": 5,
+    "vp_empty_check_count": 3,
+    "auto_start": true,
+    "progress_threshold": 44
+  },
+  "anomaly_detection": {
+    "large_count_threshold": 5,
+    "sudden_drop_threshold": 1,
+    "redetection_delay": 0.5
+  },
+  "ccd1_monitoring": {
+    "command_stuck_threshold": 5,
+    "alarm_recovery_timeout": 10.0,
+    "status_check_interval": 0.5
+  },
+  "memory_monitoring": {
+    "check_interval": 10,
+    "threshold_mb": 500,
+    "reload_timeout": 30.0
+  },
+  "vp_params": {
+    "spread_action_code": 11,
+    "spread_strength": 28,
+    "spread_frequency": 59,
+    "spread_duration": 0.3,
+    "stop_command_code": 3,
+    "stop_delay": 0.1
+  },
+  "flow4_params": {
+    "pulse_duration": 0.1,
+    "pulse_interval": 0.05
+  },
+  "timing": {
+    "command_delay": 0.05,
+    "status_check_interval": 0.05,
+    "register_clear_delay": 0.02,
+    "vp_stabilize_delay": 0.15,
+    "flow1_check_interval": 0.1
+  },
+  "coordination": {
+    "coords_taken_timeout": 10.0
+  }
+}

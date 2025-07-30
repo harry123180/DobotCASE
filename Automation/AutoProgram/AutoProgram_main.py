@@ -242,10 +242,10 @@ class AutoProgramController:
             self.write_register(1323, 0)  # 強制重置
             
             # AutoFeeding狀態寄存器 (1340-1359)
-            self.write_register(1340, 0)  # 目標座標X高位
-            self.write_register(1341, 0)  # 目標座標X低位
-            self.write_register(1342, 0)  # 目標座標Y高位
-            self.write_register(1343, 0)  # 目標座標Y低位
+            self.write_register(1341, 0)  # 目標座標X高位
+            self.write_register(1342, 0)  # 目標座標X低位
+            self.write_register(1343, 0)  # 目標座標Y高位
+            self.write_register(1344, 0)  # 目標座標Y低位
             
             self.logger.info("AutoProgram系統寄存器初始化完成")
         except Exception as e:
@@ -373,10 +373,10 @@ class AutoProgramController:
         self.logger.debug(f"寫入座標寄存器: X({x_high},{x_low}) Y({y_high},{y_low})")
         
         success = True
-        success &= self.write_register(1340, x_high)
-        success &= self.write_register(1341, x_low)
-        success &= self.write_register(1342, y_high)
-        success &= self.write_register(1343, y_low)
+        success &= self.write_register(1341, x_high)
+        success &= self.write_register(1342, x_low)
+        success &= self.write_register(1343, y_high)
+        success &= self.write_register(1344, y_low)
         
         if success:
             # 確認已讀取座標
@@ -386,7 +386,7 @@ class AutoProgramController:
             if coords_taken_success:
                 self.case_f_taken_count += 1
                 self.logger.info(f"✓ CASE_F座標已準備完成: ({af_status['target_x']:.2f}, {af_status['target_y']:.2f})")
-                self.logger.info(f"✓ AutoProgram座標寄存器(1340-1343)已更新")
+                self.logger.info(f"✓ AutoProgram座標寄存器(1340-1344)已更新")
                 self.logger.info(f"✓ AutoFeeding確認標誌(945)已設置")
                 
                 return (af_status['target_x'], af_status['target_y'])
@@ -394,7 +394,7 @@ class AutoProgramController:
                 self.logger.error("✗ AutoFeeding確認標誌(945)寫入失敗")
                 return None
         else:
-            self.logger.error("✗ AutoProgram座標寄存器(1340-1343)寫入失敗")
+            self.logger.error("✗ AutoProgram座標寄存器(1340-1344)寫入失敗")
             return None
     
     def can_trigger_flow1(self) -> Tuple[bool, str]:
@@ -470,6 +470,9 @@ class AutoProgramController:
         
         # 設置prepare_done=True
         self.prepare_done = True
+        if not self.write_register(1313, 1):
+            self.logger.error(f"Flow1觸發失敗 (寫入{self.DOBOT_FLOW1_CONTROL}=1失敗)")
+            return False
         self.flow1_triggered = False  # 重置Flow1觸發狀態
         self.system_status = SystemStatus.RUNNING
         
@@ -484,7 +487,7 @@ class AutoProgramController:
             
             # 清除Flow5完成狀態
             self.write_register(self.DOBOT_FLOW5_COMPLETE, 0)
-            
+            self.write_register(1314, 1)
             # 設置prepare_done=False
             self.prepare_done = False
             self.flow5_complete_count += 1
@@ -610,9 +613,9 @@ class AutoProgramController:
                     y_int = y_int + 4294967296
                 
                 self.write_register(1340, (x_int >> 16) & 0xFFFF)
-                self.write_register(1341, x_int & 0xFFFF)
-                self.write_register(1342, (y_int >> 16) & 0xFFFF)
-                self.write_register(1343, y_int & 0xFFFF)
+                self.write_register(1342, x_int & 0xFFFF)
+                self.write_register(1343, (y_int >> 16) & 0xFFFF)
+                self.write_register(1344, y_int & 0xFFFF)
             
         except Exception as e:
             self.logger.error(f"系統寄存器更新失敗: {e}", exc_info=True)

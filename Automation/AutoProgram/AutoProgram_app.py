@@ -74,7 +74,7 @@ class AutoProgramWebController:
             'DOBOT_MOTION_STATUS': 1200,        # 運動狀態寄存器
             'DOBOT_CURRENT_FLOW': 1201,         # 當前運動Flow
             'DOBOT_MOTION_PROGRESS': 1202,      # 運動進度
-            'DOBOT_FLOW1_COMPLETE': 1204,       # Flow1完成狀態
+            'DOBOT_FLOW1_COMPLETE': 1313,       # Flow1完成狀態
             'DOBOT_FLOW5_COMPLETE': 1206,       # Flow5完成狀態
             'DOBOT_FLOW1_CONTROL': 1240,        # Flow1控制
             'DOBOT_FLOW5_CONTROL': 1242,        # Flow5控制
@@ -526,6 +526,12 @@ def auto_handshake():
         
         # 1. 檢查Flow1完成狀態
         flow1_complete = controller.read_register('DOBOT_FLOW1_COMPLETE')
+        # 2. 清除Flow1完成狀態
+        clear_success = controller.write_register('DOBOT_FLOW1_COMPLETE', 0)
+        if clear_success:
+            logMessage.append("✓ Flow1完成狀態已清除")
+        else:
+            logMessage.append("✗ Flow1完成狀態清除失敗")
         logMessage.append(f"檢查Flow1完成狀態: {flow1_complete}")
         
         if not flow1_complete:
@@ -536,14 +542,10 @@ def auto_handshake():
         
         logMessage.append("✓ Flow1已完成，開始自動交握流程")
         
-        # 2. 清除Flow1完成狀態
-        clear_success = controller.write_register('DOBOT_FLOW1_COMPLETE', 0)
-        if clear_success:
-            logMessage.append("✓ Flow1完成狀態已清除")
-        else:
-            logMessage.append("✗ Flow1完成狀態清除失敗")
+        
             
         # 3. 觸發Flow5
+        
         trigger_success = controller.write_register('DOBOT_FLOW5_CONTROL', 1)
         if trigger_success:
             logMessage.append("✓ Flow5已觸發")
@@ -563,7 +565,7 @@ def auto_handshake():
             'success': success,
             'message': f"自動交握{'成功' if success else '部分失敗'}: {message}"
         })
-        
+       
     except Exception as e:
         return jsonify({
             'success': False, 

@@ -33,10 +33,10 @@ class Flow4VibrationFeedExecutor(FlowExecutor):
         # 🟢 時間延遲設定 - 增加百分比控制
         self.TIMING_CONFIG = {
             'FEED_DURATION': 1.0,         # DO4持續時間 (秒)
-            'PULSE_DELAY_PERCENT': 30,     # DO1延遲百分比 (0-100)
+            'PULSE_DELAY_PERCENT': 50,     # DO1延遲百分比 (0-100)
             'PULSE_HIGH_TIME': 0.3,        # DO1 HIGH持續時間 (秒)
             'PULSE_LOW_TIME': 0.3,         # DO1 LOW持續時間 (秒)
-            'PULSE_COUNT': 1               # DO1脈衝次數
+            'PULSE_COUNT': 4               # DO1脈衝次數
         }
         
         # 🟢 計算實際延遲時間

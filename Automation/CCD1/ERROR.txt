@@ -1,0 +1,26 @@
+[2025-07-27 11:24:57,133] ERROR in app: Exception on /api/initialize_camera [POST]
+Traceback (most recent call last):
+  File "C:\Users\user\anaconda3\envs\ROBOT\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\anaconda3\envs\ROBOT\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\anaconda3\envs\ROBOT\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\anaconda3\envs\ROBOT\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: initialize_camera() missing 1 required positional argument: 'self'
+Traceback (most recent call last):
+  File "C:\Users\user\anaconda3\envs\ROBOT\Lib\site-packages\gevent\_ffi\loop.py", line 270, in python_check_callback
+    def python_check_callback(self, watcher_ptr): # pylint:disable=unused-argument
+
+KeyboardInterrupts
+
+
+
+
+
+//錯誤1
